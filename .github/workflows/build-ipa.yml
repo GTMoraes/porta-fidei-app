@@ -1,0 +1,111 @@
+name: Gerar IPA (Porta Fidei)
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write        # para publicar o IPA em Releases
+
+concurrency:
+  group: ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Escolher o Xcode mais novo
+        run: |
+          XC=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Conferir o código (TypeScript)
+        run: npx tsc --noEmit
+
+      - name: Gerar o projeto iOS (Expo prebuild)
+        run: npx expo prebuild --platform ios --clean --no-install
+
+      - name: Tirar o push remoto (conta gratuita não assina essa permissão)
+        run: |
+          for f in ios/*/*.entitlements; do
+            echo "== $f"; cat "$f"
+            /usr/libexec/PlistBuddy -c "Delete :aps-environment" "$f" 2>/dev/null || true
+          done
+
+      - name: Cache dos Pods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: pods-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar Pods
+        run: cd ios && pod install
+
+      - name: Compilar
+        run: |
+          set -o pipefail
+          WS=$(ls -d ios/*.xcworkspace | head -1)
+          SCHEME=$(basename "$WS" .xcworkspace)
+          echo "Workspace: $WS  Scheme: $SCHEME"
+          echo "SCHEME=$SCHEME" >> $GITHUB_ENV
+          xcodebuild -workspace "$WS" -scheme "$SCHEME" \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee xcodebuild.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" xcodebuild.log
+
+      - name: Empacotar o IPA
+        run: |
+          APP=$(ls -d build/Build/Products/Release-iphoneos/*.app | head -1)
+          echo "App: $APP"
+          codesign --force --sign - "$APP"
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -qry PortaFidei.ipa Payload
+          ls -la PortaFidei.ipa
+
+      - name: Publicar o IPA em Releases (link direto)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Porta Fidei, build ${{ github.run_number }}
+          body: |
+            Commit ${{ github.sha }}
+            Link fixo para a versão mais nova:
+            https://github.com/${{ github.repository }}/releases/latest/download/PortaFidei.ipa
+          files: PortaFidei.ipa
+          make_latest: true
+
+      - name: Link do IPA
+        run: |
+          echo "### PortaFidei.ipa" >> $GITHUB_STEP_SUMMARY
+          echo "Desta build: https://github.com/${{ github.repository }}/releases/download/build-${{ github.run_number }}/PortaFidei.ipa" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Sempre a mais nova: https://github.com/${{ github.repository }}/releases/latest/download/PortaFidei.ipa" >> $GITHUB_STEP_SUMMARY
+
+      - name: Resumo dos erros (se falhar)
+        if: failure()
+        run: grep -n "error:" xcodebuild.log | head -80 || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+          if-no-files-found: ignore
