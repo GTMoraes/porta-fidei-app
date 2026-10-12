@@ -23,9 +23,13 @@ interface Props {
   topo?: React.ReactNode; // conteúdo nativo acima do texto (ex.: seletor de dia)
   baseUrl?: string; // pasta local para imagens do texto
   alturaTopo?: number;
+  rodape?: React.ReactNode; // barra fixa embaixo (ex.: atalhos da Missa, escolha do salmo do Invitatório)
+  tipo?: 'horas' | 'texto';
 }
 
-export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseUrl, alturaTopo = 64 }: Props) {
+const ALTURA_RODAPE = 58;
+
+export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseUrl, alturaTopo = 64, rodape, tipo = 'texto' }: Props) {
   const aj = useAjustes();
   const c = usePaleta();
   const web = useRef<WebView>(null);
@@ -72,9 +76,15 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
     () =>
       corpo == null
         ? null
-        : paginaHtml(corpo, aj, c, { titulo, subtitulo, topoExtra: insets.top + 44 + (topo ? alturaTopo : 0), rodapeExtra: insets.bottom }),
+        : paginaHtml(corpo, aj, c, {
+            titulo,
+            subtitulo,
+            tipo,
+            topoExtra: insets.top + 44 + (topo ? alturaTopo + 8 : 0),
+            rodapeExtra: insets.bottom + (rodape ? ALTURA_RODAPE : 0),
+          }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [corpo, aj.fonte, aj.alinhamento, aj.tema, c.leitorFundo, titulo, subtitulo, insets.top, insets.bottom, !!topo, alturaTopo],
+    [corpo, aj.fonte, aj.alinhamento, aj.tema, c.leitorFundo, titulo, subtitulo, insets.top, insets.bottom, !!topo, !!rodape, alturaTopo, tipo],
   );
 
   const mudarFonte = (delta: number) => {
@@ -152,7 +162,7 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
         />
       )}
 
-      {topo && !expandido ? <View style={{ position: 'absolute', top: insets.top + 50, left: 12, right: 12 }}>{topo}</View> : null}
+      {topo && !expandido && barraVisivel ? <View style={{ position: 'absolute', top: insets.top + 50, left: 12, right: 12 }}>{topo}</View> : null}
 
       {silencio != null ? (
         <View style={{ position: 'absolute', top: '38%', alignSelf: 'center' }}>
@@ -168,8 +178,16 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
         </View>
       ) : null}
 
+      {rodape && !expandido && html != null ? (
+        <View style={{ position: 'absolute', bottom: insets.bottom + 8, left: 12, right: 12 }}>
+          <Vidro style={{ borderRadius: 26, minHeight: ALTURA_RODAPE - 8, justifyContent: 'center' }} interativo>
+            {rodape}
+          </Vidro>
+        </View>
+      ) : null}
+
       {barraVisivel && !expandido && html != null ? (
-        <View style={{ position: 'absolute', bottom: insets.bottom + 12, alignSelf: 'center' }}>
+        <View style={{ position: 'absolute', bottom: insets.bottom + 12 + (rodape ? ALTURA_RODAPE : 0), alignSelf: 'center' }}>
           <Vidro style={{ borderRadius: 30, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6 }} interativo>
             <BotaoBarra icone="textformat.size.smaller" onPress={() => mudarFonte(-1)} />
             <BotaoBarra icone="textformat.size.larger" onPress={() => mudarFonte(1)} />

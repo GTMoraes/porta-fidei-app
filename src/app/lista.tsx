@@ -4,6 +4,7 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 
 import { COMUNS, MISSAL_FIXO, ORACOES, RITUAIS, ROSARIO, type Grupo, type Item } from '@/conteudo/catalogo';
 import { existe, lerDado, listar, usePacote } from '@/conteudo/pacote';
+import { diaLiturgico, hojeIso, type DiaLiturgico } from '@/liturgia/calendario';
 import { SANTOS } from '@/liturgia/santos';
 import { Espaco, usePaleta } from '@/tema';
 import { Aviso, Fundo, Linha, Secao } from '@/ui/base';
@@ -16,7 +17,74 @@ const TITULOS: Record<string, string> = {
   'missal-proprio': 'Próprio',
   rosario: 'Santo Rosário',
   salmos: 'Salmos e cânticos',
+  ordinario: 'Ordinário',
+  eucaristicas: 'Orações Eucarísticas',
+  prefacios: 'Prefácios',
 };
+
+// Prefácios: nome legível a partir do arquivo (ex.: comumIV -> Comum IV, domingoTCIII -> Domingos do Tempo Comum III)
+const BASE_PREFACIO: [RegExp, string][] = [
+  [/^domingoTC/, 'Domingos do Tempo Comum'],
+  [/^comum/, 'Comum'],
+  [/^adventoI(I?)A$/, 'Advento'],
+  [/^advento/, 'Advento'],
+  [/^natal/, 'Natal'],
+  [/^quaresma/, 'Quaresma'],
+  [/^paixao/, 'Paixão do Senhor'],
+  [/^pascoa/, 'Páscoa'],
+  [/^ascensao/, 'Ascensão'],
+  [/^depoisdaascensao/, 'Depois da Ascensão'],
+  [/^espiritosanto/, 'Espírito Santo'],
+  [/^virgemmaria/, 'Virgem Maria'],
+  [/^apostolos/, 'Apóstolos'],
+  [/^martires/, 'Mártires'],
+  [/^santospastores/, 'Santos pastores'],
+  [/^santosdoutores/, 'Santos doutores'],
+  [/^santasvirgensreligiosos/, 'Santas virgens e santos religiosos'],
+  [/^santos/, 'Santos'],
+  [/^sseucaristia/, 'Santíssima Eucaristia'],
+  [/^fieisdefuntos/, 'Fiéis defuntos'],
+  [/^anjos/, 'Anjos'],
+  [/^batismo/, 'Batismo do Senhor'],
+  [/^saojose/, 'São José'],
+  [/^crisma/, 'Missa do Crisma'],
+  [/^enfermos/, 'Unção dos enfermos'],
+  [/^matrimonio/, 'Matrimônio'],
+  [/^ordem/, 'Ordem'],
+  [/^penitencia/, 'Penitência'],
+];
+
+function nomePrefacio(slug: string): string {
+  const q = slug.match(/^(\d)domingoquaresma$/);
+  if (q) return `${q[1]}º Domingo da Quaresma`;
+  const ad = slug.match(/^advento(I{1,2})A$/);
+  if (ad) return `Advento ${ad[1]} A`;
+  for (const [re, nome] of BASE_PREFACIO) {
+    if (re.test(slug)) {
+      const resto = slug.replace(re, '');
+      return resto ? `${nome} ${resto}` : nome;
+    }
+  }
+  return slug;
+}
+
+/** Prefixos dos prefácios próprios de cada tempo */
+function prefixosDoTempo(dia: DiaLiturgico): string[] {
+  switch (dia.tempo) {
+    case 'advento':
+      return ['advento'];
+    case 'natal':
+      return ['natal'];
+    case 'quaresma':
+      return dia.semana >= 5 ? ['paixao', 'quaresma'] : [`${dia.semana}domingoquaresma`, 'quaresma'];
+    case 'triduo':
+      return ['paixao'];
+    case 'pascoa':
+      return dia.semana >= 7 ? ['ascensao', 'depoisdaascensao', 'pascoa'] : ['pascoa'];
+    default:
+      return dia.diaSemana === 0 ? ['domingoTC'] : ['comum'];
+  }
+}
 
 const PASTAS_MISSAL: [string, string][] = [
   ['advento', 'Advento'],
@@ -70,7 +138,7 @@ interface EntradaSalterio {
 }
 
 export default function Lista() {
-  const { tipo, pasta } = useLocalSearchParams<{ tipo: string; pasta?: string }>();
+  const { tipo, pasta, data } = useLocalSearchParams<{ tipo: string; pasta?: string; data?: string }>();
   const router = useRouter();
   const nav = useNavigation();
   const c = usePaleta();
@@ -137,6 +205,30 @@ export default function Lista() {
             ],
           },
         ];
+      case 'ordinario':
+        return filtra([MISSAL_FIXO[0]]).map((g) => ({ ...g, titulo: '' }));
+      case 'eucaristicas':
+        return filtra([MISSAL_FIXO[1]]).map((g) => ({ ...g, titulo: '' }));
+      case 'prefacios': {
+        const dia = diaLiturgico(data || hojeIso());
+        const tempo = listar('missal/prefacio/tempo/');
+        const proprios = listar('missal/prefacio/proprio/');
+        const doDia: Item[] = [];
+        const slug = dia.celebracao.slug;
+        if (slug && existe(`missal/prefacio/proprio/${slug}`)) doDia.push({ arquivo: `missal/prefacio/proprio/${slug}`, titulo: `Prefácio próprio`, sub: dia.celebracao.nome });
+        const prefs = prefixosDoTempo(dia);
+        const slugDe = (a: string) => a.split('/').pop() ?? a;
+        const ordena = (x: Item, y: Item) => x.titulo.localeCompare(y.titulo, 'pt-BR', { numeric: true });
+        tempo
+          .filter((a) => prefs.some((pr) => slugDe(a).startsWith(pr)))
+          .forEach((a) => doDia.push({ arquivo: a, titulo: nomePrefacio(slugDe(a)) }));
+        const outros = tempo.filter((a) => !doDia.some((i) => i.arquivo === a)).map((a) => ({ arquivo: a, titulo: nomePrefacio(slugDe(a)) }));
+        return [
+          { titulo: 'Para hoje', itens: doDia },
+          { titulo: 'Prefácios dos tempos e comuns', itens: outros.sort(ordena) },
+          { titulo: 'Prefácios próprios', itens: proprios.map((a) => ({ arquivo: a, titulo: nomeMissal(slugDe(a)) })).sort(ordena) },
+        ].filter((g) => g.itens.length);
+      }
       case 'missal-proprio': {
         const raiz = pasta?.startsWith('prefacio-') ? `missal/prefacio/${pasta.slice(9)}/` : `missal/proprio/${pasta}/`;
         const itens = listar(raiz)
@@ -152,7 +244,7 @@ export default function Lista() {
       default:
         return [];
     }
-  }, [tipo, pasta, salmos, canticos]);
+  }, [tipo, pasta, data, salmos, canticos]);
 
   const q = busca
     .trim()

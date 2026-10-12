@@ -29,6 +29,7 @@ export interface Ajustes {
   alinhamento: 'centro' | 'esquerda';
   fonte: 'serifa' | 'sem-serifa';
   invitatorio: '94' | '99' | '66' | '23';
+  antifonaNasEstrofes: boolean;
   lembretes: Record<Hora, Lembrete>;
 }
 
@@ -53,6 +54,7 @@ export const PADRAO: Ajustes = {
   alinhamento: 'centro',
   fonte: 'serifa',
   invitatorio: '94',
+  antifonaNasEstrofes: true,
   lembretes: {
     invitatorio: { ativo: false, hora: 6, minuto: 0 },
     leituras: { ativo: false, hora: 6, minuto: 15 },

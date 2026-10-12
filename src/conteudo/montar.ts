@@ -3,7 +3,7 @@
 import type { Ajustes } from '@/estado/ajustes';
 import type { Paleta } from '@/tema';
 import type { Parte, PlanoHora } from '@/liturgia/horas';
-import { ler } from './pacote';
+import { ler } from '@/conteudo/pacote';
 
 function cortar(html: string, desde?: string, ate?: string): string {
   let ini = 0;
@@ -27,12 +27,27 @@ function cortar(html: string, desde?: string, ate?: string): string {
   return html.slice(ini, fim);
 }
 
+/**
+ * Ajusta o HTML do pacote para a leitura no celular, sem mudar o texto:
+ * - rubricas longas que vinham dentro de <sup>/<sub> viram um bloco de rubrica (tamanho legível, sem sobrescrito);
+ * - referência ao lado do título (ex.: "Antífona de entrada" + "Is 61,10") vai para a direita, como no Missal.
+ */
+export function normalizar(html: string): string {
+  const semTags = (t: string) => t.replace(/<[^>]+>/g, '').replace(/&nbsp;|\s+/g, ' ').trim();
+  let h = html.replace(/<(sup|sub)>([\s\S]*?)<\/\1>/g, (m, _t, dentro: string) =>
+    semTags(dentro).length > 8 ? `<span class="rub">${dentro}</span>` : m,
+  );
+  h = h.replace(/<sub>([\s\S]*?)<\/sub>/g, '$1');
+  h = h.replace(/(<span class="r">[^<]{2,40}<\/span>)<span>([^<]{2,40})<\/span>/g, '$1<span class="refdir">$2</span>');
+  return h;
+}
+
 const temSalmodia = (html: string) => /Salmodia|Salmo\s+\d|Ant\.\s*1/i.test(html);
 
 async function lerParte(p: Parte): Promise<string | null> {
   const bruto = await ler(p.arquivo);
   if (bruto == null) return null;
-  let html = cortar(bruto, p.desde, p.ate);
+  let html = normalizar(cortar(bruto, p.desde, p.ate));
   if (p.seFaltarSalmodia && !temSalmodia(html)) {
     const base = await lerParte(p.seFaltarSalmodia);
     if (base) html = base + '<div class="emenda"></div>' + html;
@@ -75,7 +90,13 @@ export interface Montado {
   faltando: string[];
 }
 
-export async function montarHora(plano: PlanoHora, aj: Ajustes): Promise<Montado> {
+export interface ExtrasHora {
+  antifonaInvitatorio?: string; // texto da antífona do dia (com \n nas quebras)
+}
+
+const escapar = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+export async function montarHora(plano: PlanoHora, aj: Ajustes, extras: ExtrasHora = {}): Promise<Montado> {
   const faltando: string[] = [];
   const pedacos: string[] = [];
   for (const p of plano.partes) {
@@ -93,6 +114,15 @@ export async function montarHora(plano: PlanoHora, aj: Ajustes): Promise<Montado
   }
 
   let corpo = pedacos.join('\n');
+
+  // Invitatório: a antífona do dia entra em todos os lugares marcados no arquivo
+  if (corpo.includes('id="antifonaInvitatorio')) {
+    const ant = extras.antifonaInvitatorio
+      ? escapar(extras.antifonaInvitatorio).replace(/\n/g, '<br/>')
+      : '<span class="lacuna">Antífona do dia (em digitalização)</span>';
+    corpo = corpo.replace(/<span id="antifonaInvitatorio\d+">\s*<\/span>/g, `<span class="antinv">${ant}</span>`);
+    corpo = corpo.replace(/<span id="coletasalmodica">\s*<\/span>/g, '');
+  }
 
   // lacunas dos domingos do Tempo Comum
   if (corpo.includes('data-ph=')) {
@@ -117,7 +147,7 @@ export async function montarArquivo(arquivo: string, desde?: string, ate?: strin
   const h = await ler(arquivo);
   if (h == null) return { corpo: '', faltando: [arquivo] };
   // o marcador de fim só vale depois do início (ex.: do título do cântico até a antífona final)
-  let trecho = cortar(h, desde);
+  let trecho = normalizar(cortar(h, desde));
   if (ate && desde) {
     const depoisDoTitulo = trecho.indexOf('<br', 40);
     const i = trecho.indexOf(ate, Math.max(depoisDoTitulo, 0) + 200);
@@ -149,14 +179,16 @@ export interface OpcoesPagina {
   subtitulo?: string;
   topoExtra?: number; // espaço para o cabeçalho transparente
   rodapeExtra?: number;
+  /** horas: segue o ajuste de alinhamento; texto: respeita o alinhamento do original */
+  tipo?: 'horas' | 'texto';
 }
 
 export function paginaHtml(corpo: string, aj: Ajustes, cor: Paleta, op: OpcoesPagina = {}): string {
   const familia =
     aj.fonte === 'serifa'
-      ? `ui-serif, "New York", "Iowan Old Style", Georgia, serif`
+      ? `"Times New Roman", "New York", ui-serif, Georgia, serif`
       : `-apple-system, system-ui, "Helvetica Neue", sans-serif`;
-  const alin = aj.alinhamento === 'centro' ? 'center' : 'left';
+  const horasEsquerda = op.tipo === 'horas' && aj.alinhamento === 'esquerda';
   const cab = op.titulo
     ? `<header><h1>${op.titulo}</h1>${op.subtitulo ? `<p>${op.subtitulo}</p>` : ''}</header>`
     : '';
@@ -166,31 +198,45 @@ export function paginaHtml(corpo: string, aj: Ajustes, cor: Paleta, op: OpcoesPa
 :root{--bg:${cor.leitorFundo};--tx:${cor.leitorTexto};--rb:${cor.rubrica};--dt:${cor.destaque};--fr:${cor.textoFraco};}
 *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--tx);}
-body{font-family:${familia};font-size:${aj.tamanhoFonte}px;line-height:1.55;padding:${(op.topoExtra ?? 0) + 8}px 22px ${(op.rodapeExtra ?? 0) + 120}px;-webkit-text-size-adjust:100%;word-wrap:break-word;}
-header{text-align:center;margin:6px 0 18px}
-header h1{font-size:1.35em;font-weight:600;margin:0;color:var(--dt);letter-spacing:.01em}
-header p{margin:4px 0 0;font-size:.82em;color:var(--fr)}
-.c,.parte,div,p{text-align:${alin}}
-.parte>div,.parte>p{margin:0}
-.r,.r *{color:var(--rb)!important}
-.r{font-weight:600;font-size:.92em;letter-spacing:.01em}
-sup .r, sup{font-size:.6em}
-b,strong{font-weight:600}
+body{font-family:${familia};font-size:${aj.tamanhoFonte}px;line-height:1.42;padding:${(op.topoExtra ?? 0) + 8}px 20px ${(op.rodapeExtra ?? 0) + 120}px;-webkit-text-size-adjust:100%;word-wrap:break-word;-webkit-hyphens:manual;}
+header{text-align:center;margin:4px 0 20px}
+header h1{font-size:1.25em;font-weight:600;margin:0;color:var(--dt);letter-spacing:.01em}
+header p{margin:4px 0 0;font-size:.8em;color:var(--fr);line-height:1.3}
+.parte{text-align:left}
+.c{text-align:center}
+${horasEsquerda ? '.c,[align=center],center{text-align:left!important}' : ''}
+p{margin:0 0 .9em}
+.r,.r *{color:var(--rb)}
+b,strong{font-weight:700}
 i,em{font-style:italic}
-.cruz{color:var(--rb);font-size:1.1em;margin-right:6px}
-a{color:var(--dt);text-decoration:none}
-.lacuna{display:inline-block;color:var(--fr);font-style:italic;font-size:.88em;border:1px dashed var(--fr);border-radius:10px;padding:2px 8px;margin:2px 0}
-.preenchido{}
+sup{font-size:.62em;line-height:0;vertical-align:.55em}
+sup sup{font-size:1em;vertical-align:0}
+.rub{font-size:.78em;line-height:1.35;color:var(--rb);display:inline-block;margin:.15em 0}
+.rub *{font-size:1em}
+.refdir{float:right;color:var(--rb);font-size:.92em;margin-left:12px}
+.antinv{font-weight:700}
+.cruz{color:var(--rb);margin-right:6px}
+a{color:inherit;text-decoration:none}
+a u,u{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+.lacuna{display:inline-block;color:var(--fr);font-style:italic;font-size:.85em;border:1px dashed var(--fr);border-radius:10px;padding:2px 8px;margin:2px 0}
 .resp{color:var(--tx);opacity:.85}
 .emenda{height:0}
-.faixa{margin:28px 0 8px;text-align:center;color:var(--dt);font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.75em}
+.faixa{margin:30px 0 10px;text-align:center;color:var(--dt);font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.72em;font-family:-apple-system,system-ui,sans-serif}
 hr{border:0;border-top:1px solid var(--fr);opacity:.3;margin:18px 0}
 img{max-width:100%;height:auto;border-radius:14px}
 table{width:100%}
-.tit{color:var(--rb);font-weight:600;margin:22px 0 6px}
-.tit.h1,.tit.h2{font-size:1.1em;color:var(--dt)}
-.cnbb p{margin:0 0 10px}
-.fonte{color:var(--fr);font-size:.75em;margin-top:24px!important}
+/* Liturgia Diária (texto da CNBB) */
+.cnbb{text-align:left}
+.cnbb .sec{text-align:center;color:var(--rb);letter-spacing:.06em;margin:1.7em 0 .35em}
+.cnbb .lema{text-align:right;margin:.1em 0 .7em}
+.cnbb .vl{display:flex;align-items:baseline}
+.cnbb .vn{flex:0 0 2.3em;font-size:.6em;color:var(--rb);white-space:nowrap;overflow:hidden}
+.cnbb .vt{flex:1;min-width:0}
+.cnbb .ref{color:var(--rb);opacity:.85}
+.cnbb .cel{text-align:center;margin:0 0 4px}
+.cnbb .nota{text-align:center;color:var(--fr);font-style:italic;font-size:.8em;margin:0 0 6px}
+.missa{text-align:left;margin:0 0 1.2em}
+.fonte{color:var(--fr);font-size:.72em;text-align:center;margin:28px 0 0!important;font-family:-apple-system,system-ui,sans-serif}
 </style></head><body>${cab}${corpo}
 <script>
 (function(){

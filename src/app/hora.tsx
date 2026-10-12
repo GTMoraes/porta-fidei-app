@@ -1,12 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 
 import { montarHora } from '@/conteudo/montar';
-import { existe, usePacote } from '@/conteudo/pacote';
-import { useAjustes } from '@/estado/ajustes';
+import { existe, lerDado, usePacote } from '@/conteudo/pacote';
+import { mudarAjustes, useAjustes } from '@/estado/ajustes';
 import { diaLiturgico, hojeIso, somaDias } from '@/liturgia/calendario';
 import { planoDaHora, type Hora } from '@/liturgia/horas';
+import { antifonaInvitatorio, type DadosInvitatorio } from '@/liturgia/invitatorio';
 import { usePaleta } from '@/tema';
 import { Icone, toque, Vidro } from '@/ui/base';
 import { Leitor } from '@/ui/Leitor';
@@ -20,12 +21,26 @@ export default function TelaHora() {
   const [data, setData] = useState(p.data || hojeIso());
   const [memoria, setMemoria] = useState<string | undefined>();
   const [corpo, setCorpo] = useState<string | null>(null);
+  const [dadosInv, setDadosInv] = useState<DadosInvitatorio | null | undefined>(undefined);
+  const ehInvitatorio = p.h === 'invitatorio';
+
+  useEffect(() => {
+    if (!ehInvitatorio) return;
+    lerDado<DadosInvitatorio>('invitatorio.json').then((d) => setDadosInv(d ?? null));
+  }, [ehInvitatorio, pacote.manifest]);
 
   const dia = useMemo(() => diaLiturgico(data), [data]);
   const plano = useMemo(
-    () => planoDaHora(data, p.h, { existe, bienal: aj.bienal, memoriaEscolhida: memoria, invitatorio: aj.invitatorio }),
+    () =>
+      planoDaHora(data, p.h, {
+        existe,
+        bienal: aj.bienal,
+        memoriaEscolhida: memoria,
+        invitatorio: aj.invitatorio,
+        antifonaNasEstrofes: aj.antifonaNasEstrofes,
+      }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, p.h, aj.bienal, aj.invitatorio, memoria, pacote.manifest],
+    [data, p.h, aj.bienal, aj.invitatorio, aj.antifonaNasEstrofes, memoria, pacote.manifest],
   );
 
   useEffect(() => {
@@ -35,7 +50,9 @@ export default function TelaHora() {
       setCorpo('<p class="c"><span class="lacuna">O conteúdo litúrgico ainda não foi instalado. Vá em Ajustes › Conteúdo litúrgico.</span></p>');
       return;
     }
-    montarHora(plano, aj).then((m) => {
+    if (ehInvitatorio && dadosInv === undefined) return; // espera as antífonas
+    const antifona = ehInvitatorio ? antifonaInvitatorio(dia, dadosInv ?? null, memoria) : undefined;
+    montarHora(plano, aj, { antifonaInvitatorio: antifona }).then((m) => {
       if (!vivo) return;
       let html = m.corpo;
       if (!html) html = `<p class="c"><span class="lacuna">${plano.avisos[0] ?? 'Texto indisponível.'}</span></p>`;
@@ -47,7 +64,7 @@ export default function TelaHora() {
       vivo = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plano, aj.repetirRespostas, aj.laudesAmpliada]);
+  }, [plano, aj.repetirRespostas, aj.laudesAmpliada, dadosInv]);
 
   const mudarDia = (n: number) => {
     toque();
@@ -90,8 +107,42 @@ export default function TelaHora() {
   );
 
   const comChips = dia.facultativas.length > 0 && !plano.primeirasVesperas && p.h !== 'completas';
+
+  // Invitatório: escolha do salmo e da antífona entre as estrofes (como no iLiturgia)
+  const rodape = ehInvitatorio ? (
+    <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 6 }}>
+      <Text style={{ color: c.textoSuave, fontSize: 14, marginRight: 6 }}>Salmo</Text>
+      {(['94', '23', '66', '99'] as const).map((sl) => (
+        <Pressable
+          key={sl}
+          hitSlop={4}
+          onPress={() => {
+            toque();
+            mudarAjustes({ invitatorio: sl });
+          }}
+          style={{ paddingHorizontal: 7, paddingVertical: 6 }}>
+          <Text style={{ fontSize: 19, fontWeight: aj.invitatorio === sl ? '700' : '400', color: aj.invitatorio === sl ? c.destaque : c.textoFraco }}>{sl}</Text>
+        </Pressable>
+      ))}
+      <View style={{ flex: 1 }} />
+      <Text style={{ color: c.textoSuave, fontSize: 13, marginRight: 8, textAlign: 'right' }} numberOfLines={2}>
+        Antífona{'\n'}nas estrofes
+      </Text>
+      <Switch
+        value={aj.antifonaNasEstrofes}
+        onValueChange={(v) => {
+          toque();
+          mudarAjustes({ antifonaNasEstrofes: v });
+        }}
+        trackColor={{ true: c.destaque }}
+      />
+    </View>
+  ) : undefined;
+
   return (
     <Leitor
+      tipo="horas"
+      rodape={rodape}
       alturaTopo={comChips ? 108 : 64}
       corpo={corpo}
       titulo={plano.titulo}

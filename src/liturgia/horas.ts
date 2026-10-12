@@ -44,6 +44,7 @@ export interface Opcoes {
   bienal?: boolean;
   memoriaEscolhida?: string; // slug de memória facultativa escolhida pelo usuário
   invitatorio?: '94' | '99' | '66' | '23';
+  antifonaNasEstrofes?: boolean; // Invitatório: repete a antífona entre as estrofes (padrão: sim)
   existe: (arquivo: string) => boolean;
 }
 
@@ -105,7 +106,8 @@ function temporal(dia: DiaLiturgico, h: Hora, op: Opcoes): { partes: Parte[]; or
 
   if (h === 'invitatorio') {
     const sl = op.invitatorio ?? '94';
-    const a = primeiro(op, `oficio/invitatorio/invitatorio${sl}c`, 'oficio/invitatorio/invitatorio94c');
+    const cs = op.antifonaNasEstrofes === false ? 's' : 'c';
+    const a = primeiro(op, `oficio/invitatorio/invitatorio${sl}${cs}`, `oficio/invitatorio/invitatorio${sl}c`, 'oficio/invitatorio/invitatorio94c');
     return { partes: a ? [{ arquivo: a }] : [], avisos };
   }
 
