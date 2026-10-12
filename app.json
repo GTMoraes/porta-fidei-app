@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "Porta Fidei",
+    "slug": "porta-fidei",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "portafidei",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "br.com.portafidei.app",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "icon": "./assets/images/icon.png",
+      "infoPlist": {
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true,
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Para escolher imagens dos avisos e eventos da Comunidade."
+      }
+    },
+    "android": {
+      "package": "br.com.portafidei.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#F7F2E8",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F7F2E8",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 140,
+          "dark": {
+            "backgroundColor": "#0C1124",
+            "image": "./assets/images/splash-icon.png"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#BC8C44"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Para escolher imagens dos avisos e eventos da Comunidade.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
