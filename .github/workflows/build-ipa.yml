@@ -1,29 +1,62 @@
-name: Gerar IPA (Porta Fidei)
+name: TestFlight (Porta Fidei)
+
+# Compila assinado com a conta Apple Developer e envia para o TestFlight.
+# Secrets necessários (Settings > Secrets and variables > Actions):
+#   APPLE_TEAM_ID        Team ID (10 caracteres)
+#   IOS_CERT_P12         certificado "Apple Distribution" .p12 em base64 (uma linha)
+#   IOS_CERT_PASSWORD    senha do .p12
+#   IOS_PROFILE          perfil "App Store" (.mobileprovision) em base64 (uma linha)
+#   ASC_KEY_ID           Key ID da chave da API da App Store Connect
+#   ASC_ISSUER_ID        Issuer ID da API da App Store Connect
+#   ASC_KEY_P8           conteúdo do arquivo AuthKey_XXXX.p8 (texto, como está no arquivo)
+#   PF_CHAVE_CONTEUDO    chave que o app manda ao CDN para baixar o pacote de conteúdo (a mesma do nginx do sites-frx9)
 
 on:
   push:
   workflow_dispatch:
 
 permissions:
-  contents: write        # para publicar o IPA em Releases
+  contents: read
 
 concurrency:
-  group: ipa-${{ github.ref }}
+  group: testflight-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  ipa:
+  testflight:
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 75
+    env:
+      BUNDLE_ID: br.com.portafidei.app
     steps:
       - uses: actions/checkout@v4
+
+      - name: Conferir os secrets
+        env:
+          A: ${{ secrets.APPLE_TEAM_ID }}
+          B: ${{ secrets.IOS_CERT_P12 }}
+          C: ${{ secrets.IOS_CERT_PASSWORD }}
+          D: ${{ secrets.IOS_PROFILE }}
+          E: ${{ secrets.ASC_KEY_ID }}
+          F: ${{ secrets.ASC_ISSUER_ID }}
+          G: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          falta=""
+          [ -z "$A" ] && falta="$falta APPLE_TEAM_ID"
+          [ -z "$B" ] && falta="$falta IOS_CERT_P12"
+          [ -z "$C" ] && falta="$falta IOS_CERT_PASSWORD"
+          [ -z "$D" ] && falta="$falta IOS_PROFILE"
+          [ -z "$E" ] && falta="$falta ASC_KEY_ID"
+          [ -z "$F" ] && falta="$falta ASC_ISSUER_ID"
+          [ -z "$G" ] && falta="$falta ASC_KEY_P8"
+          if [ -n "$falta" ]; then echo "::error::Faltam os secrets:$falta"; exit 1; fi
+          echo "Todos os secrets presentes."
 
       - name: Escolher o Xcode mais novo
         run: |
           XC=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)
           sudo xcode-select -s "$XC"
           xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-version
 
       - uses: actions/setup-node@v4
         with:
@@ -36,15 +69,67 @@ jobs:
       - name: Conferir o código (TypeScript)
         run: npx tsc --noEmit
 
+      - name: Número do build e chave do conteúdo
+        env:
+          PF_CHAVE: ${{ secrets.PF_CHAVE_CONTEUDO }}
+        run: |
+          N=$(( 100 + ${{ github.run_number }} ))
+          [ -z "$PF_CHAVE" ] && echo "::warning::Sem o Secret PF_CHAVE_CONTEUDO: o app não vai conseguir baixar o conteúdo do CDN."
+          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('app.json','utf8'));j.expo.ios.buildNumber=String($N);j.expo.extra={...(j.expo.extra||{}),chaveConteudo:process.env.PF_CHAVE||''};fs.writeFileSync('app.json',JSON.stringify(j,null,2));console.log('versão',j.expo.version,'build',$N,'chave do conteúdo:',process.env.PF_CHAVE?'sim':'não')"
+          echo "BUILD_N=$N" >> $GITHUB_ENV
+
       - name: Gerar o projeto iOS (Expo prebuild)
         run: npx expo prebuild --platform ios --clean --no-install
 
-      - name: Tirar o push remoto (conta gratuita não assina essa permissão)
+      - name: Instalar certificado e perfil
+        env:
+          P12: ${{ secrets.IOS_CERT_P12 }}
+          P12_SENHA: ${{ secrets.IOS_CERT_PASSWORD }}
+          PERFIL: ${{ secrets.IOS_PROFILE }}
         run: |
-          for f in ios/*/*.entitlements; do
-            echo "== $f"; cat "$f"
-            /usr/libexec/PlistBuddy -c "Delete :aps-environment" "$f" 2>/dev/null || true
-          done
+          KC="$RUNNER_TEMP/assinatura.keychain-db"
+          KC_SENHA=$(openssl rand -hex 16)
+          echo "$P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KC_SENHA" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KC_SENHA" "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -P "$P12_SENHA" -A -t cert -f pkcs12 -k "$KC"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KC_SENHA" "$KC" >/dev/null
+          security list-keychain -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          security find-identity -v -p codesigning "$KC"
+
+          echo "$PERFIL" | base64 --decode > "$RUNNER_TEMP/perfil.mobileprovision"
+          security cms -D -i "$RUNNER_TEMP/perfil.mobileprovision" > "$RUNNER_TEMP/perfil.plist"
+          UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$RUNNER_TEMP/perfil.plist")
+          NOME=$(/usr/libexec/PlistBuddy -c "Print Name" "$RUNNER_TEMP/perfil.plist")
+          APS=$(/usr/libexec/PlistBuddy -c "Print Entitlements:aps-environment" "$RUNNER_TEMP/perfil.plist" 2>/dev/null || echo "(sem push!)")
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/perfil.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+          echo "Perfil: $NOME ($UUID), push: $APS"
+          echo "PERFIL_NOME=$NOME" >> $GITHUB_ENV
+          echo "KC=$KC" >> $GITHUB_ENV
+
+      - name: Assinatura manual só no app (os Pods continuam sem assinatura)
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          PROJ=$(ls -d ios/*.xcodeproj | head -1)
+          ruby -e '
+            require "xcodeproj"
+            p = Xcodeproj::Project.open(ARGV[0])
+            alvo = p.targets.find { |t| t.product_type == "com.apple.product-type.application" }
+            alvo.build_configurations.each do |c|
+              s = c.build_settings
+              s["CODE_SIGN_STYLE"] = "Manual"
+              s["DEVELOPMENT_TEAM"] = ENV["TEAM"]
+              s["CODE_SIGN_IDENTITY"] = "Apple Distribution"
+              s["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = "Apple Distribution"
+              s["PROVISIONING_PROFILE_SPECIFIER"] = ENV["PERFIL_NOME"]
+            end
+            p.save
+            puts "Alvo #{alvo.name}: assinatura manual com o perfil #{ENV["PERFIL_NOME"]}"
+          ' "$PROJ"
+          echo "== entitlements"; cat ios/*/*.entitlements
 
       - name: Cache dos Pods
         uses: actions/cache@v4
@@ -55,57 +140,81 @@ jobs:
       - name: Instalar Pods
         run: cd ios && pod install
 
-      - name: Compilar
+      - name: Pacotes de recursos dos Pods sem assinatura
+        run: |
+          ruby -e '
+            require "xcodeproj"
+            p = Xcodeproj::Project.open("ios/Pods/Pods.xcodeproj")
+            n = 0
+            p.targets.each do |t|
+              next unless t.respond_to?(:product_type) && t.product_type == "com.apple.product-type.bundle"
+              t.build_configurations.each { |c| c.build_settings["CODE_SIGNING_ALLOWED"] = "NO" }
+              n += 1
+            end
+            p.save
+            puts "#{n} pacotes de recursos sem assinatura"
+          '
+
+      - name: Gerar o arquivo (archive)
         run: |
           set -o pipefail
           WS=$(ls -d ios/*.xcworkspace | head -1)
           SCHEME=$(basename "$WS" .xcworkspace)
-          echo "Workspace: $WS  Scheme: $SCHEME"
-          echo "SCHEME=$SCHEME" >> $GITHUB_ENV
-          xcodebuild -workspace "$WS" -scheme "$SCHEME" \
-            -configuration Release -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            build 2>&1 | tee xcodebuild.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
-          grep -q "BUILD SUCCEEDED" xcodebuild.log
+          xcodebuild -workspace "$WS" -scheme "$SCHEME" -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/PortaFidei.xcarchive \
+            OTHER_CODE_SIGN_FLAGS="--keychain $KC" \
+            archive 2>&1 | tee xcodebuild.log | grep -E "error:|ARCHIVE (SUCCEEDED|FAILED)" || true
+          grep -q "ARCHIVE SUCCEEDED" xcodebuild.log
 
-      - name: Empacotar o IPA
+      - name: Enviar para o TestFlight
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
-          APP=$(ls -d build/Build/Products/Release-iphoneos/*.app | head -1)
-          echo "App: $APP"
-          codesign --force --sign - "$APP"
-          mkdir -p Payload
-          cp -R "$APP" Payload/
-          zip -qry PortaFidei.ipa Payload
-          ls -la PortaFidei.ipa
-
-      - name: Publicar o IPA em Releases (link direto)
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ github.run_number }}
-          name: Porta Fidei, build ${{ github.run_number }}
-          body: |
-            Commit ${{ github.sha }}
-            Link fixo para a versão mais nova:
-            https://github.com/${{ github.repository }}/releases/latest/download/PortaFidei.ipa
-          files: PortaFidei.ipa
-          make_latest: true
-
-      - name: Link do IPA
-        run: |
-          echo "### PortaFidei.ipa" >> $GITHUB_STEP_SUMMARY
-          echo "Desta build: https://github.com/${{ github.repository }}/releases/download/build-${{ github.run_number }}/PortaFidei.ipa" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Sempre a mais nova: https://github.com/${{ github.repository }}/releases/latest/download/PortaFidei.ipa" >> $GITHUB_STEP_SUMMARY
+          set -o pipefail
+          CHAVE="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          printf '%s\n' "$ASC_KEY_P8" > "$CHAVE"
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key><dict><key>$BUNDLE_ID</key><string>$PERFIL_NOME</string></dict>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath build/PortaFidei.xcarchive \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath build/export \
+            -authenticationKeyPath "$CHAVE" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee export.log | tail -40
+          grep -qiE "EXPORT SUCCEEDED|Upload succeeded|Uploaded" export.log
+          echo "### Enviado ao TestFlight: versão $(node -p "require('./app.json').expo.version") build $BUILD_N" >> $GITHUB_STEP_SUMMARY
+          echo "Em 5 a 30 minutos o build aparece no app TestFlight." >> $GITHUB_STEP_SUMMARY
 
       - name: Resumo dos erros (se falhar)
         if: failure()
-        run: grep -n "error:" xcodebuild.log | head -80 || true
+        run: |
+          grep -n "error:" xcodebuild.log 2>/dev/null | head -60 || true
+          grep -n -i "error" export.log 2>/dev/null | head -40 || true
+
+      - name: Limpar chaves
+        if: always()
+        run: |
+          [ -n "$KC" ] && security delete-keychain "$KC" || true
+          rm -f "$RUNNER_TEMP"/*.p12 "$RUNNER_TEMP"/*.p8 "$RUNNER_TEMP"/*.mobileprovision || true
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: xcodebuild-log
-          path: xcodebuild.log
+          name: logs
+          path: |
+            xcodebuild.log
+            export.log
           if-no-files-found: ignore
