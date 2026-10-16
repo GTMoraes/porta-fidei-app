@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
+import { infoRemota, type InfoRemota } from '@/conteudo/remoto';
 import { lerAjustes } from '@/estado/ajustes';
 import { COR_HEX, NOME_GRAU, NOME_TEMPO, dataPorExtenso, diaLiturgico, hojeIso } from '@/liturgia/calendario';
 import { HORAS } from '@/liturgia/horas';
@@ -35,6 +36,13 @@ export default function Hoje() {
       router.navigate('/orar');
     }
   }, [router]);
+
+  // conteúdo novo no servidor (confere uma vez ao abrir)
+  const [remoto, setRemoto] = useState<InfoRemota | null>(null);
+  useEffect(() => {
+    infoRemota().then(setRemoto);
+  }, [pacote.manifest]);
+  const haAtualizacao = !!(pacote.manifest && remoto && remoto.gerado !== pacote.manifest.gerado);
 
   const dia = useMemo(() => diaLiturgico(hoje), [hoje]);
   const cel = dia.celebracao;
@@ -101,8 +109,12 @@ export default function Hoje() {
 
         {!pacote.manifest ? (
           <Secao>
-            <Aviso icone="arrow.down.circle" texto="O conteúdo litúrgico ainda não foi instalado neste aparelho. Toque abaixo para instalar o pacote." />
-            <Linha titulo="Instalar conteúdo litúrgico" icone="square.and.arrow.down" onPress={() => router.push('/conteudo')} ultimo />
+            <Aviso icone="arrow.down.circle" texto="Para rezar a Liturgia das Horas e usar o Missal, baixe o conteúdo litúrgico (uma vez só; depois funciona sem internet)." />
+            <Linha titulo="Baixar conteúdo litúrgico" sub={remoto ? `${(remoto.tamanho / 1e6).toFixed(0)} MB` : undefined} icone="square.and.arrow.down" onPress={() => router.push('/conteudo')} ultimo />
+          </Secao>
+        ) : haAtualizacao ? (
+          <Secao>
+            <Linha titulo="Conteúdo litúrgico atualizado" sub="Toque para baixar a versão nova" icone="arrow.down.circle" onPress={() => router.push('/conteudo')} ultimo />
           </Secao>
         ) : null}
 

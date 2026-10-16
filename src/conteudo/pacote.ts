@@ -68,6 +68,15 @@ export const existe = (arquivo: string) => arquivos.has(arquivo);
 export const pastaUri = (rel: string) => uriDe(rel.endsWith('/') ? rel : rel + '/');
 export const temImagem = (rel: string) => imagens.has(rel);
 export const imagemUri = (rel: string) => (imagens.has(rel) ? uriDe(`img/${rel}.jpg`) : undefined);
+/** Imagem do pacote como data URI: o WebView do iOS não lê arquivos locais a partir de HTML montado em memória */
+export async function imagemDataUri(rel: string): Promise<string | undefined> {
+  if (!imagens.has(rel)) return undefined;
+  try {
+    return 'data:image/jpeg;base64,' + (await new File(uriDe(`img/${rel}.jpg`)).base64());
+  } catch {
+    return undefined;
+  }
+}
 export const tituloDe = (arquivo: string) => estado.manifest?.titulos[arquivo];
 export const listar = (prefixo: string) => [...arquivos].filter((a) => a.startsWith(prefixo)).sort();
 
@@ -160,11 +169,11 @@ export function zipNaPastaDoApp(): File | undefined {
   return undefined;
 }
 
-export async function baixarEInstalar(url: string, progresso?: Progresso) {
+export async function baixarEInstalar(url: string, progresso?: Progresso, headers?: Record<string, string>) {
   progresso?.('Baixando', 0, 1);
   const destino = new File(Paths.cache, 'pf-conteudo-baixado.zip');
   if (destino.exists) destino.delete();
-  const f = await File.downloadFileAsync(url.trim(), destino);
+  const f = await File.downloadFileAsync(url.trim(), destino, headers ? { headers } : undefined);
   try {
     return await instalarDeArquivo(f, progresso);
   } finally {

@@ -2,7 +2,8 @@ import { File } from 'expo-file-system';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { baixarEInstalar, instalarDeArquivo, removerPacote, usePacote, zipNaPastaDoApp } from '@/conteudo/pacote';
+import { baixarEInstalar, instalarDeArquivo, removerPacote, usePacote } from '@/conteudo/pacote';
+import { baixarConteudo, infoRemota, temDownloadDireto, type InfoRemota } from '@/conteudo/remoto';
 import { Espaco, usePaleta } from '@/tema';
 import { Aviso, Botao, Fundo, Linha, Secao } from '@/ui/base';
 
@@ -11,10 +12,11 @@ export default function Conteudo() {
   const c = usePaleta();
   const [progresso, setProgresso] = useState<{ fase: string; feito: number; total: number } | null>(null);
   const [link, setLink] = useState('');
-  const [naPasta, setNaPasta] = useState<File | undefined>();
+  const [remoto, setRemoto] = useState<InfoRemota | null | undefined>(undefined);
+  const [outrasFormas, setOutrasFormas] = useState(false);
 
   useEffect(() => {
-    setNaPasta(zipNaPastaDoApp());
+    infoRemota().then(setRemoto);
   }, [pacote.manifest]);
 
   const executar = async (f: () => Promise<unknown>) => {
@@ -77,25 +79,30 @@ export default function Conteudo() {
           </Secao>
         ) : (
           <>
-            {naPasta ? (
-              <Secao titulo="Encontrado na pasta do app">
-                <Linha titulo={naPasta.name} sub={`${((naPasta.size ?? 0) / 1e6).toFixed(1)} MB · toque para instalar`} icone="shippingbox" onPress={() => executar(() => instalarDeArquivo(naPasta, prog))} ultimo />
+            {temDownloadDireto() ? (
+              <Secao titulo="Baixar">
+                {remoto === undefined ? (
+                  <Linha titulo="Procurando o conteúdo…" icone="arrow.triangle.2.circlepath" ultimo />
+                ) : remoto === null ? (
+                  <Linha titulo="Servidor de conteúdo indisponível" sub="Confira a internet e abra esta tela de novo." icone="wifi.exclamationmark" ultimo />
+                ) : m && m.gerado === remoto.gerado ? (
+                  <Linha titulo="Conteúdo em dia" sub={`Versão de ${new Date(remoto.gerado).toLocaleDateString('pt-BR')}`} icone="checkmark.circle" ultimo />
+                ) : (
+                  <Linha
+                    titulo={m ? 'Atualizar conteúdo litúrgico' : 'Baixar conteúdo litúrgico'}
+                    sub={`${(remoto.tamanho / 1e6).toFixed(1)} MB · versão de ${new Date(remoto.gerado).toLocaleDateString('pt-BR')}`}
+                    icone="arrow.down.circle"
+                    onPress={() => executar(() => baixarConteudo(prog))}
+                    ultimo
+                  />
+                )}
               </Secao>
             ) : null}
 
-            <Secao titulo="Instalar">
-              <Linha titulo="Escolher no app Arquivos" sub="Selecione o arquivo pf-conteudo.zip" icone="folder" onPress={doArquivos} />
-              <Linha
-                titulo="Procurar na pasta do app"
-                sub="Copie o pf-conteudo.zip para a pasta deste app (no LiveContainer: Arquivos › LiveContainer › Data › Application › pasta do app › Documents)"
-                icone="magnifyingglass"
-                onPress={() => {
-                  const z = zipNaPastaDoApp();
-                  setNaPasta(z);
-                  if (!z) Alert.alert('Nada encontrado', 'Nenhum arquivo pf-conteudo*.zip na pasta Documents do app.');
-                }}
-                ultimo
-              />
+            {!temDownloadDireto() || outrasFormas ? (
+              <>
+            <Secao titulo="Instalar de um arquivo">
+              <Linha titulo="Escolher no app Arquivos" sub="Selecione o arquivo pf-conteudo.zip" icone="folder" onPress={doArquivos} ultimo />
             </Secao>
 
             <Secao titulo="Baixar de um link">
@@ -113,6 +120,12 @@ export default function Conteudo() {
                 <Botao titulo="Baixar e instalar" icone="arrow.down.circle" desativado={!/^https?:\/\//.test(link.trim())} onPress={() => executar(() => baixarEInstalar(link, prog))} />
               </View>
             </Secao>
+              </>
+            ) : (
+              <Text onPress={() => setOutrasFormas(true)} style={{ color: c.textoFraco, textAlign: 'center', marginBottom: 24, fontSize: 13 }}>
+                Outras formas de instalar
+              </Text>
+            )}
 
             {m ? (
               <View style={{ marginHorizontal: Espaco.l, marginBottom: 40 }}>

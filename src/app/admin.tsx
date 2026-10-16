@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
 
+import { registrarPush } from '@/estado/push';
 import { apagarAviso, apagarEvento, atualizar, entrar, sair, testarNotificacao, useServidor } from '@/servidor/api';
 import { Espaco, usePaleta } from '@/tema';
 import { Aviso, Botao, Fundo, Linha, Secao } from '@/ui/base';
@@ -85,8 +86,9 @@ export default function Admin() {
             icone="bell.badge"
             onPress={async () => {
               try {
-                await testarNotificacao('Porta Fidei', 'Teste de notificação do app da Comunidade.');
-                Alert.alert('Enviado', 'A notificação de teste foi enviada.');
+                const meu = await registrarPush(true);
+                const r = await testarNotificacao('Porta Fidei', 'Teste de notificação do app da Comunidade.', meu);
+                Alert.alert('Enviado', `${meu ? 'Enviada para este aparelho.' : 'Este aparelho não está registrado para push (permissão negada?).'}\n\n${r?.resultado ?? ''}`);
               } catch (e: any) {
                 Alert.alert('Erro', String(e?.message ?? e));
               }

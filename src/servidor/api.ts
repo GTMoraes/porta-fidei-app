@@ -139,7 +139,18 @@ export const apagarEvento = (id: string) => admin(`/eventos/${id}`, 'DELETE');
 export const salvarAviso = (a: Partial<Aviso> & { notificar?: boolean }) =>
   a.id ? admin(`/avisos/${a.id}`, 'PUT', a) : admin('/avisos', 'POST', a);
 export const apagarAviso = (id: string) => admin(`/avisos/${id}`, 'DELETE');
-export const testarNotificacao = (titulo: string, texto: string) => admin('/notificar-teste', 'POST', { titulo, texto });
+export const testarNotificacao = (titulo: string, texto: string, token?: string | null) =>
+  admin('/notificar-teste', 'POST', { titulo, texto, token: token ?? undefined }) as Promise<{ resultado: string }>;
+
+/** Registra este aparelho para receber push (rota pública) */
+export async function registrarDispositivo(token: string, versao: string) {
+  const r = await comTempo(`${SERVIDOR}/api/dispositivos`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, plataforma: 'ios', versao }),
+  });
+  if (!r.ok) throw new Error(`Erro ${r.status}`);
+}
 
 /** Envia uma imagem (base64 JPEG/PNG) e devolve a URL pública */
 export async function enviarImagem(base64: string, tipo: string): Promise<string> {

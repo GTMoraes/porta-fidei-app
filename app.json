@@ -2,26 +2,24 @@
   "expo": {
     "name": "Porta Fidei",
     "slug": "porta-fidei",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "portafidei",
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "br.com.portafidei.app",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "supportsTablet": true,
       "icon": "./assets/images/icon.png",
       "infoPlist": {
-        "UIFileSharingEnabled": true,
-        "LSSupportsOpeningDocumentsInPlace": true,
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "Para escolher imagens dos avisos e eventos da Comunidade."
       }
     },
     "android": {
       "package": "br.com.portafidei.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#F7F2E8",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -47,7 +45,8 @@
       [
         "expo-notifications",
         {
-          "color": "#BC8C44"
+          "color": "#BC8C44",
+          "mode": "production"
         }
       ],
       [
