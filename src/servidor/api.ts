@@ -28,9 +28,58 @@ export interface Aviso {
   criado: string;
 }
 
+export interface SecaoProposta {
+  titulo: string;
+  subtitulo?: string;
+  texto: string;
+}
+export interface Proposta {
+  id: string;
+  titulo: string;
+  inicio: string | null; // AAAA-MM-DD
+  fim: string | null;
+  secoes: SecaoProposta[];
+  publicada: boolean;
+  criado: string;
+}
+export interface Jornada {
+  id: string;
+  slug?: string | null;
+  titulo: string;
+  tipo: 'novena' | 'quaresma' | 'cerco' | 'outra';
+  descricao?: string | null;
+  dias: number;
+  anual: boolean;
+  ativa: boolean;
+  hora: string; // HH:MM do aviso diário
+  inicioBase: string | null; // data cadastrada (para as anuais, o ano é ignorado)
+  arquivo?: string | null; // texto do pacote de conteúdo (igual todos os dias)
+  oracao?: string | null; // slug de uma oração da Comunidade (igual todos os dias)
+  comum?: string | null; // texto de todos os dias (antes do texto do dia)
+  textos: string[]; // texto de cada dia
+  pronta?: boolean;
+  ordem?: number;
+}
+export interface Oracao {
+  id: string;
+  slug?: string | null;
+  titulo: string;
+  subtitulo?: string | null;
+  texto: string;
+  ordem?: number;
+  ativa?: boolean;
+}
+export interface Comunidade {
+  atual: string | null;
+  propostas: Proposta[];
+  jornadas: Jornada[];
+  oracoes: Oracao[];
+}
+
 interface Dados {
   eventos: Evento[];
   avisos: Aviso[];
+  comunidade?: Comunidade;
   atualizado?: string;
   erro?: string;
   carregando: boolean;
@@ -75,11 +124,16 @@ export async function atualizar() {
   dados = { ...dados, carregando: true, erro: undefined };
   emitir();
   try {
-    const [re, ra] = await Promise.all([comTempo(`${SERVIDOR}/api/agenda`), comTempo(`${SERVIDOR}/api/avisos`)]);
+    const [re, ra, rc] = await Promise.all([
+      comTempo(`${SERVIDOR}/api/agenda`),
+      comTempo(`${SERVIDOR}/api/avisos`),
+      comTempo(`${SERVIDOR}/api/comunidade`).catch(() => null),
+    ]);
     if (!re.ok || !ra.ok) throw new Error(`O servidor respondeu ${re.status}/${ra.status}`);
     const eventos = (await re.json()) as Evento[];
     const avisos = (await ra.json()) as Aviso[];
-    dados = { eventos, avisos, atualizado: new Date().toISOString(), carregando: false, admin: !!token };
+    const comunidade = rc?.ok ? ((await rc.json()) as Comunidade) : dados.comunidade;
+    dados = { eventos, avisos, comunidade, atualizado: new Date().toISOString(), carregando: false, admin: !!token };
     AsyncStorage.setItem(CHAVE, JSON.stringify(dados)).catch(() => {});
   } catch (e: any) {
     dados = { ...dados, carregando: false, erro: e?.name === 'AbortError' ? 'Sem resposta do servidor' : String(e?.message ?? e) };
@@ -119,18 +173,25 @@ export async function sair() {
   emitir();
 }
 
-async function admin(caminho: string, metodo: string, corpo?: unknown) {
+async function admin(caminho: string, metodo: string, corpo?: unknown, ms = 12000) {
   if (!token) throw new Error('Entre como administrador primeiro');
   const r = await comTempo(`${SERVIDOR}/api/admin${caminho}`, {
     method: metodo,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: corpo ? JSON.stringify(corpo) : undefined,
-  });
+  }, ms);
   if (r.status === 401) {
     await sair();
     throw new Error('Sessão expirada. Entre de novo.');
   }
-  if (!r.ok) throw new Error(`Erro ${r.status}: ${await r.text()}`);
+  if (!r.ok) {
+    const t = await r.text();
+    let msg = t;
+    try {
+      msg = JSON.parse(t).erro ?? t;
+    } catch {}
+    throw new Error(msg || `Erro ${r.status}`);
+  }
   return r.status === 204 ? null : r.json();
 }
 
@@ -141,6 +202,21 @@ export const salvarAviso = (a: Partial<Aviso> & { notificar?: boolean }) =>
 export const apagarAviso = (id: string) => admin(`/avisos/${id}`, 'DELETE');
 export const testarNotificacao = (titulo: string, texto: string, token?: string | null) =>
   admin('/notificar-teste', 'POST', { titulo, texto, token: token ?? undefined }) as Promise<{ resultado: string }>;
+
+// ---------------- oração da Comunidade (administração)
+/** Tudo, inclusive rascunhos e jornadas/orações desativadas */
+export const comunidadeAdmin = () => admin('/comunidade', 'GET') as Promise<Comunidade>;
+/** Envia o PDF da Proposta: o servidor separa as seções e devolve um rascunho */
+export const enviarPropostaPdf = (base64: string) => admin('/propostas/pdf', 'POST', { base64 }, 90000) as Promise<Proposta>;
+export const salvarProposta = (p: Partial<Proposta> & { id: string; notificar?: boolean }) => admin(`/propostas/${p.id}`, 'PUT', p) as Promise<Proposta>;
+export const apagarProposta = (id: string) => admin(`/propostas/${id}`, 'DELETE');
+export const salvarJornada = (j: Partial<Jornada>) => (j.id ? admin(`/jornadas/${j.id}`, 'PUT', j) : admin('/jornadas', 'POST', j)) as Promise<Jornada>;
+export const apagarJornada = (id: string) => admin(`/jornadas/${id}`, 'DELETE');
+/** Textos de uma novena tirados de um PDF ("1º dia", "Primeiro dia"...) */
+export const jornadaDoPdf = (base64: string) => admin('/jornadas/pdf', 'POST', { base64 }, 90000) as Promise<{ comum: string; textos: string[] }>;
+export const salvarOracao = (o: Partial<Oracao>) => (o.id ? admin(`/oracoes/${o.id}`, 'PUT', o) : admin('/oracoes', 'POST', o)) as Promise<Oracao>;
+export const apagarOracao = (id: string) => admin(`/oracoes/${id}`, 'DELETE');
+export const textoDoPdf = (base64: string) => admin('/pdf-texto', 'POST', { base64 }, 90000) as Promise<{ texto: string }>;
 
 /** Registra este aparelho para receber push (rota pública) */
 export async function registrarDispositivo(token: string, versao: string) {

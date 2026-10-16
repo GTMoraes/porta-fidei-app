@@ -1,10 +1,13 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
+import { semana } from '@/comunidade/html';
+import { jornadasDeHoje } from '@/comunidade/jornadas';
 import { listar, usePacote } from '@/conteudo/pacote';
 import { useAjustes } from '@/estado/ajustes';
 import { hojeIso } from '@/liturgia/calendario';
 import { HORAS } from '@/liturgia/horas';
+import { useServidor } from '@/servidor/api';
 import { Marca } from '@/tema';
 import { Fundo, Linha, Secao, TituloTela } from '@/ui/base';
 
@@ -22,7 +25,11 @@ const ICONE_HORA: Record<string, any> = {
 export default function Orar() {
   const router = useRouter();
   const aj = useAjustes();
+  const srv = useServidor();
   usePacote();
+  const com = srv.comunidade;
+  const proposta = com?.propostas.find((p) => p.id === com.atual);
+  const deHoje = jornadasDeHoje(com?.jornadas, hojeIso());
   const hoje = hojeIso();
 
   const evangelhoAoAcaso = () => {
@@ -46,6 +53,33 @@ export default function Orar() {
               corIcone={h.id === 'laudes' || h.id === 'vesperas' ? Marca.vinho : undefined}
               onPress={() => router.push({ pathname: '/hora', params: { h: h.id, data: hoje } })}
               ultimo={i === HORAS.length - 1}
+            />
+          ))}
+        </Secao>
+
+        <Secao titulo="Comunidade">
+          <Linha
+            titulo="Proposta de oração"
+            sub={proposta ? `${proposta.titulo}${proposta.inicio ? ` · ${semana(proposta)}` : ''}` : 'Material de oração pessoal da semana'}
+            icone="doc.richtext"
+            corIcone={Marca.vinho}
+            onPress={() => router.push('/proposta')}
+          />
+          <Linha
+            titulo="Jornadas de oração"
+            sub={deHoje.length ? `Agora: ${deHoje.map((j) => j.titulo).join(', ')}` : 'Novenas dos baluartes, Quaresma de São Miguel, Cerco de Jericó'}
+            icone="sparkles"
+            onPress={() => router.push('/jornadas')}
+            ultimo={!com?.oracoes.length}
+          />
+          {(com?.oracoes ?? []).map((o, i, l) => (
+            <Linha
+              key={o.id}
+              titulo={o.titulo}
+              sub={o.subtitulo ?? undefined}
+              icone="hands.sparkles"
+              onPress={() => router.push({ pathname: '/oracao', params: { id: o.id } })}
+              ultimo={i === l.length - 1}
             />
           ))}
         </Secao>

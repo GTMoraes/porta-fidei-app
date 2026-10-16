@@ -81,6 +81,12 @@ export default function Admin() {
           <Linha titulo="Nova missa ou evento" icone="calendar.badge.plus" onPress={() => router.push('/editar-evento')} />
           <Linha titulo="Novo aviso" icone="megaphone" onPress={() => router.push('/editar-aviso')} />
           <Linha
+            titulo="Oração da Comunidade"
+            sub="Proposta da semana (PDF), novenas e jornadas, orações"
+            icone="hands.sparkles"
+            onPress={() => router.push('/admin-oracao')}
+          />
+          <Linha
             titulo="Testar notificação"
             sub="Envia uma notificação de teste (por enquanto chega pelo Bark do Gabriel)"
             icone="bell.badge"

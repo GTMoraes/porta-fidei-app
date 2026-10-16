@@ -236,6 +236,13 @@ table{width:100%}
 .cnbb .cel{text-align:center;margin:0 0 4px}
 .cnbb .nota{text-align:center;color:var(--fr);font-style:italic;font-size:.8em;margin:0 0 6px}
 .missa{text-align:left;margin:0 0 1.2em}
+/* Textos da Comunidade (Proposta, orações, jornadas) */
+.com{text-align:left}
+.com p{margin:0 0 .85em}
+.com h2.sc{font-size:.74em;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--rb);text-align:center;margin:2em 0 .8em;font-family:-apple-system,system-ui,sans-serif}
+.com h2.sc:first-child{margin-top:.4em}
+.com .scsub{text-align:center;font-weight:700;margin:-.4em 0 .9em}
+.com .dia{text-align:center;color:var(--dt);font-weight:600;margin:0 0 1em}
 .fonte{color:var(--fr);font-size:.72em;text-align:center;margin:28px 0 0!important;font-family:-apple-system,system-ui,sans-serif}
 </style></head><body>${cab}${corpo}
 <script>

@@ -32,7 +32,7 @@ export default function Raiz() {
     return () => sub.remove();
   }, []);
 
-  // toque numa notificação: abre o aviso (push) ou a hora (lembrete local)
+  // toque numa notificação: abre o aviso, a proposta ou a jornada (push) ou a hora (lembrete local)
   const resposta = Notifications.useLastNotificationResponse();
   const tratada = useRef<string | null>(null);
   useEffect(() => {
@@ -44,6 +44,10 @@ export default function Raiz() {
     if (d.tipo === 'aviso' && typeof d.id === 'string') {
       const idAviso = d.id;
       atualizar().finally(() => setTimeout(() => router.push({ pathname: '/aviso', params: { id: idAviso } }), 300));
+    } else if ((d.tipo === 'proposta' || d.tipo === 'jornada') && typeof d.id === 'string') {
+      const rota = d.tipo === 'proposta' ? '/proposta' : '/jornada';
+      const idItem = d.id;
+      atualizar().finally(() => setTimeout(() => router.push({ pathname: rota, params: { id: idItem } }), 300));
     } else if (typeof d.hora === 'string') {
       const h = d.hora;
       setTimeout(() => router.push({ pathname: '/hora', params: { h } }), 300);
@@ -82,6 +86,15 @@ export default function Raiz() {
         <Stack.Screen name="evento" options={{ title: '' }} />
         <Stack.Screen name="aviso" options={{ title: '' }} />
         <Stack.Screen name="sobre" options={{ title: 'Sobre o app' }} />
+        <Stack.Screen name="proposta" options={{ title: '' }} />
+        <Stack.Screen name="propostas" options={{ title: 'Propostas de oração' }} />
+        <Stack.Screen name="jornada" options={{ title: '' }} />
+        <Stack.Screen name="jornadas" options={{ title: 'Jornadas de oração' }} />
+        <Stack.Screen name="oracao" options={{ title: '' }} />
+        <Stack.Screen name="admin-oracao" options={{ title: 'Oração da Comunidade' }} />
+        <Stack.Screen name="editar-proposta" options={{ title: 'Proposta da semana', presentation: 'modal' }} />
+        <Stack.Screen name="editar-jornada" options={{ title: 'Jornada', presentation: 'modal' }} />
+        <Stack.Screen name="editar-oracao" options={{ title: 'Oração', presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
   );

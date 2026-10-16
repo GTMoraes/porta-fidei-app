@@ -3,6 +3,8 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
+import { semana } from '@/comunidade/html';
+import { diaAtual, diasFeitos, jornadasDeHoje, periodo, useFeitos } from '@/comunidade/jornadas';
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
 import { infoRemota, type InfoRemota } from '@/conteudo/remoto';
 import { lerAjustes } from '@/estado/ajustes';
@@ -53,6 +55,10 @@ export default function Hoje() {
 
   const agora = Date.now();
   const proximos = srv.eventos.filter((e) => new Date(e.fim ?? e.inicio).getTime() >= agora - 3600_000).slice(0, 4);
+  const com = srv.comunidade;
+  const proposta = com?.propostas.find((p) => p.id === com.atual && p.inicio && p.fim && p.inicio <= hoje && hoje <= p.fim);
+  const jornadas = jornadasDeHoje(com?.jornadas, hoje);
+  const feitos = useFeitos();
   const avisos = [...srv.avisos].sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado)).slice(0, 3);
 
   return (
@@ -156,6 +162,37 @@ export default function Hoje() {
             </View>
           ))}
         </View>
+
+        {proposta || jornadas.length ? (
+          <Secao titulo="Oração da Comunidade">
+            {proposta ? (
+              <Linha
+                titulo={proposta.titulo}
+                sub={`Proposta de oração da semana · ${semana(proposta)}`}
+                icone="doc.richtext"
+                corIcone={Marca.vinho}
+                onPress={() => router.push({ pathname: '/proposta', params: { id: proposta.id } })}
+                ultimo={!jornadas.length}
+              />
+            ) : null}
+            {jornadas.map((j, i) => {
+              const n = diaAtual(j, hoje)!;
+              const p = periodo(j, hoje)!;
+              const rezou = diasFeitos(feitos, j, p).includes(hoje);
+              return (
+                <Linha
+                  key={j.id}
+                  titulo={j.titulo}
+                  sub={`Dia ${n} de ${j.dias}${rezou ? ' · rezado hoje' : ''}`}
+                  icone={rezou ? 'checkmark.circle.fill' : 'sparkles'}
+                  corIcone={rezou ? Marca.ouro : undefined}
+                  onPress={() => router.push({ pathname: '/jornada', params: { id: j.id } })}
+                  ultimo={i === jornadas.length - 1}
+                />
+              );
+            })}
+          </Secao>
+        ) : null}
 
         <Secao titulo="Para hoje">
           <Linha titulo="Liturgia Diária" sub="Leituras e orações da Missa" icone="book" onPress={() => router.push('/liturgia')} />
