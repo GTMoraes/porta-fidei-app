@@ -171,7 +171,7 @@ const nomesHora: [string, string][] = [
   ['laudes', 'Laudes'],
   ['terca', 'Terça'],
   ['sexta', 'Sexta'],
-  ['nona', 'Noa'],
+  ['nona', 'Nona'],
   ['vesperas', 'Vésperas'],
 ];
 const comum = (slug: string, titulo: string): Grupo => ({

@@ -35,7 +35,7 @@ export default function Orar() {
   return (
     <Fundo>
       <ScrollView contentInsetAdjustmentBehavior="automatic">
-        <TituloTela titulo="Orar" sobre="Liturgia das Horas e orações" />
+        <TituloTela titulo="Rezar" sobre="Liturgia das Horas e orações" />
         <Secao titulo="Liturgia das Horas">
           {HORAS.map((h, i) => (
             <Linha

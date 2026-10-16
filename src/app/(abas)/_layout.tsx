@@ -11,7 +11,7 @@ export default function Abas() {
         <NativeTabs.Trigger.Icon sf={{ default: 'sun.horizon', selected: 'sun.horizon.fill' }} md="wb_twilight" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="orar">
-        <NativeTabs.Trigger.Label>Orar</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Rezar</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'book.closed', selected: 'book.closed.fill' }} md="menu_book" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="agenda">

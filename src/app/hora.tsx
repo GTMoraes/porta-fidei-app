@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, Text, View } from 'react-native';
 
 import { montarHora } from '@/conteudo/montar';
 import { existe, lerDado, usePacote } from '@/conteudo/pacote';
@@ -15,6 +15,8 @@ import { dataCurta } from '@/util/datas';
 
 export default function TelaHora() {
   const p = useLocalSearchParams<{ h: Hora; data?: string }>();
+  // memória facultativa só muda Invitatório, Ofício das Leituras, Laudes e Vésperas (na Hora Média e nas Completas vale o dia)
+  const aceitaMemoria = ['invitatorio', 'leituras', 'laudes', 'vesperas'].includes(p.h);
   const aj = useAjustes();
   const pacote = usePacote();
   const c = usePaleta();
@@ -93,20 +95,17 @@ export default function TelaHora() {
           </Pressable>
         </View>
       </Vidro>
-      {dia.facultativas.length && !plano.primeirasVesperas && p.h !== 'completas' ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-          <Chip texto="Féria" ativo={!memoria} onPress={() => setMemoria(undefined)} />
-          {dia.facultativas
-            .filter((f) => f.slug)
-            .map((f) => (
-              <Chip key={f.slug} texto={f.nome.split(',')[0]} ativo={memoria === f.slug} onPress={() => setMemoria(f.slug)} />
-            ))}
-        </ScrollView>
+      {dia.facultativas.length && !plano.primeirasVesperas && aceitaMemoria ? (
+        <SeletorMemoria
+          opcoes={dia.facultativas.filter((f) => !!f.slug).map((f) => ({ slug: f.slug!, nome: f.nome }))}
+          escolhida={memoria}
+          aoEscolher={setMemoria}
+        />
       ) : null}
     </View>
   );
 
-  const comChips = dia.facultativas.length > 0 && !plano.primeirasVesperas && p.h !== 'completas';
+  const comChips = dia.facultativas.length > 0 && !plano.primeirasVesperas && aceitaMemoria;
 
   // Invitatório: escolha do salmo e da antífona entre as estrofes (como no iLiturgia)
   const rodape = ehInvitatorio ? (
@@ -143,7 +142,7 @@ export default function TelaHora() {
     <Leitor
       tipo="horas"
       rodape={rodape}
-      alturaTopo={comChips ? 108 : 64}
+      alturaTopo={comChips ? 120 : 64}
       corpo={corpo}
       titulo={plano.titulo}
       subtitulo={plano.diaCelebrado.celebracao.nome}
@@ -153,17 +152,61 @@ export default function TelaHora() {
   );
 }
 
-function Chip({ texto, ativo, onPress }: { texto: string; ativo: boolean; onPress: () => void }) {
+/** "Memória facultativa: Féria ▾" que abre a lista de opções do dia */
+function SeletorMemoria({
+  opcoes,
+  escolhida,
+  aoEscolher,
+}: {
+  opcoes: { slug: string; nome: string }[];
+  escolhida?: string;
+  aoEscolher: (slug: string | undefined) => void;
+}) {
   const c = usePaleta();
+  const [aberto, setAberto] = useState(false);
+  const atual = opcoes.find((o) => o.slug === escolhida);
+  const nomeCurto = (n: string) => n.split(',')[0];
+  const linha = (slug: string | undefined, titulo: string, sub?: string) => {
+    const ativo = escolhida === slug;
+    return (
+      <Pressable
+        key={slug ?? 'feria'}
+        onPress={() => {
+          toque();
+          aoEscolher(slug);
+          setAberto(false);
+        }}
+        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14, opacity: pressed ? 0.6 : 1 })}>
+        <View style={{ width: 24 }}>{ativo ? <Icone nome="checkmark" tamanho={15} /> : null}</View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: c.texto, fontSize: 15, fontWeight: ativo ? '600' : '400' }}>{titulo}</Text>
+          {sub ? <Text style={{ color: c.textoFraco, fontSize: 12 }}>{sub}</Text> : null}
+        </View>
+      </Pressable>
+    );
+  };
   return (
-    <Pressable
-      onPress={() => {
-        toque();
-        onPress();
-      }}>
-      <Vidro style={{ borderRadius: 16 }} tinta={ativo ? 'rgba(188,140,68,0.6)' : undefined}>
-        <Text style={{ color: ativo ? '#fff' : c.textoSuave, fontSize: 13, paddingVertical: 6, paddingHorizontal: 12 }}>{texto}</Text>
-      </Vidro>
-    </Pressable>
+    <Vidro style={{ borderRadius: 20 }} interativo>
+      <Pressable
+        onPress={() => {
+          toque();
+          setAberto((a) => !a);
+        }}
+        style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: c.textoFraco, fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase' }}>Memória facultativa</Text>
+          <Text style={{ color: atual ? c.destaque : c.texto, fontSize: 14, fontWeight: '600' }} numberOfLines={1}>
+            {atual ? nomeCurto(atual.nome) : 'Não celebrar (féria)'}
+          </Text>
+        </View>
+        <Icone nome={aberto ? 'chevron.up' : 'chevron.down'} tamanho={14} />
+      </Pressable>
+      {aberto ? (
+        <View style={{ borderTopWidth: 0.5, borderTopColor: c.separador, paddingBottom: 4 }}>
+          {linha(undefined, 'Não celebrar (féria)', 'Textos do dia da semana')}
+          {opcoes.map((o) => linha(o.slug, nomeCurto(o.nome), o.nome.includes(',') ? o.nome.split(',').slice(1).join(',').trim() : undefined))}
+        </View>
+      ) : null}
+    </Vidro>
   );
 }

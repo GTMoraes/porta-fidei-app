@@ -11,7 +11,7 @@ export const HORAS: { id: Hora; nome: string; curto: string; quando: string }[] 
   { id: 'laudes', nome: 'Laudes', curto: 'Laudes', quando: 'Oração da manhã' },
   { id: 'terca', nome: 'Hora Média: Terça', curto: 'Terça', quando: 'Por volta das 9h' },
   { id: 'sexta', nome: 'Hora Média: Sexta', curto: 'Sexta', quando: 'Por volta do meio-dia' },
-  { id: 'nona', nome: 'Hora Média: Noa', curto: 'Noa', quando: 'Por volta das 15h' },
+  { id: 'nona', nome: 'Hora Média: Nona', curto: 'Nona', quando: 'Por volta das 15h' },
   { id: 'vesperas', nome: 'Vésperas', curto: 'Vésperas', quando: 'Oração da tarde' },
   { id: 'completas', nome: 'Completas', curto: 'Completas', quando: 'Antes do repouso' },
 ];
