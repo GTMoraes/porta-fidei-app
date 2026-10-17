@@ -62,7 +62,7 @@ export default function TelaAjustes() {
           {chave('repetirRespostas', 'Repetir respostas nas preces', 'Repetir as respostas nas preces das Laudes e Vésperas')}
           {chave('esconderBarraStatus', 'Esconder a barra de status', 'Esconder a barra de status que fica no topo da tela')}
           {chave('feedbackTatil', 'Habilitar feedback tátil', 'Emitir pequena vibração ao selecionar algumas opções')}
-          {chave('expandirTexto', 'Habilitar expandir texto', 'Um toque no texto expande a área de leitura')}
+          {chave('expandirTexto', 'Esconder os botões ao tocar', 'Um toque no texto esconde ou mostra os botões de leitura (o de voltar fica sempre)')}
           {chave('timerSilencio', 'Timer oração silenciosa', 'Dispor de timer p/ oração silenciosa nas Laudes e Vésperas', !aj.timerSilencio)}
           {aj.timerSilencio ? (
             <Linha

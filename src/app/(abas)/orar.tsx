@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { semana } from '@/comunidade/html';
 import { jornadasDeHoje } from '@/comunidade/jornadas';
@@ -8,8 +8,8 @@ import { useAjustes } from '@/estado/ajustes';
 import { hojeIso } from '@/liturgia/calendario';
 import { HORAS } from '@/liturgia/horas';
 import { useServidor } from '@/servidor/api';
-import { Marca } from '@/tema';
-import { Fundo, Linha, Secao, TituloTela } from '@/ui/base';
+import { Espaco, Marca, usePaleta } from '@/tema';
+import { Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base';
 
 const ICONE_HORA: Record<string, any> = {
   invitatorio: 'bell',
@@ -26,6 +26,7 @@ export default function Orar() {
   const router = useRouter();
   const aj = useAjustes();
   const srv = useServidor();
+  const c = usePaleta();
   usePacote();
   const com = srv.comunidade;
   const proposta = com?.propostas.find((p) => p.id === com.atual);
@@ -43,6 +44,19 @@ export default function Orar() {
     <Fundo>
       <ScrollView contentInsetAdjustmentBehavior="automatic">
         <TituloTela titulo="Rezar" sobre="Liturgia das Horas e orações" />
+        <Pressable
+          onPress={() => {
+            toque();
+            router.push('/buscar');
+          }}
+          style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.l }}>
+          <Vidro interativo style={{ borderRadius: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 14 }}>
+              <Icone nome="magnifyingglass" cor={c.textoFraco} tamanho={17} />
+              <Text style={{ color: c.textoFraco, fontSize: 16 }}>Buscar oração, salmo, santo, palavra…</Text>
+            </View>
+          </Vidro>
+        </Pressable>
         <Secao titulo="Liturgia das Horas">
           {HORAS.map((h, i) => (
             <Linha

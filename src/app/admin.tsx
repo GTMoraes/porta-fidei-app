@@ -88,7 +88,7 @@ export default function Admin() {
           />
           <Linha
             titulo="Testar notificação"
-            sub="Envia uma notificação de teste (por enquanto chega pelo Bark do Gabriel)"
+            sub="Envia uma notificação só para este aparelho, para conferir"
             icone="bell.badge"
             onPress={async () => {
               try {

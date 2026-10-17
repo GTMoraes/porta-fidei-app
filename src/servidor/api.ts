@@ -26,6 +26,7 @@ export interface Aviso {
   imagem?: string | null;
   fixado?: boolean;
   criado: string;
+  atualizado?: string; // última edição (para mostrar "corrigido")
 }
 
 export interface SecaoProposta {
@@ -200,6 +201,9 @@ export const apagarEvento = (id: string) => admin(`/eventos/${id}`, 'DELETE');
 export const salvarAviso = (a: Partial<Aviso> & { notificar?: boolean }) =>
   a.id ? admin(`/avisos/${a.id}`, 'PUT', a) : admin('/avisos', 'POST', a);
 export const apagarAviso = (id: string) => admin(`/avisos/${id}`, 'DELETE');
+/** Só a notificação, para todos os aparelhos, sem criar aviso */
+export const notificarTodos = (titulo: string, texto: string) =>
+  admin('/notificar-teste', 'POST', { titulo, texto }) as Promise<{ resultado: string }>;
 export const testarNotificacao = (titulo: string, texto: string, token?: string | null) =>
   admin('/notificar-teste', 'POST', { titulo, texto, token: token ?? undefined }) as Promise<{ resultado: string }>;
 

@@ -1,6 +1,7 @@
 // Junta as partes de uma Hora num único HTML e gera a página do leitor (com o visual do app).
 
 import type { Ajustes } from '@/estado/ajustes';
+import { JS_NAVEGAR } from '@/conteudo/navegar';
 import type { Paleta } from '@/tema';
 import type { Parte, PlanoHora } from '@/liturgia/horas';
 import { ler } from '@/conteudo/pacote';
@@ -38,7 +39,7 @@ export function normalizar(html: string): string {
     semTags(dentro).length > 8 ? `<span class="rub">${dentro}</span>` : m,
   );
   h = h.replace(/<sub>([\s\S]*?)<\/sub>/g, '$1');
-  h = h.replace(/(<span class="r">[^<]{2,40}<\/span>)<span>([^<]{2,40})<\/span>/g, '$1<span class="refdir">$2</span>');
+  h = h.replace(/(<span class="r">[^<]{2,40}<\/span>)<span>(?:<span class="r">)?([^<]{2,40})(?:<\/span>)?<\/span>/g, '$1<span class="refdir">$2</span>');
   return h;
 }
 
@@ -243,6 +244,8 @@ table{width:100%}
 .com h2.sc:first-child{margin-top:.4em}
 .com .scsub{text-align:center;font-weight:700;margin:-.4em 0 .9em}
 .com .dia{text-align:center;color:var(--dt);font-weight:600;margin:0 0 1em}
+mark.pfm{background:rgba(222,190,130,.4);color:inherit;border-radius:3px;padding:0 1px}
+mark.pfa{background:#E5A33A;color:#1a1208}
 .fonte{color:var(--fr);font-size:.72em;text-align:center;margin:28px 0 0!important;font-family:-apple-system,system-ui,sans-serif}
 </style></head><body>${cab}${corpo}
 <script>
@@ -254,6 +257,7 @@ table{width:100%}
   function post(o){ window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(o)); }
   window.pfRolar=function(v){ vel=v; ultimo=0; if(v && !raf){ raf=requestAnimationFrame(passo);} };
   window.pfFonte=function(px){ document.body.style.fontSize=px+'px'; };
+  document.addEventListener('touchstart',function(){ post({tipo:'tocou'}); },{passive:true});
   document.addEventListener('click',function(e){
     var a=e.target.closest && e.target.closest('a');
     if(a){ e.preventDefault(); post({tipo:'link', href:a.getAttribute('href'), titulo:a.getAttribute('data-titulo')||a.textContent}); return; }
@@ -261,5 +265,6 @@ table{width:100%}
   });
   var antes=0; window.addEventListener('scroll',function(){ var y=window.scrollY; if(Math.abs(y-antes)>40){ post({tipo:'rolou', desce:y>antes, y:y}); antes=y; } },{passive:true});
 })();
-</script></body></html>`;
+</script>
+<script>window.pfTopo=${op.topoExtra ?? 0};${JS_NAVEGAR}</script></body></html>`;
 }

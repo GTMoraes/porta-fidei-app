@@ -5,6 +5,7 @@ import { ScrollView, Text, View } from 'react-native';
 
 import { existe, imagemUri } from '@/conteudo/pacote';
 import { COR_HEX, NOME_GRAU, NOME_TEMPO, dataPorExtenso, diaLiturgico } from '@/liturgia/calendario';
+import { santosDoDia } from '@/liturgia/martirologio';
 import { HORAS } from '@/liturgia/horas';
 import { missalDoDia } from '@/liturgia/missal';
 import { Espaco, Fontes, usePaleta } from '@/tema';
@@ -61,22 +62,26 @@ export default function Dia() {
           </Secao>
         ) : null}
 
-        <Secao titulo="Liturgia das Horas">
-          {HORAS.map((h, i) => (
-            <Linha key={h.id} titulo={h.nome} onPress={() => router.push({ pathname: '/hora', params: { h: h.id, data } })} ultimo={i === HORAS.length - 1} />
-          ))}
-        </Secao>
-
         <Secao titulo="Missa e santo">
-          {missal ? <Linha titulo="Orações da Missa (Missal)" icone="text.book.closed" onPress={() => router.push({ pathname: '/texto', params: { arquivo: missal, titulo: cel.nome } })} /> : null}
+          <Linha titulo="Liturgia Diária" icone="book" onPress={() => router.push({ pathname: '/liturgia', params: { data } })} ultimo={!santo && !missal && !santosDoDia(data).length} />
           {santo ? (
             <Linha
               titulo="Vida do santo"
               icone="sparkles"
-              onPress={() => router.push({ pathname: '/texto', params: { arquivo: santo, titulo: cel.nome, imagem: imagemUri(`santos/${cel.slug}`) ? `santos/${cel.slug}` : '' } })}
+              onPress={() => router.push({ pathname: '/texto', params: { arquivo: santo, titulo: cel.nome, imagem: imagemUri(`santos/${cel.slug}`) ? `santos/${cel.slug}` : '', mart: data } })}
+              ultimo={!missal && !santosDoDia(data).length}
             />
           ) : null}
-          <Linha titulo="Liturgia Diária" icone="book" onPress={() => router.push({ pathname: '/liturgia', params: { data } })} ultimo />
+          {santosDoDia(data).length ? (
+            <Linha titulo="Outros santos do dia" sub="Martirológio Romano" icone="person.3" onPress={() => router.push({ pathname: '/martirologio', params: { data } })} ultimo={!missal} />
+          ) : null}
+          {missal ? <Linha titulo="Orações da Missa (Missal)" icone="text.book.closed" onPress={() => router.push({ pathname: '/texto', params: { arquivo: missal, titulo: cel.nome } })} ultimo /> : null}
+        </Secao>
+
+        <Secao titulo="Liturgia das Horas">
+          {HORAS.map((h, i) => (
+            <Linha key={h.id} titulo={h.nome} onPress={() => router.push({ pathname: '/hora', params: { h: h.id, data } })} ultimo={i === HORAS.length - 1} />
+          ))}
         </Secao>
         <View style={{ height: 40 }} />
       </ScrollView>

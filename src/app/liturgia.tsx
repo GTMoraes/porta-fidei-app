@@ -142,33 +142,18 @@ export default function LiturgiaDiaria() {
     </Vidro>
   );
 
-  const atalho = (rotulo: string, onPress: () => void) => (
-    <Pressable
-      key={rotulo}
-      onPress={() => {
-        toque();
-        onPress();
-      }}
-      hitSlop={4}
-      style={({ pressed }) => ({ paddingVertical: 10, paddingHorizontal: 4, opacity: pressed ? 0.5 : 1 })}>
-      <Text style={{ color: c.destaque, fontSize: 15 }} numberOfLines={1}>
-        {rotulo}
-      </Text>
-    </Pressable>
-  );
-
-  const rodape = (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingHorizontal: 6 }}>
-      {atalho('Ordinário', () => router.push({ pathname: '/lista', params: { tipo: 'ordinario' } }))}
-      {atalho('Prefácios', () => router.push({ pathname: '/lista', params: { tipo: 'prefacios', data } }))}
-      {atalho('O. Eucarísticas', () => router.push({ pathname: '/lista', params: { tipo: 'eucaristicas' } }))}
-      {atalho('Comentários', abrirComentario)}
-    </View>
-  );
+  // atalhos do Missal: menu discreto na barra do leitor (são mais usados por ministros e acólitos)
+  const temComentario = !!cnbb?.arquivo && existe(`comentarios/${cnbb.arquivo}`);
+  const acoes = [
+    { rotulo: 'Ordinário da Missa', onPress: () => router.push({ pathname: '/lista', params: { tipo: 'ordinario' } }) },
+    { rotulo: 'Prefácios', onPress: () => router.push({ pathname: '/lista', params: { tipo: 'prefacios', data } }) },
+    { rotulo: 'Orações Eucarísticas', onPress: () => router.push({ pathname: '/lista', params: { tipo: 'eucaristicas' } }) },
+    ...(temComentario ? [{ rotulo: 'Comentário das leituras', onPress: abrirComentario }] : []),
+  ];
 
   return (
     <View style={{ flex: 1 }}>
-      <Leitor corpo={corpo} titulo="Liturgia Diária" topo={topo} rodape={rodape} />
+      <Leitor corpo={corpo} titulo="Liturgia Diária" topo={topo} acoes={acoes} iconeAcoes="text.book.closed" tituloAcoes="Missal" />
       {baixando && baixar.length ? (
         <View style={{ width: 1, height: 1, opacity: 0, position: 'absolute' }} pointerEvents="none">
           <WebView

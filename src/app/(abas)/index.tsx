@@ -5,11 +5,13 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 
 import { semana } from '@/comunidade/html';
 import { diaAtual, diasFeitos, jornadasDeHoje, periodo, useFeitos } from '@/comunidade/jornadas';
+import { chaveAviso, useArquivados } from '@/estado/arquivados';
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
 import { infoRemota, type InfoRemota } from '@/conteudo/remoto';
 import { lerAjustes } from '@/estado/ajustes';
 import { COR_HEX, NOME_GRAU, NOME_TEMPO, dataPorExtenso, diaLiturgico, hojeIso } from '@/liturgia/calendario';
 import { HORAS } from '@/liturgia/horas';
+import { santosDoDia } from '@/liturgia/martirologio';
 import { atualizar, useServidor } from '@/servidor/api';
 import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
@@ -59,7 +61,8 @@ export default function Hoje() {
   const proposta = com?.propostas.find((p) => p.id === com.atual && p.inicio && p.fim && p.inicio <= hoje && hoje <= p.fim);
   const jornadas = jornadasDeHoje(com?.jornadas, hoje);
   const feitos = useFeitos();
-  const avisos = [...srv.avisos].sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado)).slice(0, 3);
+  const arquivados = useArquivados();
+  const avisos = srv.avisos.filter((a) => !arquivados.has(chaveAviso(a))).sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado)).slice(0, 3);
 
   return (
     <Fundo>
@@ -68,7 +71,7 @@ export default function Hoje() {
         refreshControl={<RefreshControl refreshing={srv.carregando} onRefresh={atualizar} tintColor={c.destaque} />}>
         {/* Cabeçalho com o logo */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: Espaco.xl, paddingTop: Espaco.s }}>
-          <Image source={require('@/assets/marca/logo-cor.png')} style={{ width: 44, height: 48 }} contentFit="contain" />
+          <Image source={require('@/assets/marca/logo-cor.png')} style={{ width: 44, height: 48 }} contentFit="contain" tintColor={c.escuro ? '#FFFFFF' : undefined} />
           <View style={{ flex: 1 }}>
             <Text style={{ color: c.textoFraco, fontSize: 12.5, letterSpacing: 0.8, textTransform: 'uppercase' }}>Comunidade Católica</Text>
             <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 24 }}>Porta Fidei</Text>
@@ -201,8 +204,11 @@ export default function Hoje() {
               titulo="Santo do dia"
               sub={cel.nome}
               icone="sparkles"
-              onPress={() => router.push({ pathname: '/texto', params: { arquivo: santoArquivo, titulo: cel.nome, imagem: fotoSanto ? `santos/${cel.slug}` : '' } })}
+              onPress={() => router.push({ pathname: '/texto', params: { arquivo: santoArquivo, titulo: cel.nome, imagem: fotoSanto ? `santos/${cel.slug}` : '', mart: hoje } })}
             />
+          ) : null}
+          {santosDoDia(hoje).length ? (
+            <Linha titulo="Outros santos de hoje" sub="Martirológio Romano" icone="person.3" onPress={() => router.push({ pathname: '/martirologio', params: { data: hoje } })} />
           ) : null}
           <Linha titulo="Calendário litúrgico" sub="Tempos, festas e cores" icone="calendar" onPress={() => router.push('/calendario')} ultimo />
         </Secao>

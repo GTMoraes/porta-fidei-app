@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, router } from 'expo-rout
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { carregarPacote } from '@/conteudo/pacote';
 import { carregarAjustes } from '@/estado/ajustes';
@@ -29,7 +30,18 @@ export default function Raiz() {
     const sub = Notifications.addNotificationReceivedListener((n) => {
       if (n.request.trigger && (n.request.trigger as any).type === 'push') atualizar();
     });
-    return () => sub.remove();
+    // ao voltar do segundo plano: busca proposta, avisos, agenda e jornadas novas (no máximo 1x por minuto)
+    let ultima = Date.now();
+    const subApp = AppState.addEventListener('change', (st) => {
+      if (st === 'active' && Date.now() - ultima > 60_000) {
+        ultima = Date.now();
+        atualizar();
+      }
+    });
+    return () => {
+      sub.remove();
+      subApp.remove();
+    };
   }, []);
 
   // toque numa notificação: abre o aviso, a proposta ou a jornada (push) ou a hora (lembrete local)
@@ -86,6 +98,8 @@ export default function Raiz() {
         <Stack.Screen name="evento" options={{ title: '' }} />
         <Stack.Screen name="aviso" options={{ title: '' }} />
         <Stack.Screen name="sobre" options={{ title: 'Sobre o app' }} />
+        <Stack.Screen name="buscar" options={{ title: 'Buscar' }} />
+        <Stack.Screen name="martirologio" options={{ title: '' }} />
         <Stack.Screen name="proposta" options={{ title: '' }} />
         <Stack.Screen name="propostas" options={{ title: 'Propostas de oração' }} />
         <Stack.Screen name="jornada" options={{ title: '' }} />

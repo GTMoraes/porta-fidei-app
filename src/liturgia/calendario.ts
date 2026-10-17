@@ -449,7 +449,7 @@ export const NOME_TEMPO: Record<Tempo, string> = {
 export const NOME_GRAU: Record<GrauDia, string> = {
   S: 'Solenidade',
   F: 'Festa',
-  M: 'Memória',
+  M: 'Memória obrigatória',
   m: 'Memória facultativa',
   D: 'Domingo',
   f: 'Féria',

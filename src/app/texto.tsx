@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { montarArquivo } from '@/conteudo/montar';
 import { imagemDataUri } from '@/conteudo/pacote';
+import { htmlMartirologio } from '@/liturgia/martirologio';
 import { Leitor } from '@/ui/Leitor';
 
 // Figuras do Rosário, na ordem em que aparecem em cada arquivo (o original preenchia por código)
@@ -14,7 +15,7 @@ const FIGURAS_ROSARIO: Record<string, string[]> = {
 };
 
 export default function Texto() {
-  const { arquivo, titulo, desde, ate, imagem } = useLocalSearchParams<{ arquivo: string; titulo?: string; desde?: string; ate?: string; imagem?: string }>();
+  const { arquivo, titulo, desde, ate, imagem, busca, mart } = useLocalSearchParams<{ arquivo: string; titulo?: string; desde?: string; ate?: string; imagem?: string; busca?: string; mart?: string }>();
   const nav = useNavigation();
   const [corpo, setCorpo] = useState<string | null>(null);
 
@@ -38,9 +39,11 @@ export default function Texto() {
       // foto do santo no topo
       const img = imagem ? await imagemDataUri(imagem) : undefined;
       if (img) html = `<img src="${img}" style="display:block;width:100%;margin-bottom:18px"/>` + html;
+      // Santo do dia: no fim, os outros santos do Martirológio
+      if (mart) html += htmlMartirologio(mart);
       setCorpo(html);
     })();
-  }, [arquivo, desde, ate, imagem, nav]);
+  }, [arquivo, desde, ate, imagem, mart, nav]);
 
-  return <Leitor corpo={corpo} titulo={titulo || undefined} />;
+  return <Leitor corpo={corpo} titulo={titulo || undefined} busca={busca || undefined} />;
 }

@@ -94,6 +94,17 @@ export async function ler(arquivo: string): Promise<string | null> {
   }
 }
 
+/** Lê sem guardar no cache (para varrer todos os textos na busca) */
+export async function lerBruto(arquivo: string): Promise<string | null> {
+  if (!arquivos.has(arquivo)) return null;
+  try {
+    return await new File(uriDe(`t/${arquivo}.html`)).text();
+  } catch {
+    return null;
+  }
+}
+export const todosOsArquivos = () => [...arquivos];
+
 export async function lerDado<T>(nome: string): Promise<T | null> {
   try {
     const f = new File(uriDe(`dados/${nome}`));
