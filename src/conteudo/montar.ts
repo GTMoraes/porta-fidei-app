@@ -39,7 +39,17 @@ export function normalizar(html: string): string {
     semTags(dentro).length > 8 ? `<span class="rub">${dentro}</span>` : m,
   );
   h = h.replace(/<sub>([\s\S]*?)<\/sub>/g, '$1');
-  h = h.replace(/(<span class="r">[^<]{2,40}<\/span>)<span>(?:<span class="r">)?([^<]{2,40})(?:<\/span>)?<\/span>/g, '$1<span class="refdir">$2</span>');
+  // título vermelho seguido da referência bíblica ("Antífona da comunhão" + "Cf. Sl 32,18-19"): referência à direita.
+  // Só vale quando o segundo pedaço é mesmo uma referência (senão "V. Bendigamos ao Senhor" iria para a direita).
+  const ehRef = (t: string) => /^\s*\.?\s*(C[fF][.,]\s*)?[1-4]?\s?[A-Z][A-Za-zçãéíó]{0,4}\.?\s*\d+[,.:\s]\s*\d/.test(t);
+  h = h.replace(
+    /(<span class="r">(?:\s*<br\s*\/?>\s*)*[^<]{2,40}<\/span>)\s*<span>(?:<span class="r">)?([^<]{2,40})(?:<\/span>)?<\/span>/g,
+    (m, a: string, ref: string) => (ehRef(ref) ? `${a}<span class="refdir">${ref.replace(/^\s*\.?\s*/, '').trim()}</span>` : m),
+  );
+  // variações: título partido em vários spans, ou "Ou:" seguido da referência
+  h = h.replace(/(<\/span>)\s*(?:<span><\/span>)?<span><span class="r">([^<]{2,40})<\/span><\/span>/g, (m, a: string, ref: string) =>
+    ehRef(ref) ? `${a}<span class="refdir">${ref.replace(/^\s*\.?\s*/, '').trim()}</span>` : m,
+  );
   return h;
 }
 

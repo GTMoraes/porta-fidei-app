@@ -1,8 +1,8 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ScrollView, Share, Text, View } from 'react-native';
+import { Alert, ScrollView, Share, Text, View } from 'react-native';
 
-import { arquivar, chaveAviso, useArquivados } from '@/estado/arquivados';
+import { arquivado, arquivar, remover, useArquivados } from '@/estado/arquivados';
 import { useServidor } from '@/servidor/api';
 import { Espaco, Fontes, usePaleta } from '@/tema';
 import { Aviso as Caixa, Botao, Fundo, Secao, Vidro } from '@/ui/base';
@@ -46,8 +46,28 @@ export default function TelaAviso() {
           </Vidro>
         </View>
         <View style={{ marginHorizontal: Espaco.l, gap: 12, marginBottom: 50 }}>
-          {arquivados.has(chaveAviso(a)) ? (
-            <Botao titulo="Voltar para Avisos" icone="tray.and.arrow.up" tipo="secundario" onPress={() => arquivar(a, false)} />
+          {arquivado(arquivados, a) ? (
+            <>
+              <Botao titulo="Voltar para Avisos" icone="tray.and.arrow.up" tipo="secundario" onPress={() => arquivar(a, false)} />
+              <Botao
+                titulo="Remover deste iPhone"
+                icone="trash"
+                tipo="perigo"
+                onPress={() =>
+                  Alert.alert('Tem certeza?', 'O aviso some deste iPhone de vez. Para os outros membros nada muda.', [
+                    { text: 'Cancelar', style: 'cancel' },
+                    {
+                      text: 'Remover',
+                      style: 'destructive',
+                      onPress: () => {
+                        remover(a);
+                        router.back();
+                      },
+                    },
+                  ])
+                }
+              />
+            </>
           ) : (
             <Botao
               titulo="Arquivar"

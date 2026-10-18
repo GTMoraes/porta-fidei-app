@@ -1,14 +1,14 @@
 // Proposta de oração da semana (Material de Oração Pessoal enviado às segundas)
 
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useEffect, useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { propostaHtml, semana } from '@/comunidade/html';
 import { lerPrevia } from '@/comunidade/previa';
-import { useServidor } from '@/servidor/api';
+import { urlPdfProposta, useServidor } from '@/servidor/api';
 import { usePaleta } from '@/tema';
-import { toque } from '@/ui/base';
+import { Icone, toque } from '@/ui/base';
 import { Leitor } from '@/ui/Leitor';
 
 export default function TelaProposta() {
@@ -26,6 +26,27 @@ export default function TelaProposta() {
     [p],
   );
   const anteriores = (com?.propostas ?? []).filter((x) => x.id !== p?.id);
+  const nav = useNavigation();
+
+  // "PDF original": a proposta com a arte da Comissão, como foi enviada
+  useEffect(() => {
+    nav.setOptions({
+      headerRight: p?.temPdf
+        ? () => (
+            <Pressable
+              onPress={() => {
+                toque();
+                router.push({ pathname: '/pdf', params: { url: urlPdfProposta(p.id), titulo: p.titulo } });
+              }}
+              hitSlop={10}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4 }}>
+              <Icone nome="doc.richtext" tamanho={18} />
+              <Text style={{ color: c.destaque, fontSize: 15 }}>PDF original</Text>
+            </Pressable>
+          )
+        : undefined,
+    });
+  }, [nav, p?.id, p?.temPdf, p?.titulo, router, c.destaque]);
 
   const rodape = anteriores.length ? (
     <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>

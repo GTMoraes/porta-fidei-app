@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
-import { arquivar, chaveAviso, useArquivados } from '@/estado/arquivados';
+import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+
+import { arquivado, arquivar, remover, useArquivados, visivel } from '@/estado/arquivados';
 import { atualizar, useServidor, type Aviso as AvisoT, type Evento } from '@/servidor/api';
 import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base';
@@ -22,6 +24,15 @@ export default function Agenda() {
   const router = useRouter();
   const srv = useServidor();
   const [aba, setAba] = useState<'agenda' | 'avisos'>('agenda');
+  const [puxando, setPuxando] = useState(false);
+  const puxar = async () => {
+    setPuxando(true);
+    try {
+      await atualizar();
+    } finally {
+      setPuxando(false);
+    }
+  };
 
   const agora = Date.now();
   const futuros = srv.eventos
@@ -35,14 +46,19 @@ export default function Agenda() {
   const arquivados = useArquivados();
   const [verArquivados, setVerArquivados] = useState(false);
   const todos = [...srv.avisos].sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado) || b.criado.localeCompare(a.criado));
-  const avisos = todos.filter((a) => !arquivados.has(chaveAviso(a)));
-  const guardados = todos.filter((a) => arquivados.has(chaveAviso(a)));
+  const avisos = todos.filter((a) => visivel(arquivados, a));
+  const guardados = todos.filter((a) => arquivado(arquivados, a));
+  const confirmarRemover = (a: AvisoT, desfazer?: () => void) =>
+    Alert.alert('Tem certeza?', 'O aviso some deste iPhone de vez. Para os outros membros nada muda.', [
+      { text: 'Cancelar', style: 'cancel', onPress: desfazer },
+      { text: 'Remover', style: 'destructive', onPress: () => remover(a) },
+    ]);
 
   return (
     <Fundo>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        refreshControl={<RefreshControl refreshing={srv.carregando} onRefresh={atualizar} tintColor={c.destaque} />}>
+        refreshControl={<RefreshControl refreshing={puxando} onRefresh={puxar} tintColor={c.destaque} />}>
         <TituloTela titulo="Agenda" sobre="Missas, eventos e avisos" />
 
         <View style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.l }}>
@@ -103,7 +119,17 @@ export default function Agenda() {
         ) : (
           <>
             {avisos.length ? (
-              avisos.map((a) => <CartaoAviso key={a.id} a={a} onArquivar={() => arquivar(a, true, srv.avisos)} />)
+              avisos.map((a) => (
+                <ReanimatedSwipeable
+                  key={a.id}
+                  friction={1.6}
+                  rightThreshold={80}
+                  containerStyle={{ overflow: 'visible' }}
+                  renderRightActions={() => <AcaoDeslizar cor={Marca.ouro} icone="archivebox" texto="Arquivar" lado="direita" cartao />}
+                  onSwipeableOpen={() => arquivar(a, true, srv.avisos)}>
+                  <CartaoAviso a={a} onArquivar={() => arquivar(a, true, srv.avisos)} />
+                </ReanimatedSwipeable>
+              ))
             ) : (
               <Secao>
                 <Aviso icone="megaphone" texto={guardados.length ? 'Nenhum aviso novo.' : 'Nenhum aviso por enquanto.'} />
@@ -120,17 +146,13 @@ export default function Agenda() {
                 />
                 {verArquivados
                   ? guardados.map((a, i) => (
-                      <Linha
+                      <LinhaArquivada
                         key={a.id}
-                        titulo={a.titulo}
-                        sub={dataLonga(new Date(a.criado))}
-                        direita={
-                          <Pressable onPress={() => arquivar(a, false)} hitSlop={8}>
-                            <Icone nome="tray.and.arrow.up" tamanho={18} />
-                          </Pressable>
-                        }
-                        onPress={() => router.push({ pathname: '/aviso', params: { id: a.id } })}
+                        a={a}
                         ultimo={i === guardados.length - 1}
+                        abrir={() => router.push({ pathname: '/aviso', params: { id: a.id } })}
+                        voltar={() => arquivar(a, false)}
+                        remover={(fechar) => confirmarRemover(a, fechar)}
                       />
                     ))
                   : null}
@@ -141,6 +163,53 @@ export default function Agenda() {
         <View style={{ height: 40 }} />
       </ScrollView>
     </Fundo>
+  );
+}
+
+/** Aviso arquivado: deslizar para a esquerda mostra "Voltar" e "Remover" (como no Mail) */
+function LinhaArquivada({ a, ultimo, abrir, voltar, remover }: { a: AvisoT; ultimo: boolean; abrir: () => void; voltar: () => void; remover: (fechar: () => void) => void }) {
+  const ref = useRef<SwipeableMethods>(null);
+  const botao = (cor: string, icone: any, texto: string, onPress: () => void) => (
+    <Pressable onPress={() => (toque(), onPress())} style={{ width: 84, justifyContent: 'center', alignItems: 'center', backgroundColor: cor, gap: 4 }}>
+      <Icone nome={icone} cor="#fff" tamanho={19} />
+      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{texto}</Text>
+    </Pressable>
+  );
+  return (
+    <ReanimatedSwipeable
+      ref={ref}
+      friction={1.6}
+      rightThreshold={50}
+      renderRightActions={() => (
+        <View style={{ flexDirection: 'row' }}>
+          {botao(Marca.ouro, 'tray.and.arrow.up', 'Voltar', () => {
+            ref.current?.close();
+            voltar();
+          })}
+          {botao('#C0392B', 'trash', 'Remover', () => remover(() => ref.current?.close()))}
+        </View>
+      )}>
+      <Linha titulo={a.titulo} sub={`${dataLonga(new Date(a.criado))} · deslize para voltar ou remover`} onPress={abrir} ultimo={ultimo} />
+    </ReanimatedSwipeable>
+  );
+}
+
+function AcaoDeslizar({ cor, icone, texto, lado, cartao }: { cor: string; icone: any; texto: string; lado: 'direita' | 'esquerda'; cartao?: boolean }) {
+  return (
+    <View
+      style={{
+        width: 96,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: cor,
+        borderRadius: cartao ? 24 : 0,
+        marginBottom: cartao ? Espaco.l : 0,
+        marginRight: cartao && lado === 'direita' ? Espaco.l : 0,
+        gap: 4,
+      }}>
+      <Icone nome={icone} cor="#fff" tamanho={20} />
+      <Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '600' }}>{texto}</Text>
+    </View>
   );
 }
 

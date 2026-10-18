@@ -5,7 +5,7 @@ import { useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { buscarNosTextos, existe, normalizar, textoJaLido, type Achado } from '@/conteudo/busca';
+import { buscarNosTextos, buscarParecidos, comNumeracaoHebraica, existe, registrarSalmos, normalizar, palavrasChave, textoJaLido, type Achado } from '@/conteudo/busca';
 import { COMUNS, MISSAL_FIXO, ORACOES, RITUAIS, ROSARIO } from '@/conteudo/catalogo';
 import { lerDado, usePacote } from '@/conteudo/pacote';
 import { SANTOS } from '@/liturgia/santos';
@@ -31,11 +31,15 @@ export default function Buscar() {
   const [salmos, setSalmos] = useState<{ arquivo: string; ref: string; tema: string }[]>([]);
   const [varrendo, setVarrendo] = useState<{ feito: number; total: number } | null>(null);
   const [achados, setAchados] = useState<Achado[] | null>(null);
+  const [parecidos, setParecidos] = useState<Achado[] | null>(null);
   const cancelar = useRef(false);
 
   useEffect(() => {
     nav.setOptions({ title: 'Buscar' });
-    lerDado<{ arquivo: string; ref: string; tema: string }[]>('salmos.json').then((s) => setSalmos(s ?? []));
+    lerDado<{ arquivo: string; ref: string; tema: string }[]>('salmos.json').then((s) => {
+      setSalmos(s ?? []);
+      registrarSalmos(s ?? []);
+    });
     return () => {
       cancelar.current = true;
     };
@@ -45,6 +49,7 @@ export default function Buscar() {
   useEffect(() => {
     cancelar.current = true;
     setAchados(null);
+    setParecidos(null);
     setVarrendo(null);
   }, [termo]);
 
@@ -92,7 +97,7 @@ export default function Buscar() {
       if (cat.length) grupos.push({ grupo: 'Orações, rituais e Missal', itens: cat.slice(0, 40) });
 
       const sl = salmos
-        .filter((s) => bate(s.ref, s.tema))
+        .filter((s) => bate(comNumeracaoHebraica(s.ref), s.tema))
         .slice(0, 30)
         .map((s) => ({ chave: s.arquivo, titulo: s.ref, sub: s.tema, icone: 'music.note.list', abrir: texto(s.arquivo, s.ref) }));
       if (sl.length) grupos.push({ grupo: 'Salmos', itens: sl });
@@ -125,6 +130,11 @@ export default function Buscar() {
     if (!cancelar.current) {
       setAchados(r);
       setVarrendo(null);
+      // poucas respostas exatas e uma frase com várias palavras: procura também textos parecidos
+      if (r.length < 8 && palavrasChave(termo).length >= 2) {
+        const p = await buscarParecidos(termo, () => cancelar.current, new Set(r.map((x) => x.arquivo)));
+        if (!cancelar.current) setParecidos(p);
+      }
     }
   };
 
@@ -200,6 +210,19 @@ export default function Buscar() {
                   ))}
                 </Secao>
               )
+            ) : null}
+            {parecidos?.length ? (
+              <Secao titulo="Parecidos (outras traduções ou palavras em outra ordem)">
+                {parecidos.map((a, k) => (
+                  <Linha
+                    key={'p' + a.arquivo}
+                    titulo={a.titulo}
+                    sub={[a.onde, a.trecho].filter(Boolean).join(' · ') || undefined}
+                    onPress={() => router.push({ pathname: '/texto', params: { arquivo: a.arquivo, titulo: a.titulo } })}
+                    ultimo={k === parecidos.length - 1}
+                  />
+                ))}
+              </Secao>
             ) : null}
           </>
         )}

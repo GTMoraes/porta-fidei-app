@@ -1,11 +1,11 @@
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { AppState, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { semana } from '@/comunidade/html';
 import { diaAtual, diasFeitos, jornadasDeHoje, periodo, useFeitos } from '@/comunidade/jornadas';
-import { chaveAviso, useArquivados } from '@/estado/arquivados';
+import { useArquivados, visivel } from '@/estado/arquivados';
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
 import { infoRemota, type InfoRemota } from '@/conteudo/remoto';
 import { lerAjustes } from '@/estado/ajustes';
@@ -25,11 +25,39 @@ export default function Hoje() {
   const pacote = usePacote();
   const srv = useServidor();
   const [hoje, setHoje] = useState(hojeIso());
+  // hora atual: refeita ao voltar para a tela, ao reabrir o app e a cada minuto
+  // (antes ficava a da última vez que a tela foi desenhada, e sugeria Completas de manhã)
+  const [agora, setAgora] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setAgora(new Date()), 60_000);
+    const s = AppState.addEventListener('change', (st) => {
+      if (st === 'active') {
+        setAgora(new Date());
+        setHoje(hojeIso());
+      setAgora(new Date());
+      }
+    });
+    return () => {
+      clearInterval(t);
+      s.remove();
+    };
+  }, []);
+  // o indicador de "atualizando" só aparece quando a pessoa puxa a tela
+  const [puxando, setPuxando] = useState(false);
+  const puxar = async () => {
+    setPuxando(true);
+    try {
+      await atualizar();
+    } finally {
+      setPuxando(false);
+    }
+  };
   const jaAbriuMenu = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
       setHoje(hojeIso());
+      setAgora(new Date());
     }, []),
   );
 
@@ -50,25 +78,25 @@ export default function Hoje() {
 
   const dia = useMemo(() => diaLiturgico(hoje), [hoje]);
   const cel = dia.celebracao;
-  const sugerida = HORAS.find((h) => h.id === horaSugerida())!;
+  const sugerida = HORAS.find((h) => h.id === horaSugerida(agora))!;
   const pintura = cel.slug ? imagemUri(`paints/${cel.slug}`) : undefined;
   const santoArquivo = cel.slug && existe(`santos/${cel.slug}`) ? `santos/${cel.slug}` : undefined;
   const fotoSanto = cel.slug ? imagemUri(`santos/${cel.slug}`) : undefined;
 
-  const agora = Date.now();
-  const proximos = srv.eventos.filter((e) => new Date(e.fim ?? e.inicio).getTime() >= agora - 3600_000).slice(0, 4);
+  const agoraMs = agora.getTime();
+  const proximos = srv.eventos.filter((e) => new Date(e.fim ?? e.inicio).getTime() >= agoraMs - 3600_000).slice(0, 4);
   const com = srv.comunidade;
   const proposta = com?.propostas.find((p) => p.id === com.atual && p.inicio && p.fim && p.inicio <= hoje && hoje <= p.fim);
   const jornadas = jornadasDeHoje(com?.jornadas, hoje);
   const feitos = useFeitos();
   const arquivados = useArquivados();
-  const avisos = srv.avisos.filter((a) => !arquivados.has(chaveAviso(a))).sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado)).slice(0, 3);
+  const avisos = srv.avisos.filter((a) => visivel(arquivados, a)).sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado)).slice(0, 3);
 
   return (
     <Fundo>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        refreshControl={<RefreshControl refreshing={srv.carregando} onRefresh={atualizar} tintColor={c.destaque} />}>
+        refreshControl={<RefreshControl refreshing={puxando} onRefresh={puxar} tintColor={c.destaque} />}>
         {/* Cabeçalho com o logo */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: Espaco.xl, paddingTop: Espaco.s }}>
           <Image source={require('@/assets/marca/logo-cor.png')} style={{ width: 44, height: 48 }} contentFit="contain" tintColor={c.escuro ? '#FFFFFF' : undefined} />

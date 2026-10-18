@@ -7,7 +7,8 @@ import { Alert, ScrollView, View } from 'react-native';
 import { recarregarAdmin, useAdminComunidade } from '@/comunidade/admin';
 import { definirPrevia, lerPrevia } from '@/comunidade/previa';
 import { hojeIso, somaDias } from '@/liturgia/calendario';
-import { apagarProposta, salvarProposta, type SecaoProposta } from '@/servidor/api';
+import { anexarPdfProposta, apagarProposta, salvarProposta, type SecaoProposta } from '@/servidor/api';
+import { escolherPdf } from '@/comunidade/pdf';
 import { Espaco } from '@/tema';
 import { Aviso, Botao, Chave, Fundo, Linha, Secao } from '@/ui/base';
 import { CampoData } from '@/ui/Data';
@@ -62,6 +63,24 @@ export default function EditarProposta() {
           <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} />
           <CampoData rotulo="Semana: de" valor={inicio} mudar={setInicio} />
           <CampoData rotulo="até" valor={fim} mudar={setFim} />
+          <Linha
+            titulo={orig.temPdf ? 'PDF original anexado' : 'Anexar o PDF original'}
+            sub={orig.temPdf ? 'Os membros podem abrir a proposta com a arte da Comissão. Toque para trocar.' : 'Para os membros poderem ver a proposta com a arte da Comissão'}
+            icone={orig.temPdf ? 'checkmark.circle' : 'doc.badge.plus'}
+            onPress={async () => {
+              try {
+                const pdf = await escolherPdf();
+                if (!pdf) return;
+                const n = await anexarPdfProposta(orig.id, pdf.base64);
+                definirPrevia({ ...atual(), temPdf: n.temPdf });
+                await recarregarAdmin();
+                Alert.alert('PDF anexado', 'O PDF original desta proposta já pode ser aberto no app.');
+              } catch (e: any) {
+                Alert.alert('Não foi possível anexar', String(e?.message ?? e));
+              }
+            }}
+            ultimo
+          />
         </Secao>
 
         <Secao titulo={`Seções lidas do PDF (${secoes.length})`}>

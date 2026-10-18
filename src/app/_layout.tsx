@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, router } from 'expo-rout
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppState } from 'react-native';
 
 import { carregarPacote } from '@/conteudo/pacote';
@@ -72,6 +73,7 @@ export default function Raiz() {
   const tema = { ...base, colors: { ...base.colors, background: 'transparent', primary: c.destaque, text: c.texto } };
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <ThemeProvider value={tema}>
       <StatusBar style={c.escuro ? 'light' : 'dark'} />
       <Stack
@@ -100,6 +102,7 @@ export default function Raiz() {
         <Stack.Screen name="sobre" options={{ title: 'Sobre o app' }} />
         <Stack.Screen name="buscar" options={{ title: 'Buscar' }} />
         <Stack.Screen name="martirologio" options={{ title: '' }} />
+        <Stack.Screen name="pdf" options={{ title: '' }} />
         <Stack.Screen name="proposta" options={{ title: '' }} />
         <Stack.Screen name="propostas" options={{ title: 'Propostas de oração' }} />
         <Stack.Screen name="jornada" options={{ title: '' }} />
@@ -111,5 +114,6 @@ export default function Raiz() {
         <Stack.Screen name="editar-oracao" options={{ title: 'Oração', presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

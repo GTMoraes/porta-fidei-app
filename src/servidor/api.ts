@@ -42,6 +42,7 @@ export interface Proposta {
   secoes: SecaoProposta[];
   publicada: boolean;
   criado: string;
+  temPdf?: boolean; // o PDF original (com a arte da Comissão) está no servidor
 }
 export interface Jornada {
   id: string;
@@ -213,6 +214,8 @@ export const comunidadeAdmin = () => admin('/comunidade', 'GET') as Promise<Comu
 /** Envia o PDF da Proposta: o servidor separa as seções e devolve um rascunho */
 export const enviarPropostaPdf = (base64: string) => admin('/propostas/pdf', 'POST', { base64 }, 90000) as Promise<Proposta>;
 export const salvarProposta = (p: Partial<Proposta> & { id: string; notificar?: boolean }) => admin(`/propostas/${p.id}`, 'PUT', p) as Promise<Proposta>;
+export const anexarPdfProposta = (id: string, base64: string) => admin(`/propostas/${id}/pdf`, 'PUT', { base64 }, 90000) as Promise<Proposta>;
+export const urlPdfProposta = (id: string) => `${SERVIDOR}/api/propostas/${id}/pdf`;
 export const apagarProposta = (id: string) => admin(`/propostas/${id}`, 'DELETE');
 export const salvarJornada = (j: Partial<Jornada>) => (j.id ? admin(`/jornadas/${j.id}`, 'PUT', j) : admin('/jornadas', 'POST', j)) as Promise<Jornada>;
 export const apagarJornada = (id: string) => admin(`/jornadas/${id}`, 'DELETE');

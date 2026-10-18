@@ -47,6 +47,7 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
   const [indice, setIndice] = useState<{ id: string; titulo: string; nivel: number }[]>([]);
   const [parteAtual, setParteAtual] = useState(0);
   const [indiceAberto, setIndiceAberto] = useState(false);
+  const [painelFonte, setPainelFonte] = useState(false); // "Aa": letra menor / maior
   const [buscando, setBuscando] = useState(!!busca);
   const [termo, setTermo] = useState(busca ?? '');
   const [achados, setAchados] = useState({ total: 0, atual: 0 });
@@ -243,7 +244,25 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
       ) : null}
 
       {barraVisivel && html != null ? (
-        <View style={{ position: 'absolute', bottom: insets.bottom + 12 + (rodape ? ALTURA_RODAPE : 0), alignSelf: 'center' }}>
+        <View style={{ position: 'absolute', bottom: insets.bottom + 12 + (rodape ? ALTURA_RODAPE : 0), alignSelf: 'center', alignItems: 'center' }}>
+          {painelFonte ? (
+            // como no Safari e no Livros: "A" pequeno diminui, "A" grande aumenta, e o tamanho atual no meio
+            <Vidro style={{ borderRadius: 24, marginBottom: 8 }} interativo>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Pressable onPress={() => (toque(), mudarFonte(-1))} hitSlop={6} style={({ pressed }) => ({ paddingVertical: 10, paddingHorizontal: 22, opacity: pressed ? 0.5 : 1 })}>
+                  <Text style={{ color: c.destaque, fontSize: 15, fontWeight: '600' }}>A</Text>
+                </Pressable>
+                <View style={{ width: 1, alignSelf: 'stretch', marginVertical: 10, backgroundColor: c.separador }} />
+                <Text style={{ color: c.textoSuave, fontSize: 13, fontVariant: ['tabular-nums'], minWidth: 64, textAlign: 'center' }}>
+                  {Math.round((aj.tamanhoFonte / 19) * 100)}%
+                </Text>
+                <View style={{ width: 1, alignSelf: 'stretch', marginVertical: 10, backgroundColor: c.separador }} />
+                <Pressable onPress={() => (toque(), mudarFonte(1))} hitSlop={6} style={({ pressed }) => ({ paddingVertical: 6, paddingHorizontal: 20, opacity: pressed ? 0.5 : 1 })}>
+                  <Text style={{ color: c.destaque, fontSize: 25, fontWeight: '600' }}>A</Text>
+                </Pressable>
+              </View>
+            </Vidro>
+          ) : null}
           <Vidro style={{ borderRadius: 30, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6 }} interativo>
             {indice.length ? <BotaoBarra icone="list.bullet" onPress={() => setIndiceAberto(true)} /> : null}
             {acoes?.length ? (
@@ -258,8 +277,7 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
               />
             ) : null}
             <BotaoBarra icone="magnifyingglass" onPress={() => (buscando ? fecharBusca() : setBuscando(true))} ativo={buscando} />
-            <BotaoBarra icone="textformat.size.smaller" onPress={() => mudarFonte(-1)} />
-            <BotaoBarra icone="textformat.size.larger" onPress={() => mudarFonte(1)} />
+            <BotaoBarra icone="textformat.size" onPress={() => setPainelFonte((v) => !v)} ativo={painelFonte} />
             {aj.velocidadeRolagem > 0 ? (
               <BotaoBarra icone={rolando ? 'pause.fill' : 'arrow.down.to.line.compact'} onPress={alternarRolagem} ativo={rolando} />
             ) : null}

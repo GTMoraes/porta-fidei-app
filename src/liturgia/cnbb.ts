@@ -148,3 +148,58 @@ ${JS_LIMPAR}
 })();
 true;`;
 }
+
+// ---------------------------------------------------------------- resumo das leituras (referências)
+const LIVROS: [RegExp, string][] = [
+  [/G[êe]nesis/, 'Gn'], [/[ÊE]xodo/, 'Ex'], [/Lev[íi]tico/, 'Lv'], [/N[úu]meros/, 'Nm'], [/Deuteron[ôo]mio/, 'Dt'],
+  [/Josu[ée]/, 'Js'], [/Ju[íi]zes/, 'Jz'], [/Rute/, 'Rt'], [/Samuel/, 'Sm'], [/Reis/, 'Rs'], [/Cr[ôo]nicas/, 'Cr'],
+  [/Esdras/, 'Esd'], [/Neemias/, 'Ne'], [/Tobias/, 'Tb'], [/Judite/, 'Jt'], [/Ester/, 'Est'], [/Macabeus/, 'Mc'],
+  [/(^|\s)Jó(\s|,|$)/, 'Jó'], [/Prov[ée]rbios/, 'Pr'], [/Eclesiastes/, 'Ecl'], [/C[âa]ntico dos C[âa]nticos/, 'Ct'],
+  [/Sabedoria/, 'Sb'], [/Eclesi[áa]stico/, 'Eclo'], [/Isa[íi]as/, 'Is'], [/Jeremias/, 'Jr'], [/Lamenta[çc][õo]es/, 'Lm'],
+  [/Baruc/, 'Br'], [/Ezequiel/, 'Ez'], [/Daniel/, 'Dn'], [/Os[ée]ias/, 'Os'], [/Joel/, 'Jl'], [/Am[óo]s/, 'Am'],
+  [/Abdias/, 'Ab'], [/Jonas/, 'Jn'], [/Miqueias/, 'Mq'], [/Naum/, 'Na'], [/Habacuc/, 'Hab'], [/Sofonias/, 'Sf'],
+  [/Ageu/, 'Ag'], [/Zacarias/, 'Zc'], [/Malaquias/, 'Ml'], [/Atos/, 'At'], [/Romanos/, 'Rm'], [/Cor[íi]ntios/, 'Cor'],
+  [/G[áa]latas/, 'Gl'], [/Ef[ée]sios/, 'Ef'], [/Filipenses/, 'Fl'], [/Colossenses/, 'Cl'], [/Tessalonicenses/, 'Ts'],
+  [/Tim[óo]teo/, 'Tm'], [/\bTito\b/, 'Tt'], [/Fil[êe]mon/, 'Fm'], [/Hebreus/, 'Hb'], [/Tiago/, 'Tg'], [/Pedro/, 'Pd'],
+  [/Judas/, 'Jd'], [/Apocalipse/, 'Ap'], [/Mateus/, 'Mt'], [/Marcos/, 'Mc'], [/Lucas/, 'Lc'], [/Jo[ãa]o/, 'Jo'], [/Salmo/, 'Sl'],
+];
+const ORDEM: [RegExp, string][] = [[/Primeir[oa]/i, '1'], [/Segund[oa]/i, '2'], [/Terceir[oa]/i, '3']];
+
+/** "Leitura da Primeira Carta de São Paulo aos Coríntios" -> "1Cor" (só livros que têm número levam o número) */
+export function sigla(frase: string): string {
+  const evangelho = /Evangelho/i.test(frase);
+  for (const [re, s] of LIVROS) {
+    if (!re.test(frase)) continue;
+    if (s === 'Mc' && /Macabeus/.test(frase)) return (ORDEM.find(([o]) => o.test(frase))?.[1] ?? '') + 'Mc';
+    const numerado = ['Sm', 'Rs', 'Cr', 'Cor', 'Ts', 'Tm', 'Pd'].includes(s) || (s === 'Jo' && !evangelho && /Carta/i.test(frase));
+    return (numerado ? ORDEM.find(([o]) => o.test(frase))?.[1] ?? '' : '') + s;
+  }
+  return frase.trim();
+}
+
+const semTagsCNBB = (h: string) => h.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+
+/** Referências das leituras do dia, a partir do texto da CNBB guardado no aparelho */
+export function resumoLeituras(html: string): { titulo: string; ref: string }[] {
+  const out: { titulo: string; ref: string }[] = [];
+  for (const parte of html.split(/<div class="sec">/).slice(1)) {
+    const fim = parte.indexOf('</div>');
+    const tit = semTagsCNBB(parte.slice(0, fim));
+    if (!/LEITURA|SALMO|EVANGELHO/i.test(tit)) continue;
+    const resto = parte.slice(fim + 6);
+    let ref = '';
+    const m = resto.match(/^([\s\S]*?)<span class="r ref">([^<]+)<\/span>/);
+    if (m && m[1].length < 3000) {
+      const antes = semTagsCNBB(m[1].split(/<\/p>|<br\s*\/?>|<\/div>/).pop() ?? '');
+      const r = m[2].trim();
+      ref = /^[1-3]?\s?[A-Z][a-z]{0,3}\s?\d/.test(r) ? r : `${antes ? sigla(antes) : ''} ${r}`.trim();
+    }
+    if (!ref || /^SALMO/i.test(tit)) {
+      const s = semTagsCNBB(resto).match(/\bSl\s*\d+\s*(\(\d+\))?[\d,.\-–abc\s]*(\(R\.[^)]*\))?/);
+      if (s) ref = s[0].trim();
+    }
+    const nome = tit.charAt(0) + tit.slice(1).toLowerCase();
+    out.push({ titulo: nome, ref: ref || '—' });
+  }
+  return out;
+}

@@ -84,6 +84,12 @@ const humano = (s: string) =>
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/^./, (x) => x.toUpperCase());
 
+/** Nomes dos salmos (salmos.json do pacote): "Salmo 22(23) · O Bom Pastor" */
+export function registrarSalmos(l: { arquivo: string; ref: string; tema: string }[]) {
+  const { titulos: t } = mapas();
+  for (const s of l) t.set(s.arquivo, s.tema ? `${s.ref} · ${s.tema}` : s.ref);
+}
+
 /** Nome legível de um arquivo do pacote */
 export function nomeDoArquivo(arquivo: string): { titulo: string; onde: string } {
   const { titulos: t, santos: s } = mapas();
@@ -171,4 +177,76 @@ export async function buscarNosTextos(
 }
 
 export const textoJaLido = () => corpus.size > 0;
+
+/** "Salmo 22(23)": a numeração da Liturgia segue a grega; entre parênteses vem a hebraica, que muitas Bíblias usam */
+export const comNumeracaoHebraica = (t: string) => t.replace(/(Salmo|Sl)\s*(\d+)\s*\((\d+)[^)]*\)/gi, (m, s, g, h) => `${m} ${s} ${h} ${s} ${g}`);
+
+// ---------------------------------------------------------------- busca aproximada
+// Para quando a pessoa lembra o texto de outra tradução ("O Senhor é o meu pastor, nada me faltará"):
+// procura trechos curtos que tenham a maior parte das palavras importantes, em qualquer ordem.
+const VAZIAS = new Set(['que', 'nos', 'das', 'dos', 'com', 'por', 'sem', 'mas', 'nem', 'uma', 'uns', 'meu', 'teu', 'seu', 'sua', 'ele', 'ela', 'lhe', 'vos', 'aos', 'nao', 'sim', 'ser', 'foi', 'era', 'para', 'pelo', 'pela', 'pelos', 'pelas', 'como', 'mais', 'muito', 'esta', 'este', 'isso', 'esse', 'essa', 'aquele', 'aquela', 'quem', 'qual', 'quando', 'onde', 'porque', 'pois', 'tudo', 'todo', 'toda', 'todos', 'todas', 'seus', 'suas', 'meus', 'minhas', 'nossa', 'nosso', 'vossa', 'vosso', 'sobre', 'entre', 'depois', 'antes', 'ainda', 'sera', 'sao', 'estao', 'foram', 'seja', 'tem', 'teu', 'tua']);
+const raiz = (p: string) => (p.length > 6 ? p.slice(0, Math.max(5, p.length - 3)) : p.slice(0, 5));
+export const palavrasChave = (termo: string) => [...new Set(chave(termo).split(' ').filter((p) => p.length >= 3 && !VAZIAS.has(p)).map(raiz))];
+
+export async function buscarParecidos(termo: string, cancelado: () => boolean, ignorar: Set<string>, limite = 30): Promise<Achado[]> {
+  const raizes = palavrasChave(termo);
+  if (raizes.length < 2) return [];
+  const minimo = Math.max(2, Math.ceil(raizes.length * 0.7));
+  const JANELA = 220;
+  const pontos: { a: string; nota: number; pos: number }[] = [];
+  let i = 0;
+  for (const [a, n] of corpus) {
+    if (++i % 300 === 0) {
+      await new Promise((r) => setTimeout(r, 0));
+      if (cancelado()) return [];
+    }
+    if (ignorar.has(a)) continue;
+    // posições da raiz mais rara primeiro (corta cedo os textos que não têm nada)
+    const presentes = raizes.filter((r) => n.includes(r));
+    if (presentes.length < minimo) continue;
+    // a raiz mais rara no texto serve de âncora; em volta dela, conta quantas raízes aparecem e quão juntas
+    const ancora = presentes.reduce((x, y) => (n.split(x).length <= n.split(y).length ? x : y));
+    let melhor = 0;
+    let onde = -1;
+    let voltas = 0;
+    for (let p = n.indexOf(ancora); p >= 0 && voltas < 200; p = n.indexOf(ancora, p + 1), voltas++) {
+      const ini = Math.max(0, p - JANELA);
+      const trecho = n.slice(ini, p + JANELA);
+      const pos = presentes.map((r) => trecho.indexOf(r)).filter((x) => x >= 0);
+      if (pos.length < minimo) continue;
+      const espalhado = Math.max(...pos) - Math.min(...pos);
+      const nota = pos.length * 1000 - espalhado;
+      if (nota > melhor) {
+        melhor = nota;
+        onde = ini + Math.min(...pos);
+      }
+    }
+    // o texto do próprio salmo vem antes das horas e leituras que o citam
+    if (melhor >= minimo * 1000 - 2 * JANELA) pontos.push({ a, nota: melhor + (a.startsWith('salmos/') ? 1200 : 0), pos: onde });
+  }
+  pontos.sort((x, y) => y.nota - x.nota);
+  const out: Achado[] = [];
+  const vistos = new Set<string>();
+  for (const p of pontos) {
+    if (out.length >= limite) break;
+    const nome = nomeDoArquivo(p.a);
+    const txt = semTags((await lerBruto(p.a)) ?? '');
+    const b = base(txt);
+    // acha no texto original a primeira raiz perto da posição encontrada
+    // o texto guardado tem os espaços colapsados; a posição no original fica um pouco à frente
+    let k = -1;
+    for (const r of raizes) {
+      const j = b.indexOf(r, Math.max(0, p.pos - 40));
+      if (j >= 0 && (k < 0 || j < k)) k = j;
+    }
+    const ini = Math.max(0, (k < 0 ? 0 : k) - 30);
+    const trecho = txt.slice(ini, ini + 160).trim();
+    // o mesmo trecho aparece em muitas horas (o salmo se repete): mostra uma vez só
+    const marca = chave(trecho).slice(0, 70);
+    if (vistos.has(marca)) continue;
+    vistos.add(marca);
+    out.push({ arquivo: p.a, titulo: nome.titulo, onde: nome.onde, trecho: (ini > 0 ? '…' : '') + trecho + '…' });
+  }
+  return out;
+}
 export { existe };

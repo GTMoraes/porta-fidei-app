@@ -23,6 +23,19 @@ async function carregar() {
 }
 
 export const chaveAviso = (a: Aviso) => `${a.id}@${a.atualizado ?? a.criado}`;
+/** Removido deste aparelho: some de vez (mesmo se for corrigido depois) */
+export const removido = (l: Set<string>, a: Aviso) => l.has(`x:${a.id}`);
+export const arquivado = (l: Set<string>, a: Aviso) => !removido(l, a) && l.has(chaveAviso(a));
+export const visivel = (l: Set<string>, a: Aviso) => !removido(l, a) && !l.has(chaveAviso(a));
+
+export function remover(a: Aviso) {
+  const n = new Set(lista);
+  for (const k of n) if (k.startsWith(a.id + '@')) n.delete(k);
+  n.add(`x:${a.id}`);
+  lista = n;
+  emitir();
+  AsyncStorage.setItem(CHAVE, JSON.stringify([...n])).catch(() => {});
+}
 
 export function useArquivados(): Set<string> {
   carregar();
@@ -42,7 +55,12 @@ export function arquivar(a: Aviso, sim: boolean, existentes?: Aviso[]) {
   // esquece avisos que não existem mais no servidor
   if (existentes) {
     const vivos = new Set(existentes.map(chaveAviso));
-    for (const k of n) if (!vivos.has(k) && k !== chaveAviso(a)) n.delete(k);
+    const ids = new Set(existentes.map((x) => x.id));
+    for (const k of n) {
+      if (k.startsWith('x:')) {
+        if (!ids.has(k.slice(2))) n.delete(k);
+      } else if (!vivos.has(k) && k !== chaveAviso(a)) n.delete(k);
+    }
   }
   lista = n;
   emitir();
