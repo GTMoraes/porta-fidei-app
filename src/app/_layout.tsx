@@ -7,7 +7,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppState } from 'react-native';
 
 import { carregarPacote } from '@/conteudo/pacote';
+import { carregarChaveConteudo } from '@/conteudo/remoto';
 import { carregarAjustes } from '@/estado/ajustes';
+import { registrarTarefaPush } from '@/estado/segundoPlano';
 import { reagendarLembretes } from '@/estado/lembretes';
 import { registrarPush } from '@/estado/push';
 import { atualizar, carregarCache, carregarToken } from '@/servidor/api';
@@ -20,21 +22,23 @@ export default function Raiz() {
   const c = usePaleta();
 
   useEffect(() => {
-    Promise.allSettled([carregarAjustes(), carregarPacote(), carregarCache(), carregarToken()]).finally(() => {
+    Promise.allSettled([carregarAjustes(), carregarPacote(), carregarCache(), carregarToken(), carregarChaveConteudo()]).finally(() => {
       setPronto(true);
       SplashScreen.hideAsync().catch(() => {});
       atualizar();
       reagendarLembretes().catch(() => {});
       registrarPush(true);
+      registrarTarefaPush();
     });
     // push recebido com o app aberto: atualiza avisos e agenda
     const sub = Notifications.addNotificationReceivedListener((n) => {
       if (n.request.trigger && (n.request.trigger as any).type === 'push') atualizar();
     });
-    // ao voltar do segundo plano: busca proposta, avisos, agenda e jornadas novas (no máximo 1x por minuto)
+    // ao voltar do segundo plano: busca proposta, avisos, agenda e jornadas novas (no máximo a cada 15 s).
+    // Fora isso, quem avisa que tem novidade é o push silencioso do servidor (estado/segundoPlano.ts).
     let ultima = Date.now();
     const subApp = AppState.addEventListener('change', (st) => {
-      if (st === 'active' && Date.now() - ultima > 60_000) {
+      if (st === 'active' && Date.now() - ultima > 15_000) {
         ultima = Date.now();
         atualizar();
       }
@@ -57,8 +61,8 @@ export default function Raiz() {
     if (d.tipo === 'aviso' && typeof d.id === 'string') {
       const idAviso = d.id;
       atualizar().finally(() => setTimeout(() => router.push({ pathname: '/aviso', params: { id: idAviso } }), 300));
-    } else if ((d.tipo === 'proposta' || d.tipo === 'jornada') && typeof d.id === 'string') {
-      const rota = d.tipo === 'proposta' ? '/proposta' : '/jornada';
+    } else if ((d.tipo === 'proposta' || d.tipo === 'jornada' || d.tipo === 'evento') && typeof d.id === 'string') {
+      const rota = d.tipo === 'proposta' ? '/proposta' : d.tipo === 'jornada' ? '/jornada' : '/evento';
       const idItem = d.id;
       atualizar().finally(() => setTimeout(() => router.push({ pathname: rota, params: { id: idItem } }), 300));
     } else if (typeof d.hora === 'string') {
@@ -97,6 +101,7 @@ export default function Raiz() {
         <Stack.Screen name="admin" options={{ title: 'Administração' }} />
         <Stack.Screen name="editar-evento" options={{ title: 'Missa ou evento', presentation: 'modal' }} />
         <Stack.Screen name="editar-aviso" options={{ title: 'Aviso', presentation: 'modal' }} />
+        <Stack.Screen name="mapa-local" options={{ title: 'Marcar no mapa', presentation: 'modal', gestureEnabled: false }} />
         <Stack.Screen name="evento" options={{ title: '' }} />
         <Stack.Screen name="aviso" options={{ title: '' }} />
         <Stack.Screen name="sobre" options={{ title: 'Sobre o app' }} />

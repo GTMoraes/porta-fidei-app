@@ -39,3 +39,10 @@ Docs: https://docs.expo.dev/eas/index.md
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+
+## Porta Fidei: build x atualização pelo ar
+
+- O app tem atualização pelo ar própria (expo-updates apontando para o servidor pf-app: `/api/ota/manifest`).
+- `.github/workflows/ota.yml` publica sozinho a cada push que mexe em `src/`. `build-ipa.yml` só roda quando muda `package.json`, `app.json`, `assets/` ou pelo botão "Run workflow".
+- **Regra:** sempre que entrar algo nativo (módulo novo, plugin, permissão, entitlement), suba `runtimeVersion` no `app.json` ("1" → "2"...). Sem isso, o código novo iria pelo ar para builds que não têm o módulo e o app quebraria.
+- A chave do conteúdo (`extra.chaveConteudo`) não vai no manifest público: o app guarda a da build na primeira abertura (`src/conteudo/remoto.ts`).

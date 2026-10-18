@@ -14,7 +14,14 @@
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPhotoLibraryUsageDescription": "Para escolher imagens dos avisos e eventos da Comunidade."
+        "NSPhotoLibraryUsageDescription": "Para escolher imagens dos avisos e eventos da Comunidade.",
+        "LSApplicationQueriesSchemes": [
+          "comgooglemaps",
+          "waze"
+        ]
+      },
+      "entitlements": {
+        "com.apple.developer.usernotifications.time-sensitive": true
       }
     },
     "android": {
@@ -46,7 +53,8 @@
         "expo-notifications",
         {
           "color": "#BC8C44",
-          "mode": "production"
+          "mode": "production",
+          "enableBackgroundRemoteNotifications": true
         }
       ],
       [
@@ -57,11 +65,38 @@
           "microphonePermission": false
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Para salvar as missas e eventos da Comunidade na sua agenda.",
+          "remindersPermission": false,
+          "writeOnlyAccess": true,
+          "writeOnlyCalendarPermission": "Para salvar as missas e eventos da Comunidade na sua agenda."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Para marcar no mapa o local de uma missa ou evento a partir de onde você está.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false,
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false
+        }
+      ],
+      "expo-updates"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "runtimeVersion": "1",
+    "updates": {
+      "url": "https://portafidei.com.br/app/api/ota/manifest",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }

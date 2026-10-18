@@ -17,6 +17,20 @@ export interface Evento {
   local?: string | null;
   descricao?: string | null;
   imagem?: string | null; // URL absoluta
+  lat?: number | null; // ponto marcado no mapa (opcional; sem ele, o mapa busca pelo texto do local)
+  lng?: number | null;
+}
+
+/** Notificação escrita no cadastro do evento (sai para todos ao salvar) */
+export interface NotificacaoEvento {
+  titulo: string;
+  texto: string;
+  urgente?: boolean;
+}
+export interface LocalSalvo {
+  local: string;
+  lat: number | null;
+  lng: number | null;
 }
 
 export interface Aviso {
@@ -197,14 +211,16 @@ async function admin(caminho: string, metodo: string, corpo?: unknown, ms = 1200
   return r.status === 204 ? null : r.json();
 }
 
-export const salvarEvento = (e: Partial<Evento>) => (e.id ? admin(`/eventos/${e.id}`, 'PUT', e) : admin('/eventos', 'POST', e));
+export const salvarEvento = (e: Partial<Evento> & { notificacao?: NotificacaoEvento }) => (e.id ? admin(`/eventos/${e.id}`, 'PUT', e) : admin('/eventos', 'POST', e));
 export const apagarEvento = (id: string) => admin(`/eventos/${id}`, 'DELETE');
-export const salvarAviso = (a: Partial<Aviso> & { notificar?: boolean }) =>
+/** Locais já usados nos eventos (com o ponto no mapa, quando houver) */
+export const locaisSalvos = () => admin('/locais', 'GET') as Promise<LocalSalvo[]>;
+export const salvarAviso = (a: Partial<Aviso> & { notificar?: boolean; urgente?: boolean }) =>
   a.id ? admin(`/avisos/${a.id}`, 'PUT', a) : admin('/avisos', 'POST', a);
 export const apagarAviso = (id: string) => admin(`/avisos/${id}`, 'DELETE');
 /** Só a notificação, para todos os aparelhos, sem criar aviso */
-export const notificarTodos = (titulo: string, texto: string) =>
-  admin('/notificar-teste', 'POST', { titulo, texto }) as Promise<{ resultado: string }>;
+export const notificarTodos = (titulo: string, texto: string, urgente = false) =>
+  admin('/notificar-teste', 'POST', { titulo, texto, urgente }) as Promise<{ resultado: string }>;
 export const testarNotificacao = (titulo: string, texto: string, token?: string | null) =>
   admin('/notificar-teste', 'POST', { titulo, texto, token: token ?? undefined }) as Promise<{ resultado: string }>;
 

@@ -20,12 +20,14 @@ export default function EditarAviso() {
   const [notificar, setNotificar] = useState(!orig);
   const [guardar, setGuardar] = useState(true); // false: só a notificação, sem aparecer em Avisos
   const [salvando, setSalvando] = useState(false);
+  const [urgente, setUrgente] = useState(false);
 
   const salvar = async () => {
     setSalvando(true);
     try {
-      if (!orig && !guardar) await notificarTodos(titulo.trim(), texto.trim());
-      else await salvarAviso({ id: orig?.id, titulo: titulo.trim(), texto: texto.trim(), imagem, fixado, notificar });
+      const vaiNotificar = notificar || (!orig && !guardar);
+      if (!orig && !guardar) await notificarTodos(titulo.trim(), texto.trim(), urgente);
+      else await salvarAviso({ id: orig?.id, titulo: titulo.trim(), texto: texto.trim(), imagem, fixado, notificar, urgente: vaiNotificar && urgente });
       await atualizar();
       router.back();
     } catch (e: any) {
@@ -60,8 +62,18 @@ export default function EditarAviso() {
                 : 'Envia uma notificação para todos os aparelhos'
             }
             direita={<Chave valor={notificar || (!orig && !guardar)} mudar={(v) => (orig || guardar) && setNotificar(v)} />}
-            ultimo
+            ultimo={!(notificar || (!orig && !guardar))}
           />
+          {notificar || (!orig && !guardar) ? (
+            <Linha
+              titulo="Urgente"
+              sub="Passa por cima do Foco (Dormir, Trabalho…). Use só quando for importante, como missa cancelada ou mudança em cima da hora."
+              icone="exclamationmark.triangle"
+              corIcone={urgente ? '#C0392B' : undefined}
+              direita={<Chave valor={urgente} mudar={setUrgente} />}
+              ultimo
+            />
+          ) : null}
         </Secao>
         {orig ? (
           <Secao>

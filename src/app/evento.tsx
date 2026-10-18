@@ -1,11 +1,14 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ScrollView, Share, Text, View } from 'react-native';
+import { Pressable, ScrollView, Share, Text, View } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 
 import { useServidor } from '@/servidor/api';
 import { Espaco, Fontes, usePaleta } from '@/tema';
 import { Aviso, Botao, Fundo, Linha, Secao, Vidro } from '@/ui/base';
 import { quando } from '@/util/datas';
+import { abrirNoMapa, linkMapa, temPonto } from '@/util/mapas';
+import { salvarNaAgenda } from '@/util/salvarNaAgenda';
 
 export default function TelaEvento() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -25,8 +28,11 @@ export default function TelaEvento() {
       </Fundo>
     );
 
+  const lugar = { nome: e.titulo, local: e.local, lat: e.lat, lng: e.lng };
   const compartilhar = () =>
-    Share.share({ message: `${e.titulo}\n${quando(e.inicio, e.fim)}${e.local ? `\n${e.local}` : ''}${e.descricao ? `\n\n${e.descricao}` : ''}\n\nComunidade Católica Porta Fidei` });
+    Share.share({
+      message: `${e.titulo}\n${quando(e.inicio, e.fim)}${e.local ? `\n${e.local}` : ''}${temPonto(lugar) ? `\n${linkMapa(lugar)}` : ''}${e.descricao ? `\n\n${e.descricao}` : ''}\n\nComunidade Católica Porta Fidei`,
+    });
 
   return (
     <Fundo>
@@ -42,14 +48,35 @@ export default function TelaEvento() {
         </View>
         <Secao>
           <Linha titulo={quando(e.inicio, e.fim)} icone="clock" />
-          {e.local ? <Linha titulo={e.local} icone="mappin.and.ellipse" ultimo /> : null}
+          {e.local || temPonto(lugar) ? (
+            <Linha titulo={e.local || 'Ver no mapa'} sub="Abrir no mapa" icone="mappin.and.ellipse" onPress={() => abrirNoMapa(lugar)} ultimo />
+          ) : null}
         </Secao>
+        {temPonto(lugar) ? (
+          <Pressable onPress={() => abrirNoMapa(lugar)} style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.l, borderRadius: 22, overflow: 'hidden', height: 170 }}>
+            <View pointerEvents="none" style={{ flex: 1 }}>
+              <MapView
+                style={{ flex: 1 }}
+                initialRegion={{ latitude: e.lat!, longitude: e.lng!, latitudeDelta: 0.006, longitudeDelta: 0.006 }}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                rotateEnabled={false}
+                pitchEnabled={false}
+                showsPointsOfInterests>
+                <Marker coordinate={{ latitude: e.lat!, longitude: e.lng! }} />
+              </MapView>
+            </View>
+          </Pressable>
+        ) : null}
         {e.descricao ? (
           <Secao>
             <Text style={{ color: c.texto, fontSize: 16, lineHeight: 23, padding: Espaco.l }}>{e.descricao}</Text>
           </Secao>
         ) : null}
         <View style={{ marginHorizontal: Espaco.l, gap: 12, marginBottom: 50 }}>
+          {new Date(e.fim ?? e.inicio).getTime() > Date.now() ? (
+            <Botao titulo="Adicionar à agenda" icone="calendar.badge.plus" tipo="secundario" onPress={() => salvarNaAgenda(e)} />
+          ) : null}
           <Botao titulo="Compartilhar" icone="square.and.arrow.up" tipo="secundario" onPress={compartilhar} />
           {srv.admin ? <Botao titulo="Editar" icone="pencil" tipo="secundario" onPress={() => router.push({ pathname: '/editar-evento', params: { id: e.id } })} /> : null}
         </View>
