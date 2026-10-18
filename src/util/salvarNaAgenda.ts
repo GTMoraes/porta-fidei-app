@@ -2,10 +2,36 @@
 // No iOS 17 ou mais novo essa tela não pede permissão; nos mais antigos o iPhone pergunta uma vez.
 
 import { createEventInCalendarAsync, requestCalendarPermissionsAsync } from 'expo-calendar/legacy';
+import * as Location from 'expo-location';
 import { Alert } from 'react-native';
 
 import type { Evento } from '@/servidor/api';
 import { linkMapa } from './mapas';
+
+/** Endereço do ponto marcado (rua, número, bairro, cidade), para o Calendário achar o lugar */
+async function enderecoDoPonto(lat: number, lng: number): Promise<string> {
+  try {
+    const r = await Promise.race([
+      Location.reverseGeocodeAsync({ latitude: lat, longitude: lng }),
+      new Promise<never>((_, nao) => setTimeout(() => nao(new Error('demorou')), 3000)),
+    ]);
+    const a = r[0];
+    if (!a) return '';
+    const rua = [a.street, a.streetNumber].filter(Boolean).join(', ');
+    return [rua, a.district, a.city].filter(Boolean).join(' - ');
+  } catch {
+    return '';
+  }
+}
+
+// O Calendário do iPhone só mostra o mapinha quando reconhece o endereço: com o ponto marcado,
+// vai "Nome do lugar, Rua, nº - Bairro - Cidade"; sem ponto, vai o texto do local como foi escrito.
+async function localParaAgenda(e: Evento): Promise<string | undefined> {
+  if (e.lat == null || e.lng == null) return e.local ?? undefined;
+  const end = await enderecoDoPonto(e.lat, e.lng);
+  if (!end) return e.local ?? undefined;
+  return e.local && !end.toLowerCase().includes(e.local.toLowerCase()) ? `${e.local}, ${end}` : end;
+}
 
 export async function salvarNaAgenda(e: Evento) {
   const inicio = new Date(e.inicio);
@@ -14,7 +40,7 @@ export async function salvarNaAgenda(e: Evento) {
     title: e.titulo,
     startDate: inicio,
     endDate: fim,
-    location: e.local ?? undefined,
+    location: await localParaAgenda(e),
     notes: [e.descricao, 'Comunidade Católica Porta Fidei'].filter(Boolean).join('\n\n'),
     url: e.local || e.lat != null ? linkMapa({ nome: e.titulo, local: e.local, lat: e.lat, lng: e.lng }) : undefined,
   };

@@ -49,15 +49,27 @@ export default function EditarEvento() {
   const [notifTexto, setNotifTexto] = useState<string | null>(null);
   const [urgente, setUrgente] = useState(false);
 
+  const [tirou, setTirou] = useState(false); // tirou o ponto de propósito: não põe de novo sozinho
   useEffect(() => {
     locaisSalvos().then(setLocais).catch(() => {});
   }, []);
+  // escreveu um local já usado que tem ponto no mapa: usa o mesmo ponto
+  const igual = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  useEffect(() => {
+    if (tirou || (lat != null && lng != null) || !local.trim()) return;
+    const l = locais.find((x) => x.lat != null && igual(x.local, local));
+    if (l) {
+      setLat(l.lat);
+      setLng(l.lng);
+    }
+  }, [local, locais, tirou, lat, lng]);
 
   // volta da tela do mapa com o ponto escolhido
   useFocusEffect(
     useCallback(() => {
       const p = pegarPonto();
       if (!p) return;
+      setTirou(false);
       setLat(p.lat);
       setLng(p.lng);
       if (p.endereco) setLocal((l) => (l.trim() ? l : p.endereco!));
@@ -127,11 +139,12 @@ export default function EditarEvento() {
         <Secao titulo="Informações">
           <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} />
           <Campo rotulo="Local" value={local} onChangeText={setLocal} placeholder="Ex.: Casa de Missão, Recife" />
-          {locais.filter((l) => l.local !== local.trim()).length ? (
+          {locais.length ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 8, paddingHorizontal: Espaco.l, paddingBottom: 8 }}>
-              {locais
-                .filter((l) => l.local !== local.trim())
-                .map((l) => (
+              <Text style={{ color: c.textoFraco, fontSize: 13, alignSelf: 'center' }}>Já usados:</Text>
+              {locais.map((l) => {
+                const escolhido = igual(l.local, local) && (l.lat == null || (l.lat === lat && l.lng === lng));
+                return (
                   <Pressable
                     key={`${l.local}${l.lat}`}
                     onPress={() => {
@@ -139,14 +152,24 @@ export default function EditarEvento() {
                       setLocal(l.local);
                       setLat(l.lat);
                       setLng(l.lng);
+                      setTirou(false);
                     }}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 16, backgroundColor: c.escuro ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}>
-                    {l.lat != null ? <Icone nome="mappin" cor={c.destaque} tamanho={12} /> : null}
-                    <Text style={{ color: c.textoSuave, fontSize: 14 }} numberOfLines={1}>
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 5,
+                      paddingVertical: 7,
+                      paddingHorizontal: 12,
+                      borderRadius: 16,
+                      backgroundColor: escolhido ? Marca.ouro : c.escuro ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                    }}>
+                    {l.lat != null ? <Icone nome="mappin" cor={escolhido ? '#fff' : c.destaque} tamanho={12} /> : null}
+                    <Text style={{ color: escolhido ? '#fff' : c.textoSuave, fontSize: 14 }} numberOfLines={1}>
                       {l.local.length > 34 ? `${l.local.slice(0, 33)}…` : l.local}
                     </Text>
                   </Pressable>
-                ))}
+                );
+              })}
             </ScrollView>
           ) : null}
           <Linha
@@ -170,6 +193,7 @@ export default function EditarEvento() {
                         onPress: () => {
                           setLat(null);
                           setLng(null);
+                          setTirou(true);
                         },
                       },
                     ])

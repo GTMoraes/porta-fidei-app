@@ -4,12 +4,15 @@
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 
+import { carregarChaveConteudo } from '@/conteudo/remoto';
 import { atualizar } from '@/servidor/api';
 
 export const TAREFA_PUSH = 'pf-atualizar-por-push';
 
 TaskManager.defineTask(TAREFA_PUSH, async () => {
   try {
+    // com o app fechado, a tarefa roda sozinha: a chave guardada ainda não foi lida
+    await carregarChaveConteudo();
     await atualizar();
   } catch {}
 });

@@ -4,6 +4,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSyncExternalStore } from 'react';
 
+import { cabecalhoApp } from '@/conteudo/remoto';
+
 export const SERVIDOR = 'https://portafidei.com.br/app';
 
 export type TipoEvento = 'missa' | 'evento' | 'formacao' | 'retiro' | 'reuniao';
@@ -141,9 +143,9 @@ export async function atualizar() {
   emitir();
   try {
     const [re, ra, rc] = await Promise.all([
-      comTempo(`${SERVIDOR}/api/agenda`),
-      comTempo(`${SERVIDOR}/api/avisos`),
-      comTempo(`${SERVIDOR}/api/comunidade`).catch(() => null),
+      comTempo(`${SERVIDOR}/api/agenda`, { headers: cabecalhoApp() }),
+      comTempo(`${SERVIDOR}/api/avisos`, { headers: cabecalhoApp() }),
+      comTempo(`${SERVIDOR}/api/comunidade`, { headers: cabecalhoApp() }).catch(() => null),
     ]);
     if (!re.ok || !ra.ok) throw new Error(`O servidor respondeu ${re.status}/${ra.status}`);
     const eventos = (await re.json()) as Evento[];
@@ -245,7 +247,7 @@ export const textoDoPdf = (base64: string) => admin('/pdf-texto', 'POST', { base
 export async function registrarDispositivo(token: string, versao: string) {
   const r = await comTempo(`${SERVIDOR}/api/dispositivos`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...cabecalhoApp() },
     body: JSON.stringify({ token, plataforma: 'ios', versao }),
   });
   if (!r.ok) throw new Error(`Erro ${r.status}`);

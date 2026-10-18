@@ -24,6 +24,8 @@ export async function carregarChaveConteudo() {
   } catch {}
 }
 const chave = () => daBuild() || guardada;
+/** Cabeçalho que libera a leitura no CDN e no servidor da Comunidade (agenda, avisos...) */
+export const cabecalhoApp = (): Record<string, string> => (chave() ? { 'X-PF-App': chave() } : {});
 export const temDownloadDireto = () => chave().length > 0;
 const cabecalho = () => ({ 'X-PF-App': chave() });
 

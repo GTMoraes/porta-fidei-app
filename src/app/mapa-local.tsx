@@ -3,7 +3,7 @@
 
 import * as Location from 'expo-location';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 import MapView, { type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,21 +37,27 @@ export default function MapaLocal() {
 
   const ir = (lat: number, lng: number) => mapa.current?.animateToRegion({ latitude: lat, longitude: lng, ...PERTO }, 450);
 
-  const buscar = async () => {
+  const buscar = async (silencioso = false) => {
     const t = busca.trim();
     if (!t) return;
     Keyboard.dismiss();
     setBuscando(true);
     try {
       const r = await Location.geocodeAsync(t);
-      if (!r.length) Alert.alert('Endereço não encontrado', 'Tente escrever com rua, número e cidade, ou arraste o mapa até o local.');
+      if (!r.length) silencioso || Alert.alert('Endereço não encontrado', 'Tente escrever com rua, número e cidade, ou arraste o mapa até o local.');
       else ir(r[0].latitude, r[0].longitude);
     } catch {
-      Alert.alert('Não foi possível buscar', 'Confira a internet ou arraste o mapa até o local.');
+      if (!silencioso) Alert.alert('Não foi possível buscar', 'Confira a internet ou arraste o mapa até o local.');
     } finally {
       setBuscando(false);
     }
   };
+
+  // aberto a partir do texto do local: já procura esse endereço
+  useEffect(() => {
+    if (!tinha && (p.busca ?? '').trim()) buscar(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const ondeEstou = async () => {
     toque();
@@ -86,6 +92,9 @@ export default function MapaLocal() {
       <Stack.Screen
         options={{
           title: 'Marcar no mapa',
+          // header sólido: o mapa e a busca começam abaixo dele (com o header transparente, a busca ficava escondida)
+          headerTransparent: false,
+          headerStyle: { backgroundColor: c.fundo[0] },
           headerLeft: () => (
             <Pressable onPress={() => router.back()} hitSlop={10}>
               <Text style={{ color: c.destaque, fontSize: 17 }}>Cancelar</Text>
@@ -118,9 +127,9 @@ export default function MapaLocal() {
             <TextInput
               value={busca}
               onChangeText={setBusca}
-              onSubmitEditing={buscar}
+              onSubmitEditing={() => buscar()}
               returnKeyType="search"
-              placeholder="Buscar endereço"
+              placeholder="Buscar endereço ou lugar"
               placeholderTextColor={c.textoFraco}
               style={{ flex: 1, color: c.texto, fontSize: 16, paddingVertical: 12 }}
             />
