@@ -28,6 +28,17 @@ export const removido = (l: Set<string>, a: Aviso) => l.has(`x:${a.id}`);
 export const arquivado = (l: Set<string>, a: Aviso) => !removido(l, a) && l.has(chaveAviso(a));
 export const visivel = (l: Set<string>, a: Aviso) => !removido(l, a) && !l.has(chaveAviso(a));
 
+/** Card fixado do topo da tela Hoje dispensado (só some de lá; o aviso continua em Avisos).
+ *  Se o aviso for corrigido, o card volta. */
+export const dispensado = (l: Set<string>, a: Aviso) => l.has(`d:${chaveAviso(a)}`);
+export function dispensar(a: Aviso) {
+  const n = new Set(lista);
+  n.add(`d:${chaveAviso(a)}`);
+  lista = n;
+  emitir();
+  AsyncStorage.setItem(CHAVE, JSON.stringify([...n])).catch(() => {});
+}
+
 export function remover(a: Aviso) {
   const n = new Set(lista);
   for (const k of n) if (k.startsWith(a.id + '@')) n.delete(k);
@@ -59,6 +70,8 @@ export function arquivar(a: Aviso, sim: boolean, existentes?: Aviso[]) {
     for (const k of n) {
       if (k.startsWith('x:')) {
         if (!ids.has(k.slice(2))) n.delete(k);
+      } else if (k.startsWith('d:')) {
+        if (!vivos.has(k.slice(2))) n.delete(k);
       } else if (!vivos.has(k) && k !== chaveAviso(a)) n.delete(k);
     }
   }

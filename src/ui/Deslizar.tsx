@@ -21,11 +21,15 @@ export function DeslizarParaArquivar({
   onArquivar,
   cor,
   raio = 24,
+  simbolo = 'archivebox.fill',
+  rotulo = 'Arquivar',
   children,
 }: {
   onArquivar: () => void;
   cor: string;
   raio?: number;
+  simbolo?: any;
+  rotulo?: string;
   children: (sair: () => void) => ReactNode;
 }) {
   const x = useSharedValue(0);
@@ -89,8 +93,8 @@ export function DeslizarParaArquivar({
           fundo,
         ]}>
         <Animated.View style={[{ alignItems: 'center', gap: 4, width: 96 }, icone]}>
-          <Icone nome="archivebox.fill" cor="#fff" tamanho={24} />
-          <Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '600' }}>Arquivar</Text>
+          <Icone nome={simbolo} cor="#fff" tamanho={24} />
+          <Text style={{ color: '#fff', fontSize: 12.5, fontWeight: '600' }}>{rotulo}</Text>
         </Animated.View>
       </Animated.View>
       <GestureDetector gesture={pan}>

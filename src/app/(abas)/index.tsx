@@ -5,7 +5,8 @@ import { AppState, Pressable, RefreshControl, ScrollView, Text, View } from 'rea
 
 import { semana } from '@/comunidade/html';
 import { diaAtual, diasFeitos, jornadasDeHoje, periodo, useFeitos } from '@/comunidade/jornadas';
-import { useArquivados, visivel } from '@/estado/arquivados';
+import { dispensado, dispensar, useArquivados, visivel } from '@/estado/arquivados';
+import { aplicarAtualizacao, useAtualizacaoPronta } from '@/estado/atualizacaoApp';
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
 import { infoRemota, type InfoRemota } from '@/conteudo/remoto';
 import { lerAjustes } from '@/estado/ajustes';
@@ -15,6 +16,7 @@ import { santosDoDia } from '@/liturgia/martirologio';
 import { atualizar, useServidor } from '@/servidor/api';
 import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
+import { DeslizarParaArquivar } from '@/ui/Deslizar';
 import { horaSugerida, quando } from '@/util/datas';
 
 const ROMANO = ['', 'I', 'II', 'III', 'IV'];
@@ -34,7 +36,6 @@ export default function Hoje() {
       if (st === 'active') {
         setAgora(new Date());
         setHoje(hojeIso());
-      setAgora(new Date());
       }
     });
     return () => {
@@ -91,6 +92,9 @@ export default function Hoje() {
   const feitos = useFeitos();
   const arquivados = useArquivados();
   const avisos = srv.avisos.filter((a) => visivel(arquivados, a)).sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado)).slice(0, 3);
+  // avisos fixados: também no topo da tela (deslizar tira só daqui; o aviso continua em Avisos)
+  const fixados = srv.avisos.filter((a) => a.fixado && visivel(arquivados, a) && !dispensado(arquivados, a));
+  const atualizacaoPronta = useAtualizacaoPronta();
 
   return (
     <Fundo>
@@ -108,6 +112,57 @@ export default function Hoje() {
         <Text style={{ color: c.textoSuave, paddingHorizontal: Espaco.xl, marginTop: Espaco.l, marginBottom: Espaco.s, fontSize: 15 }}>
           {dataPorExtenso(hoje)}
         </Text>
+
+        {/* versão nova do app já baixada (atualização pelo ar) */}
+        {atualizacaoPronta ? (
+          <Pressable
+            onPress={() => {
+              toque();
+              aplicarAtualizacao();
+            }}
+            style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.m }}>
+            <Vidro tinta="rgba(188,140,68,0.45)" interativo style={{ borderRadius: 20 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: Espaco.l }}>
+                <Icone nome="arrow.down.app" cor="#fff" tamanho={22} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#fff', fontSize: 15.5, fontWeight: '600' }}>Há uma nova versão do app</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13.5 }}>Toque aqui para atualizar agora</Text>
+                </View>
+                <Icone nome="chevron.right" cor="#fff" tamanho={14} />
+              </View>
+            </Vidro>
+          </Pressable>
+        ) : null}
+
+        {/* avisos fixados no topo */}
+        {fixados.map((a) => (
+          <DeslizarParaArquivar key={a.id} cor={c.escuro ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.18)'} simbolo="xmark" rotulo="Dispensar" onArquivar={() => dispensar(a)}>
+            {() => (
+              <Pressable
+                onPress={() => {
+                  toque();
+                  router.push({ pathname: '/aviso', params: { id: a.id } });
+                }}
+                style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.l }}>
+                <Vidro style={{ borderRadius: 24 }}>
+                  <View style={{ flexDirection: 'row' }}>
+                    <View style={{ width: 5, backgroundColor: Marca.ouro }} />
+                    <View style={{ flex: 1, padding: Espaco.l }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Icone nome="pin.fill" cor={c.destaque} tamanho={13} />
+                        <Text style={{ color: c.destaque, fontSize: 12.5, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase', flex: 1 }}>Aviso</Text>
+                      </View>
+                      <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 20, marginTop: 4 }}>{a.titulo}</Text>
+                      <Text style={{ color: c.textoSuave, fontSize: 14.5, lineHeight: 20, marginTop: 4 }} numberOfLines={3}>
+                        {a.texto}
+                      </Text>
+                    </View>
+                  </View>
+                </Vidro>
+              </Pressable>
+            )}
+          </DeslizarParaArquivar>
+        ))}
 
         {/* Celebração do dia */}
         <Pressable

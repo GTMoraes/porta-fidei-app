@@ -4,7 +4,7 @@ import type { Ajustes } from '@/estado/ajustes';
 import { JS_NAVEGAR } from '@/conteudo/navegar';
 import type { Paleta } from '@/tema';
 import type { Parte, PlanoHora } from '@/liturgia/horas';
-import { ler } from '@/conteudo/pacote';
+import { ler, lerDado } from '@/conteudo/pacote';
 
 function cortar(html: string, desde?: string, ate?: string): string {
   let ini = 0;
@@ -143,9 +143,16 @@ export async function montarHora(plano: PlanoHora, aj: Ajustes, extras: ExtrasHo
       if (src) oracao = extrairOracao(src);
     }
     corpo = corpo.replace(/<span data-ph="o"><\/span>/g, oracao ? `<span class="preenchido">${oracao}</span>` : '<span class="lacuna">Oração do domingo (em digitalização)</span>');
+    // antífona do Benedictus/Magnificat própria do domingo (ano A, B ou C), do pacote: dados/antifonas-domingo.json
+    const dom = plano.diaCelebrado;
+    const qual = plano.primeirasVesperas ? 'iv' : plano.hora === 'laudes' ? 'l' : 'iiv';
+    const tabela = dom.tempo === 'comum' ? await lerDado<Record<string, Record<string, Record<string, string>>>>('antifonas-domingo.json') : null;
+    const ant = tabela?.[String(dom.semana)]?.[dom.anoDominical]?.[qual];
     corpo = corpo.replace(
       /<span data-ph="a[123]"><\/span>/g,
-      `<span class="lacuna">Antífona própria do domingo, ano ${plano.diaCelebrado.anoDominical} (em digitalização)</span>`,
+      ant
+        ? `<span class="preenchido">${escapar(ant).replace(/\n/g, '<br/>')}</span>`
+        : `<span class="lacuna">Antífona própria do domingo, ano ${dom.anoDominical} (em digitalização)</span>`,
     );
     corpo = corpo.replace(/<span data-ph="[a-z0-9]+"><\/span>/g, '');
   }
