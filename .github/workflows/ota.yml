@@ -1,0 +1,50 @@
+name: Atualização pelo ar (Porta Fidei)
+
+# Manda as mudanças de tela e de lógica (pasta src/) direto para os iPhones, sem build nova e sem TestFlight.
+# O app baixa ao abrir e usa na abertura seguinte.
+# Só vale para as builds com o mesmo "runtimeVersion" do app.json. Quando entra algo nativo novo
+# (mapa, agenda, permissão...), o runtimeVersion sobe e é preciso build nova (build-ipa.yml).
+#
+# Secret necessário: OTA_CHAVE (o mesmo valor de OTA_CHAVE no .env do servidor pf-app)
+
+on:
+  push:
+    paths:
+      - 'src/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ota-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ota:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Conferir o código (TypeScript)
+        run: npx tsc --noEmit
+
+      - name: Gerar a atualização (iOS)
+        run: |
+          npx expo export --platform ios --output-dir dist
+          npx expo config --type public --json > dist/expoConfig.json
+          node -e "const c=require('./dist/expoConfig.json');console.log('runtime',c.runtimeVersion,'versão',c.version)"
+
+      - name: Publicar no servidor da Comunidade
+        env:
+          OTA_CHAVE: ${{ secrets.OTA_CHAVE }}
+        run: node scripts/publicar-ota.mjs dist
