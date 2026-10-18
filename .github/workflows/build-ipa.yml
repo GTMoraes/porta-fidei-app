@@ -11,8 +11,16 @@ name: TestFlight (Porta Fidei)
 #   ASC_KEY_P8           conteúdo do arquivo AuthKey_XXXX.p8 (texto, como está no arquivo)
 #   PF_CHAVE_CONTEUDO    chave que o app manda ao CDN para baixar o pacote de conteúdo (a mesma do nginx do sites-frx9)
 
+# Build nova só quando muda algo nativo (dependências, app.json, imagens do app) ou pelo botão "Run workflow".
+# Mudanças só em src/ vão pelo ar (ota.yml), sem build.
 on:
   push:
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'app.json'
+      - 'assets/**'
+      - '.github/workflows/build-ipa.yml'
   workflow_dispatch:
 
 permissions:
