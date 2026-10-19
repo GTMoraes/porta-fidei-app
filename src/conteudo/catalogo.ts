@@ -1,16 +1,37 @@
 // Listas de navegação (orações, rituais, missal...). Só nomes e caminhos: o texto vem do pacote.
 
 export interface Item {
-  arquivo: string;
+  arquivo: string; // caminho no pacote; "@app:exame" = tela do app; "@lista:rosario" = outra lista
   titulo: string;
   sub?: string;
+  alias?: string; // outros nomes pelos quais a busca também encontra
 }
 export interface Grupo {
   titulo: string;
   itens: Item[];
 }
 
-const o = (slug: string, titulo: string, sub?: string): Item => ({ arquivo: `oficio/outros/${slug}`, titulo, sub });
+const o = (slug: string, titulo: string, sub?: string, alias?: string): Item => ({ arquivo: `oficio/outros/${slug}`, titulo, sub, alias });
+
+// Um mesmo texto pode estar em mais de um lugar (ex.: o Ofício da Imaculada em Nossa Senhora e nos Ofícios votivos)
+const EXAME_COMPLETO: Item = { arquivo: '@app:exame', titulo: 'Exame de consciência completo', sub: 'Mandamentos, pecados capitais e deveres do próprio estado', alias: 'exame pecados mandamentos confissao confessar' };
+const EXAME_BREVE = o('exameconsciencia', 'Breve exame de consciência', undefined, 'exame pecados confissao');
+const ATO_CONTRICAO = o('atodecontricao', 'Ato de contrição', undefined, 'confissao arrependimento');
+const OFICIO_IMACULADA = o('oficioimaculada', 'Ofício da Imaculada Conceição', 'Também chamado Ofício de Nossa Senhora', 'oficio de nossa senhora pequeno oficio');
+
+export const CONFISSAO: Grupo[] = [
+  {
+    titulo: 'Confissão',
+    itens: [
+      EXAME_COMPLETO,
+      EXAME_BREVE,
+      o('preparacao_confissao', 'Preparação para a confissão'),
+      ATO_CONTRICAO,
+      o('ladainhacontricao', 'Ladainha para pedir a contrição'),
+      o('reconciliacaoindividual', 'Rito da Reconciliação individual', 'O rito do sacramento', 'penitencia confissao'),
+    ],
+  },
+];
 
 export const ORACOES: Grupo[] = [
   {
@@ -23,13 +44,14 @@ export const ORACOES: Grupo[] = [
       o('gloria', 'Glória a Deus nas alturas'),
       o('paraasrefeicoes', 'Nas refeições'),
       o('antesdosestudos', 'Antes dos estudos'),
-      o('exameconsciencia', 'Breve exame de consciência'),
-      o('atodecontricao', 'Ato de contrição'),
+      EXAME_BREVE,
+      ATO_CONTRICAO,
       o('decalogo', 'O Decálogo'),
       o('ficacomigosenhor', 'Fica comigo, Senhor'),
       o('nadatepertube', 'Nada te perturbe'),
     ],
   },
+  CONFISSAO[0],
   {
     titulo: 'Eucaristia',
     itens: [
@@ -61,6 +83,12 @@ export const ORACOES: Grupo[] = [
       o('avemarisstella', 'Ave Maris Stella'),
       o('akathistos', 'Hino Akáthistos'),
       o('escapulario', 'Bênção e imposição do escapulário'),
+      { arquivo: '@lista:rosario', titulo: 'Santo Rosário', sub: 'Mistérios gozosos, luminosos, dolorosos e gloriosos', alias: 'terco' },
+      OFICIO_IMACULADA,
+      o('oficioNSCarmo', 'Ofício de Nossa Senhora do Carmo'),
+      o('ladainhaNSa', 'Ladainha de Nossa Senhora', undefined, 'ladainha lauretana'),
+      o('angelus', 'Ângelus'),
+      o('reginacoeli', 'Regina Coeli', 'No Tempo Pascal, no lugar do Ângelus'),
     ],
   },
   {
@@ -141,6 +169,8 @@ export const RITUAIS: Grupo[] = [
       o('matrimonio', 'Matrimônio sem Missa'),
       o('reconciliacaoindividual', 'Reconciliação individual'),
       o('preparacao_confissao', 'Preparação para a confissão'),
+      EXAME_COMPLETO,
+      EXAME_BREVE,
       o('comunhaoenfermos', 'Comunhão aos enfermos'),
       o('enfermos', 'Unção dos enfermos'),
       o('enfermos_confirmacao', 'Confirmação em perigo de morte'),
@@ -200,7 +230,7 @@ export const COMUNS: Grupo[] = [
       o('oficio_fieisdefuntos_leituras', 'Ofício dos fiéis defuntos: Leituras'),
       o('oficio_fieisdefuntos_laudes', 'Ofício dos fiéis defuntos: Laudes'),
       o('oficio_fieisdefuntos_vesperas', 'Ofício dos fiéis defuntos: Vésperas'),
-      o('oficioimaculada', 'Ofício da Imaculada Conceição'),
+      OFICIO_IMACULADA,
       o('oficiosaojose', 'Ofício de São José'),
       o('oficioNSCarmo', 'Ofício de Nossa Senhora do Carmo'),
       o('oficiodapaixaodosenhor', 'Ofício da Paixão do Senhor'),

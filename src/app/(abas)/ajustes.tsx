@@ -142,6 +142,7 @@ export default function TelaAjustes() {
             onPress={() => router.push('/conteudo')}
           />
           <Linha titulo="Administração" sub={srv.admin ? 'Conectado como administrador' : 'Para a coordenação publicar agenda e avisos'} icone="lock.shield" onPress={() => router.push('/admin')} />
+          <Linha titulo="Enviar sugestão" sub="Uma ideia, algo que não encontrou, um erro" icone="text.bubble" onPress={() => router.push('/sugestao')} />
           <Linha titulo="Sobre o app" icone="info.circle" onPress={() => router.push('/sobre')} ultimo />
         </Secao>
         <View style={{ height: 50 }} />

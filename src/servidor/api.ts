@@ -356,3 +356,29 @@ export async function enviarVideo(uri: string, progresso: (fase: 'enviando' | 'p
     if (e.estado === 'erro') throw new Error(e.erro || 'O servidor não conseguiu preparar o vídeo');
   }
 }
+
+// ---------------- sugestões (Ajustes > Enviar sugestão; "Não encontrou?" na busca)
+export interface Sugestao {
+  id: string;
+  texto: string;
+  origem?: string | null;
+  versao?: string | null;
+  criado: string;
+}
+/** Manda uma sugestão para a coordenação do app (rota pública, com a chave do app) */
+export async function enviarSugestao(texto: string, origem: 'ajustes' | 'busca', versao?: string) {
+  const r = await comTempo(`${SERVIDOR}/api/sugestoes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...cabecalhoApp() },
+    body: JSON.stringify({ texto, origem, versao }),
+  });
+  if (!r.ok) {
+    let msg = `Erro ${r.status}`;
+    try {
+      msg = (await r.json()).erro ?? msg;
+    } catch {}
+    throw new Error(msg);
+  }
+}
+export const listarSugestoes = () => admin('/sugestoes', 'GET') as Promise<Sugestao[]>;
+export const apagarSugestao = (id: string) => admin(`/sugestoes/${id}`, 'DELETE');

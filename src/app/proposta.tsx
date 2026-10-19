@@ -2,7 +2,7 @@
 
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text } from 'react-native';
 
 import { propostaHtml, semana } from '@/comunidade/html';
 import { lerPrevia } from '@/comunidade/previa';
@@ -50,26 +50,15 @@ export default function TelaProposta() {
     });
   }, [nav, p?.id, p?.temPdf, p?.titulo, router, c.destaque]);
 
-  const rodape = anteriores.length ? (
-    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-      <Pressable
-        onPress={() => {
-          toque();
-          router.push('/propostas');
-        }}
-        hitSlop={6}
-        style={({ pressed }) => ({ paddingVertical: 10, paddingHorizontal: 16, opacity: pressed ? 0.5 : 1 })}>
-        <Text style={{ color: c.destaque, fontSize: 15 }}>Propostas anteriores</Text>
-      </Pressable>
-    </View>
-  ) : undefined;
+  // Propostas anteriores: um botão discreto na barra do leitor (relógio com seta), entre o índice e a lupa
+  const extra = anteriores.length ? { icone: 'clock.arrow.circlepath', onPress: () => router.push('/propostas') } : undefined;
 
   return (
     <Leitor
       corpo={corpo}
       titulo={p?.titulo ?? 'Proposta de oração'}
       subtitulo={p ? `Proposta de oração${p.inicio ? ` · ${semana(p)}` : ''}${p.publicada ? '' : ' · rascunho'}` : undefined}
-      rodape={rodape}
+      extra={extra}
     />
   );
 }

@@ -86,6 +86,7 @@ export default function Admin() {
             icone="hands.sparkles"
             onPress={() => router.push('/admin-oracao')}
           />
+          <Linha titulo="Sugestões recebidas" sub="Ideias e textos que os membros não encontraram" icone="text.bubble" onPress={() => router.push('/sugestoes')} />
           <Linha
             titulo="Testar notificação"
             sub="Envia uma notificação só para este aparelho, para conferir"

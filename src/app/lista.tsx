@@ -2,7 +2,8 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 
-import { COMUNS, MISSAL_FIXO, ORACOES, RITUAIS, ROSARIO, type Grupo, type Item } from '@/conteudo/catalogo';
+import { abrirItem, disponivel } from '@/conteudo/abrir';
+import { COMUNS, CONFISSAO, MISSAL_FIXO, ORACOES, RITUAIS, ROSARIO, type Grupo, type Item } from '@/conteudo/catalogo';
 import { existe, lerDado, listar, usePacote } from '@/conteudo/pacote';
 import { diaLiturgico, hojeIso, type DiaLiturgico } from '@/liturgia/calendario';
 import { SANTOS } from '@/liturgia/santos';
@@ -11,6 +12,7 @@ import { Aviso, Fundo, Linha, Secao } from '@/ui/base';
 
 const TITULOS: Record<string, string> = {
   oracoes: 'Orações',
+  confissao: 'Confissão',
   rituais: 'Rituais e bênçãos',
   comuns: 'Comuns e ofícios votivos',
   missal: 'Missal',
@@ -180,10 +182,12 @@ export default function Lista() {
 
   const grupos: Grupo[] = useMemo(() => {
     const filtra = (gs: Grupo[]) =>
-      gs.map((g) => ({ ...g, itens: g.itens.filter((i) => existe(i.arquivo.split('#')[0])) })).filter((g) => g.itens.length);
+      gs.map((g) => ({ ...g, itens: g.itens.filter(disponivel) })).filter((g) => g.itens.length);
     switch (tipo) {
       case 'oracoes':
         return filtra(ORACOES);
+      case 'confissao':
+        return filtra(CONFISSAO);
       case 'rituais':
         return filtra(RITUAIS);
       case 'comuns':
@@ -256,7 +260,7 @@ export default function Lista() {
         .map((g) => ({
           ...g,
           itens: g.itens.filter((i) =>
-            `${i.titulo} ${i.sub ?? ''}`
+            `${i.titulo} ${i.sub ?? ''} ${i.alias ?? ''}`
               .toLowerCase()
               .normalize('NFD')
               .replace(/[̀-ͯ]/g, '')
@@ -266,12 +270,7 @@ export default function Lista() {
         .filter((g) => g.itens.length)
     : grupos;
 
-  const abrir = (i: Item) => {
-    if (i.arquivo.startsWith('@pasta:')) return router.push({ pathname: '/lista', params: { tipo: 'missal-proprio', pasta: i.arquivo.slice(7) } });
-    if (i.arquivo.startsWith('@prefacio:')) return router.push({ pathname: '/lista', params: { tipo: 'missal-proprio', pasta: `prefacio-${i.arquivo.slice(10)}` } });
-    const [arquivo, desde] = i.arquivo.split('#');
-    router.push({ pathname: '/texto', params: { arquivo, titulo: i.titulo, desde: desde ?? '', ate: desde ? 'Ant.' : '' } });
-  };
+  const abrir = (i: Item) => abrirItem(router, i);
 
   const total = grupos.reduce((n, g) => n + g.itens.length, 0);
 

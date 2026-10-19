@@ -6,7 +6,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { buscarNosTextos, buscarParecidos, comNumeracaoHebraica, existe, registrarSalmos, normalizar, palavrasChave, textoJaLido, type Achado } from '@/conteudo/busca';
-import { COMUNS, MISSAL_FIXO, ORACOES, RITUAIS, ROSARIO } from '@/conteudo/catalogo';
+import { abrirItem, disponivel } from '@/conteudo/abrir';
+import { ondeEsta, todasAsEntradas } from '@/conteudo/indice';
 import { lerDado, usePacote } from '@/conteudo/pacote';
 import { SANTOS } from '@/liturgia/santos';
 import { useServidor } from '@/servidor/api';
@@ -78,23 +79,12 @@ export default function Buscar() {
     if (comunidade.length) grupos.push({ grupo: 'Comunidade', itens: comunidade });
 
     if (pacote.manifest) {
-      const cat: Resultado[] = [];
-      const vistos = new Set<string>();
-      for (const [nome, gs] of [
-        ['Orações', ORACOES],
-        ['Rituais e bênçãos', RITUAIS],
-        ['Comuns', COMUNS],
-        ['Missal', MISSAL_FIXO],
-        ['Rosário', ROSARIO],
-      ] as const)
-        for (const g of gs)
-          for (const i of g.itens) {
-            const arq = i.arquivo.split('#')[0];
-            if (vistos.has(arq) || !existe(arq) || !bate(i.titulo, i.sub, g.titulo)) continue;
-            vistos.add(arq);
-            cat.push({ chave: arq, titulo: i.titulo, sub: `${nome}${i.sub ? ` · ${i.sub}` : ''}`, icone: 'book.closed', abrir: texto(arq, i.titulo) });
-          }
-      if (cat.length) grupos.push({ grupo: 'Orações, rituais e Missal', itens: cat.slice(0, 40) });
+      // orações, Confissão, Rosário, rituais, ofícios e Missal: pelo nome e pelos outros nomes (ex.: "Ofício de Nossa Senhora"),
+      // mostrando onde cada um mora no app
+      const cat: Resultado[] = todasAsEntradas()
+        .filter((e) => disponivel(e) && bate(e.titulo, e.sub, e.alias, ...e.caminhos))
+        .map((e) => ({ chave: e.arquivo, titulo: e.titulo, sub: ondeEsta(e), icone: e.arquivo === '@app:exame' ? 'heart.text.square' : 'book.closed', abrir: () => abrirItem(router, e) }));
+      if (cat.length) grupos.push({ grupo: 'Orações, rituais e Missal', itens: cat.slice(0, 50) });
 
       const sl = salmos
         .filter((s) => bate(comNumeracaoHebraica(s.ref), s.tema))
@@ -211,6 +201,15 @@ export default function Buscar() {
                 </Secao>
               )
             ) : null}
+            {/* não achou? a sugestão chega para a coordenação do app */}
+            <View style={{ alignItems: 'center', marginBottom: Espaco.xl, marginTop: -Espaco.s }}>
+              <Text style={{ color: c.textoFraco, fontSize: 13.5 }}>Não encontrou o que procurava?</Text>
+              <Text
+                onPress={() => router.push({ pathname: '/sugestao', params: { texto: `Procurei "${termo.trim()}" e não encontrei. `, origem: 'busca' } })}
+                style={{ color: c.destaque, fontSize: 15, fontWeight: '600', marginTop: 4, padding: 4 }}>
+                Sugerir este texto
+              </Text>
+            </View>
             {parecidos?.length ? (
               <Secao titulo="Parecidos (outras traduções ou palavras em outra ordem)">
                 {parecidos.map((a, k) => (

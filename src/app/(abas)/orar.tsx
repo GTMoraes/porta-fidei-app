@@ -5,6 +5,7 @@ import { semana } from '@/comunidade/html';
 import { jornadasDeHoje } from '@/comunidade/jornadas';
 import { listar, usePacote } from '@/conteudo/pacote';
 import { useAjustes } from '@/estado/ajustes';
+import { useSalvos, type ItemSalvo } from '@/estado/favoritos';
 import { hojeIso } from '@/liturgia/calendario';
 import { dataParaHora } from '@/util/datas';
 import { HORAS } from '@/liturgia/horas';
@@ -35,6 +36,9 @@ export default function Orar() {
   const proposta = com?.propostas.find((p) => p.id === com.atual);
   const deHoje = jornadasDeHoje(com?.jornadas, hojeIso());
   const hoje = hojeIso();
+  const salvos = useSalvos();
+  const abrirSalvo = (i: ItemSalvo) => router.push({ pathname: '/texto', params: { arquivo: i.arquivo, titulo: i.titulo, desde: i.desde ?? '', ate: i.ate ?? '' } });
+  const recentes = salvos.recentes.filter((r) => !salvos.favoritos.some((f) => f.arquivo === r.arquivo && (f.desde ?? '') === (r.desde ?? ''))).slice(0, 4);
 
   const evangelhoAoAcaso = () => {
     const todos = listar('evangelho/');
@@ -62,6 +66,21 @@ export default function Orar() {
             </View>
           </Vidro>
         </Pressable>
+        {salvos.favoritos.length ? (
+          <Secao titulo="Meus favoritos">
+            {salvos.favoritos.map((f, i) => (
+              <Linha key={f.arquivo + (f.desde ?? '')} titulo={f.titulo} icone="star.fill" onPress={() => abrirSalvo(f)} ultimo={i === salvos.favoritos.length - 1} />
+            ))}
+          </Secao>
+        ) : null}
+        {recentes.length ? (
+          <Secao titulo="Abertos recentemente">
+            {recentes.map((f, i) => (
+              <Linha key={f.arquivo + (f.desde ?? '')} titulo={f.titulo} icone="clock.arrow.circlepath" onPress={() => abrirSalvo(f)} ultimo={i === recentes.length - 1} />
+            ))}
+          </Secao>
+        ) : null}
+
         <Secao titulo="Liturgia das Horas">
           {HORAS.map((h, i) => (
             <Linha
@@ -112,10 +131,12 @@ export default function Orar() {
         <Secao titulo="Orações e rituais">
           <Linha titulo="Orações" sub="Ângelus, terço da misericórdia, ladainhas e outras" icone="hands.sparkles" onPress={() => router.push({ pathname: '/lista', params: { tipo: 'oracoes' } })} />
           <Linha titulo="Santo Rosário" sub="Mistérios gozosos, luminosos, dolorosos e gloriosos" icone="circle.dotted" onPress={() => router.push({ pathname: '/lista', params: { tipo: 'rosario' } })} />
+          <Linha titulo="Confissão" sub="Exame de consciência, ato de contrição e o rito" icone="heart.text.square" onPress={() => router.push({ pathname: '/lista', params: { tipo: 'confissao' } })} />
           <Linha titulo="Rituais e bênçãos" sub="Batismo, matrimônio, exéquias, bênçãos" icone="drop" onPress={() => router.push({ pathname: '/lista', params: { tipo: 'rituais' } })} ultimo />
         </Secao>
 
         <Secao titulo="Consulta">
+          <Linha titulo="Índice de A a Z" sub="Tudo o que o app tem, em ordem alfabética" icone="textformat.abc" onPress={() => router.push('/indice')} />
           <Linha titulo="Índice de salmos e cânticos" icone="music.note.list" onPress={() => router.push({ pathname: '/lista', params: { tipo: 'salmos' } })} />
           <Linha titulo="Comuns e ofícios votivos" icone="square.stack" onPress={() => router.push({ pathname: '/lista', params: { tipo: 'comuns' } })} />
           <Linha titulo="Calendário litúrgico" icone="calendar" onPress={() => router.push('/calendario')} />

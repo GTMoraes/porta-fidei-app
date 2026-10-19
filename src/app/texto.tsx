@@ -1,6 +1,8 @@
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
 
+import { alternarFavorito, ehFavorito, registrarRecente, useSalvos } from '@/estado/favoritos';
+
 import { montarArquivo } from '@/conteudo/montar';
 import { imagemDataUri } from '@/conteudo/pacote';
 import { htmlMartirologio } from '@/liturgia/martirologio';
@@ -18,6 +20,14 @@ export default function Texto() {
   const { arquivo, titulo, desde, ate, imagem, busca, mart } = useLocalSearchParams<{ arquivo: string; titulo?: string; desde?: string; ate?: string; imagem?: string; busca?: string; mart?: string }>();
   const nav = useNavigation();
   const [corpo, setCorpo] = useState<string | null>(null);
+  // favoritos e recentes (o Martirológio e os textos sem título ficam de fora)
+  const salvos = useSalvos();
+  const item = { arquivo, titulo: titulo ?? '', desde: desde || undefined, ate: ate || undefined };
+  const guardavel = !!titulo && !mart && !arquivo?.startsWith('evangelho/');
+  useEffect(() => {
+    if (guardavel) registrarRecente(item);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arquivo, desde]);
 
   useEffect(() => {
     nav.setOptions({ title: '' });
@@ -45,5 +55,12 @@ export default function Texto() {
     })();
   }, [arquivo, desde, ate, imagem, mart, nav]);
 
-  return <Leitor corpo={corpo} titulo={titulo || undefined} busca={busca || undefined} />;
+  return (
+    <Leitor
+      corpo={corpo}
+      titulo={titulo || undefined}
+      busca={busca || undefined}
+      favorito={guardavel ? { ativo: ehFavorito(salvos, item), alternar: () => alternarFavorito(item) } : undefined}
+    />
+  );
 }

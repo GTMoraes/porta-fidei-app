@@ -29,11 +29,13 @@ interface Props {
   acoes?: { rotulo: string; onPress: () => void }[]; // menu discreto na barra (ex.: atalhos do Missal)
   iconeAcoes?: any;
   tituloAcoes?: string;
+  favorito?: { ativo: boolean; alternar: () => void }; // estrela na barra: guarda o texto nos Favoritos do Rezar
+  extra?: { icone: any; onPress: () => void }; // botão a mais na barra, depois do índice (ex.: Propostas anteriores)
 }
 
 const ALTURA_RODAPE = 58;
 
-export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseUrl, alturaTopo = 64, rodape, tipo = 'texto', busca, acoes, iconeAcoes = 'ellipsis.circle', tituloAcoes }: Props) {
+export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseUrl, alturaTopo = 64, rodape, tipo = 'texto', busca, acoes, iconeAcoes = 'ellipsis.circle', tituloAcoes, favorito, extra }: Props) {
   const aj = useAjustes();
   const c = usePaleta();
   const web = useRef<WebView>(null);
@@ -271,6 +273,7 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
           ) : null}
           <Vidro style={{ borderRadius: 30, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6 }} interativo>
             {indice.length ? <BotaoBarra icone="list.bullet" onPress={() => setIndiceAberto(true)} /> : null}
+            {extra ? <BotaoBarra icone={extra.icone} onPress={extra.onPress} /> : null}
             {acoes?.length ? (
               <BotaoBarra
                 icone={iconeAcoes}
@@ -282,6 +285,7 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
                 }
               />
             ) : null}
+            {favorito ? <BotaoBarra icone={favorito.ativo ? 'star.fill' : 'star'} onPress={favorito.alternar} /> : null}
             <BotaoBarra icone="magnifyingglass" onPress={() => (buscando ? fecharBusca() : setBuscando(true))} ativo={buscando} />
             <BotaoBarra icone="textformat.size" onPress={() => setPainelFonte((v) => !v)} ativo={painelFonte} />
             {aj.velocidadeRolagem > 0 ? (
