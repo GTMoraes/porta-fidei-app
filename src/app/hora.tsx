@@ -1,17 +1,18 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import { Pressable, Switch, Text, View } from 'react-native';
 
 import { montarHora } from '@/conteudo/montar';
 import { existe, lerDado, usePacote } from '@/conteudo/pacote';
 import { mudarAjustes, useAjustes } from '@/estado/ajustes';
-import { diaLiturgico, hojeIso, somaDias } from '@/liturgia/calendario';
+import { DIAS_SEMANA, diaLiturgico, hojeIso, somaDias } from '@/liturgia/calendario';
 import { planoDaHora, type Hora } from '@/liturgia/horas';
 import { antifonaInvitatorio, type DadosInvitatorio } from '@/liturgia/invitatorio';
 import { usePaleta } from '@/tema';
 import { Icone, toque, Vidro } from '@/ui/base';
 import { Leitor } from '@/ui/Leitor';
-import { dataCurta } from '@/util/datas';
+import { dataCurta, dataParaHora } from '@/util/datas';
 
 export default function TelaHora() {
   const p = useLocalSearchParams<{ h: Hora; data?: string }>();
@@ -20,11 +21,21 @@ export default function TelaHora() {
   const aj = useAjustes();
   const pacote = usePacote();
   const c = usePaleta();
-  const [data, setData] = useState(p.data || hojeIso());
+  const [data, setData] = useState(p.data || dataParaHora(p.h));
   const [memoria, setMemoria] = useState<string | undefined>();
   const [corpo, setCorpo] = useState<string | null>(null);
   const [dadosInv, setDadosInv] = useState<DadosInvitatorio | null | undefined>(undefined);
   const ehInvitatorio = p.h === 'invitatorio';
+  // o seletor de memória facultativa pulsa uma vez a cada vez que se entra na tela
+  // (não de novo quando os controles somem e voltam)
+  const [pulso, setPulso] = useState(0);
+  const pulsado = useRef(0);
+  useFocusEffect(useCallback(() => setPulso((n) => n + 1), []));
+  const tentarPulsar = (n: number) => {
+    if (n <= pulsado.current) return false;
+    pulsado.current = n;
+    return true;
+  };
 
   useEffect(() => {
     if (!ehInvitatorio) return;
@@ -32,6 +43,9 @@ export default function TelaHora() {
   }, [ehInvitatorio, pacote.manifest]);
 
   const dia = useMemo(() => diaLiturgico(data), [data]);
+  // Completas de madrugada abertas com o dia anterior (dataParaHora): avisa no texto
+  const madrugada = p.h === 'completas' && data !== hojeIso() && data === somaDias(hojeIso(), -1) && new Date().getHours() < 4;
+  const nomeDia = DIAS_SEMANA[dia.diaSemana].toLowerCase();
   const plano = useMemo(
     () =>
       planoDaHora(data, p.h, {
@@ -58,6 +72,8 @@ export default function TelaHora() {
       if (!vivo) return;
       let html = m.corpo;
       if (!html) html = `<p class="c"><span class="lacuna">${plano.avisos[0] ?? 'Texto indisponível.'}</span></p>`;
+      if (madrugada)
+        html = `<p class="c"><span class="lacuna">Apesar de já ter passado da meia-noite, estas são as Completas do dia que você está encerrando (${nomeDia}).</span></p>` + html;
       if (dia.comemoracao && (p.h === 'laudes' || p.h === 'vesperas'))
         html = `<p class="c"><span class="lacuna">Comemoração: ${dia.comemoracao.nome}</span></p>` + html;
       setCorpo(html);
@@ -66,7 +82,7 @@ export default function TelaHora() {
       vivo = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plano, aj.repetirRespostas, aj.laudesAmpliada, dadosInv]);
+  }, [plano, aj.repetirRespostas, aj.laudesAmpliada, dadosInv, madrugada]);
 
   const mudarDia = (n: number) => {
     toque();
@@ -100,6 +116,8 @@ export default function TelaHora() {
           opcoes={dia.facultativas.filter((f) => !!f.slug).map((f) => ({ slug: f.slug!, nome: f.nome }))}
           escolhida={memoria}
           aoEscolher={setMemoria}
+          pulso={pulso}
+          tentarPulsar={tentarPulsar}
         />
       ) : null}
     </View>
@@ -157,13 +175,26 @@ function SeletorMemoria({
   opcoes,
   escolhida,
   aoEscolher,
+  pulso,
+  tentarPulsar,
 }: {
   opcoes: { slug: string; nome: string }[];
   escolhida?: string;
   aoEscolher: (slug: string | undefined) => void;
+  pulso: number;
+  tentarPulsar: (n: number) => boolean;
 }) {
   const c = usePaleta();
   const [aberto, setAberto] = useState(false);
+  const brilho = useSharedValue(0);
+  useEffect(() => {
+    if (!pulso || !tentarPulsar(pulso)) return;
+    const t = (v: number, ms: number) => withTiming(v, { duration: ms });
+    // só um contorno dourado que acende e apaga, uma vez
+    brilho.value = withDelay(500, withSequence(t(1, 260), t(1, 200), t(0, 700)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pulso]);
+  const estiloBrilho = useAnimatedStyle(() => ({ opacity: brilho.value }));
   const atual = opcoes.find((o) => o.slug === escolhida);
   const nomeCurto = (n: string) => n.split(',')[0];
   const linha = (slug: string | undefined, titulo: string, sub?: string) => {
@@ -187,6 +218,7 @@ function SeletorMemoria({
   };
   return (
     <Vidro style={{ borderRadius: 20 }} interativo>
+      <Animated.View pointerEvents="none" style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 20, borderWidth: 1.5, borderColor: c.destaque }, estiloBrilho]} />
       <Pressable
         onPress={() => {
           toque();

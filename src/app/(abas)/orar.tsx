@@ -6,6 +6,7 @@ import { jornadasDeHoje } from '@/comunidade/jornadas';
 import { listar, usePacote } from '@/conteudo/pacote';
 import { useAjustes } from '@/estado/ajustes';
 import { hojeIso } from '@/liturgia/calendario';
+import { dataParaHora } from '@/util/datas';
 import { HORAS } from '@/liturgia/horas';
 import { useServidor } from '@/servidor/api';
 import { Espaco, Marca, usePaleta } from '@/tema';
@@ -65,7 +66,7 @@ export default function Orar() {
               sub={h.quando}
               icone={ICONE_HORA[h.id]}
               corIcone={h.id === 'laudes' || h.id === 'vesperas' ? Marca.vinho : undefined}
-              onPress={() => router.push({ pathname: '/hora', params: { h: h.id, data: hoje } })}
+              onPress={() => router.push({ pathname: '/hora', params: { h: h.id, data: dataParaHora(h.id) } })}
               ultimo={i === HORAS.length - 1}
             />
           ))}

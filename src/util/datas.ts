@@ -1,4 +1,4 @@
-import { DIAS_SEMANA, MESES } from '@/liturgia/calendario';
+import { DIAS_SEMANA, MESES, hojeIso, somaDias } from '@/liturgia/calendario';
 
 const DIA_CURTO = ['dom.', 'seg.', 'ter.', 'qua.', 'qui.', 'sex.', 'sáb.'];
 const MES_CURTO = ['jan.', 'fev.', 'mar.', 'abr.', 'mai.', 'jun.', 'jul.', 'ago.', 'set.', 'out.', 'nov.', 'dez.'];
@@ -24,6 +24,13 @@ export function quando(inicioIso: string, fimIso?: string | null) {
 
 export const isoLocal = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** Data litúrgica de uma Hora agora. As Completas são a última oração antes do repouso,
+ *  "mesmo passada a meia-noite" (IGLH 84): de madrugada (antes das 4h) valem as do dia que terminou. */
+export function dataParaHora(h: string, agora = new Date()): string {
+  const hoje = hojeIso();
+  return h === 'completas' && agora.getHours() < 4 ? somaDias(hoje, -1) : hoje;
+}
 
 /** Hora canônica sugerida para o horário atual */
 export function horaSugerida(agora = new Date()) {

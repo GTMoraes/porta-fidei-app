@@ -196,7 +196,7 @@ export const SANTOS: Record<string, Santo[]> = {
   '10-02': [s('Santos Anjos da Guarda', 'M', 'anjos')],
   '10-03': [s('Santos André de Soveral e Ambrósio Francisco Ferro, presbíteros, Mateus Moreira e companheiros, mártires', 'M', 'andreeambrosio', { ...V, brasil: true })],
   '10-04': [s('São Francisco de Assis', 'M', 'saofrancisco')],
-  '10-05': [s('Santa Faustina Kowalska, virgem', 'm', 'santafaustina')],
+  '10-05': [s('Santa Faustina Kowalska, virgem', 'm', 'faustinakowalska')],
   '10-06': [s('São Bruno, presbítero', 'm', 'saobruno')],
   '10-07': [s('Nossa Senhora do Rosário', 'M', 'NSRosario')],
   '10-09': [s('São Dionísio, bispo, e companheiros, mártires', 'm', 'saodionisio', V), s('São João Leonardi, presbítero', 'm', 'saojoaoleonardi')],

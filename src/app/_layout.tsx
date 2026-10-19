@@ -10,6 +10,7 @@ import { carregarPacote } from '@/conteudo/pacote';
 import { carregarChaveConteudo } from '@/conteudo/remoto';
 import { carregarAjustes } from '@/estado/ajustes';
 import { registrarTarefaPush } from '@/estado/segundoPlano';
+import { PilulaAtualizado } from '@/ui/PilulaAtualizado';
 import { reagendarLembretes } from '@/estado/lembretes';
 import { registrarPush } from '@/estado/push';
 import { atualizar, carregarCache, carregarToken } from '@/servidor/api';
@@ -118,6 +119,7 @@ export default function Raiz() {
         <Stack.Screen name="editar-jornada" options={{ title: 'Jornada', presentation: 'modal' }} />
         <Stack.Screen name="editar-oracao" options={{ title: 'Oração', presentation: 'modal' }} />
       </Stack>
+      <PilulaAtualizado />
     </ThemeProvider>
     </GestureHandlerRootView>
   );

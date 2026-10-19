@@ -17,7 +17,7 @@ import { atualizar, useServidor } from '@/servidor/api';
 import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
 import { DeslizarParaArquivar } from '@/ui/Deslizar';
-import { horaSugerida, quando } from '@/util/datas';
+import { dataParaHora, horaSugerida, quando } from '@/util/datas';
 
 const ROMANO = ['', 'I', 'II', 'III', 'IV'];
 
@@ -214,7 +214,7 @@ export default function Hoje() {
         <Pressable
           onPress={() => {
             toque();
-            router.push({ pathname: '/hora', params: { h: sugerida.id, data: hoje } });
+            router.push({ pathname: '/hora', params: { h: sugerida.id, data: dataParaHora(sugerida.id, agora) } });
           }}
           style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.l }}>
           <Vidro tinta="rgba(129,50,52,0.55)" style={{ borderRadius: 24 }} interativo>
@@ -236,7 +236,7 @@ export default function Hoje() {
               <Pressable
                 onPress={() => {
                   toque();
-                  router.push({ pathname: '/hora', params: { h: h.id, data: hoje } });
+                  router.push({ pathname: '/hora', params: { h: h.id, data: dataParaHora(h.id) } });
                 }}>
                 <Vidro interativo style={{ borderRadius: 18 }}>
                   <View style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
