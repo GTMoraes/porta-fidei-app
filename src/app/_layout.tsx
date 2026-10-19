@@ -9,6 +9,7 @@ import { AppState } from 'react-native';
 import { carregarPacote } from '@/conteudo/pacote';
 import { carregarChaveConteudo } from '@/conteudo/remoto';
 import { carregarAjustes } from '@/estado/ajustes';
+import { buscarNova } from '@/estado/atualizacaoApp';
 import { registrarTarefaPush } from '@/estado/segundoPlano';
 import { PilulaAtualizado } from '@/ui/PilulaAtualizado';
 import { reagendarLembretes } from '@/estado/lembretes';
@@ -33,7 +34,10 @@ export default function Raiz() {
     });
     // push recebido com o app aberto: atualiza avisos e agenda
     const sub = Notifications.addNotificationReceivedListener((n) => {
-      if (n.request.trigger && (n.request.trigger as any).type === 'push') atualizar();
+      if (n.request.trigger && (n.request.trigger as any).type === 'push') {
+        atualizar();
+        buscarNova();
+      }
     });
     // ao voltar do segundo plano: busca proposta, avisos, agenda e jornadas novas (no máximo a cada 15 s).
     // Fora isso, quem avisa que tem novidade é o push silencioso do servidor (estado/segundoPlano.ts).

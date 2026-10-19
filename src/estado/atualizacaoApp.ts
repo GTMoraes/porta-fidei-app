@@ -7,7 +7,8 @@ import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
 let buscando = false;
-async function buscarNova() {
+/** Procura versão nova pelo ar e baixa (o card aparece quando terminar) */
+export async function buscarNova() {
   if (!Updates.isEnabled || buscando) return;
   buscando = true;
   try {

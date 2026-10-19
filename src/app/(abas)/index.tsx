@@ -6,7 +6,7 @@ import { AppState, Pressable, RefreshControl, ScrollView, Text, View } from 'rea
 import { semana } from '@/comunidade/html';
 import { diaAtual, diasFeitos, jornadasDeHoje, periodo, useFeitos } from '@/comunidade/jornadas';
 import { dispensado, dispensar, useArquivados, visivel } from '@/estado/arquivados';
-import { aplicarAtualizacao, useAtualizacaoPronta } from '@/estado/atualizacaoApp';
+import { aplicarAtualizacao, buscarNova, useAtualizacaoPronta } from '@/estado/atualizacaoApp';
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
 import { infoRemota, type InfoRemota } from '@/conteudo/remoto';
 import { lerAjustes } from '@/estado/ajustes';
@@ -48,7 +48,8 @@ export default function Hoje() {
   const puxar = async () => {
     setPuxando(true);
     try {
-      await atualizar();
+      // puxar também procura versão nova do app (o card aparece quando terminar de baixar)
+      await Promise.all([atualizar(), buscarNova()]);
     } finally {
       setPuxando(false);
     }
