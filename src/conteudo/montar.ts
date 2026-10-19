@@ -39,6 +39,9 @@ export function normalizar(html: string): string {
     semTags(dentro).length > 8 ? `<span class="rub">${dentro}</span>` : m,
   );
   h = h.replace(/<sub>([\s\S]*?)<\/sub>/g, '$1');
+  // o asterisco e a cruz das estrofes ficam colados à última palavra (nunca descem sozinhos para a linha de baixo)
+  h = h.replace(/([^\s>]) +(?=[*†](?:\s|<|$))/g, '$1\u00A0');
+  h = h.replace(/([^\s>]) +(?=<span[^>]*>\s*[*†])/g, '$1\u00A0');
   // título vermelho seguido da referência bíblica ("Antífona da comunhão" + "Cf. Sl 32,18-19"): referência à direita.
   // Só vale quando o segundo pedaço é mesmo uma referência (senão "V. Bendigamos ao Senhor" iria para a direita).
   const ehRef = (t: string) => /^\s*\.?\s*(C[fF][.,]\s*)?[1-4]?\s?[A-Z][A-Za-zçãéíó]{0,4}\.?\s*\d+[,.:\s]\s*\d/.test(t);

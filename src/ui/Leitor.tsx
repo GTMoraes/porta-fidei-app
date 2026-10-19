@@ -111,7 +111,11 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
     setAchados({ total: 0, atual: 0 });
   }, [html]);
 
+  // mudar o tamanho da letra reflui o texto e a página "rola" sozinha: isso não deve esconder os controles
+  const fonteMudouEm = useRef(0);
   const mudarFonte = (delta: number) => {
+    fonteMudouEm.current = Date.now();
+    setBarraVisivel(true);
     const novo = Math.max(14, Math.min(34, aj.tamanhoFonte + delta));
     mudarAjustes({ tamanhoFonte: novo });
     web.current?.injectJavaScript(`window.pfFonte(${novo});true;`);
@@ -160,7 +164,7 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
       else if (barraVisivel && aj.expandirTexto) setBarraVisivel(false);
       else mostrarBarra(null);
     } else if (m.tipo === 'rolou') {
-      if (!rolando) setBarraVisivel(!m.desce || m.y < 80);
+      if (!rolando && Date.now() - fonteMudouEm.current > 1200) setBarraVisivel(!m.desce || m.y < 80);
     } else if (m.tipo === 'fimRolagem') {
       setRolando(false);
       mostrarBarra(null);

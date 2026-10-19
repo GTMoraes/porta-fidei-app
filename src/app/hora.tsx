@@ -191,7 +191,7 @@ function SeletorMemoria({
     if (!pulso || !tentarPulsar(pulso)) return;
     const t = (v: number, ms: number) => withTiming(v, { duration: ms });
     // só um contorno dourado que acende e apaga, uma vez
-    brilho.value = withDelay(500, withSequence(t(1, 260), t(1, 200), t(0, 700)));
+    brilho.value = withDelay(1500, withSequence(t(1, 260), t(1, 200), t(0, 700)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pulso]);
   const estiloBrilho = useAnimatedStyle(() => ({ opacity: brilho.value }));
