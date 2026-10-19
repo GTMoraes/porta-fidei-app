@@ -2,6 +2,7 @@ import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { Platform } from 'react-native';
 
+import { useNovidadesAgenda } from '@/estado/vistos';
 import { Marca, usePaleta } from '@/tema';
 
 // Antes do iOS 26 não existe o vidro líquido: a barra das abas ficava transparente sobre o conteúdo
@@ -11,6 +12,7 @@ const SEM_VIDRO = Platform.OS === 'ios' && !isLiquidGlassAvailable();
 
 export default function Abas() {
   const c = usePaleta();
+  const novo = useNovidadesAgenda();
   const antigo = SEM_VIDRO
     ? ({ disableTransparentOnScrollEdge: true, blurEffect: c.escuro ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight' } as const)
     : {};
@@ -27,6 +29,8 @@ export default function Abas() {
       <NativeTabs.Trigger name="agenda">
         <NativeTabs.Trigger.Label>Agenda</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'calendar', selected: 'calendar' }} md="event" />
+        {/* pontinho vermelho: missa, evento ou aviso novo (ou alterado) que a pessoa ainda não viu */}
+        <NativeTabs.Trigger.Badge hidden={!(novo.eventos || novo.avisos)} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="ajustes">
         <NativeTabs.Trigger.Label>Ajustes</NativeTabs.Trigger.Label>

@@ -11,6 +11,7 @@ import { HORAS } from '@/liturgia/horas';
 import { useServidor } from '@/servidor/api';
 import { Espaco, Marca, usePaleta } from '@/tema';
 import { Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base';
+import { useSubirAoTopo } from '@/ui/subirAoTopo';
 
 const ICONE_HORA: Record<string, any> = {
   invitatorio: 'bell',
@@ -24,6 +25,7 @@ const ICONE_HORA: Record<string, any> = {
 };
 
 export default function Orar() {
+  const lista = useSubirAoTopo();
   const router = useRouter();
   const aj = useAjustes();
   const srv = useServidor();
@@ -43,7 +45,9 @@ export default function Orar() {
 
   return (
     <Fundo>
-      <ScrollView contentInsetAdjustmentBehavior="automatic">
+      <ScrollView
+        ref={lista}
+        scrollToOverflowEnabled contentInsetAdjustmentBehavior="automatic">
         <TituloTela titulo="Rezar" sobre="Liturgia das Horas e orações" />
         <Pressable
           onPress={() => {

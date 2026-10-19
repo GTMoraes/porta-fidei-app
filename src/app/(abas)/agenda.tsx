@@ -1,15 +1,17 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useIsFocused, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 
 import { arquivado, arquivar, remover, useArquivados, visivel } from '@/estado/arquivados';
+import { eventosDaAgenda, marcarVisto, useNovidadesAgenda } from '@/estado/vistos';
 import { atualizar, useServidor, type Aviso as AvisoT, type Evento } from '@/servidor/api';
 import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base';
 import { DeslizarComAcoes, DeslizarParaArquivar } from '@/ui/Deslizar';
 import { dataLonga, hora } from '@/util/datas';
+import { useSubirAoTopo } from '@/ui/subirAoTopo';
 
 const NOME_TIPO: Record<string, string> = {
   missa: 'Missa',
@@ -20,6 +22,7 @@ const NOME_TIPO: Record<string, string> = {
 };
 
 export default function Agenda() {
+  const lista = useSubirAoTopo();
   const c = usePaleta();
   const router = useRouter();
   const srv = useServidor();
@@ -35,8 +38,7 @@ export default function Agenda() {
   };
 
   const agora = Date.now();
-  const futuros = srv.eventos
-    .filter((e) => new Date(e.fim ?? e.inicio).getTime() >= agora - 3600_000)
+  const futuros = eventosDaAgenda(srv.eventos, agora)
     .sort((a, b) => a.inicio.localeCompare(b.inicio));
   const porDia = new Map<string, Evento[]>();
   for (const e of futuros) {
@@ -48,6 +50,15 @@ export default function Agenda() {
   const todos = [...srv.avisos].sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado) || b.criado.localeCompare(a.criado));
   const avisos = todos.filter((a) => visivel(arquivados, a));
   const guardados = todos.filter((a) => arquivado(arquivados, a));
+
+  // o que está na seção aberta conta como visto (inclusive o que chegar enquanto a pessoa olha)
+  const focada = useIsFocused();
+  const novo = useNovidadesAgenda();
+  useEffect(() => {
+    if (!focada) return;
+    if (aba === 'agenda') marcarVisto('eventos', futuros);
+    else marcarVisto('avisos', avisos);
+  });
   const confirmarRemover = (a: AvisoT, desfazer?: () => void) =>
     Alert.alert('Tem certeza?', 'O aviso some deste iPhone de vez. Para os outros membros nada muda.', [
       { text: 'Cancelar', style: 'cancel', onPress: desfazer },
@@ -57,6 +68,8 @@ export default function Agenda() {
   return (
     <Fundo>
       <ScrollView
+        ref={lista}
+        scrollToOverflowEnabled
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={puxando} onRefresh={puxar} tintColor={c.destaque} />}>
         <TituloTela titulo="Agenda" sobre="Missas, eventos e avisos" />
@@ -72,9 +85,12 @@ export default function Agenda() {
                   setAba(a);
                 }}>
                 <View style={{ paddingVertical: 9, borderRadius: 18, backgroundColor: aba === a ? (c.escuro ? 'rgba(222,190,130,0.22)' : 'rgba(188,140,68,0.22)') : 'transparent' }}>
-                  <Text style={{ textAlign: 'center', color: aba === a ? c.texto : c.textoSuave, fontWeight: '600' }}>
-                    {a === 'agenda' ? 'Missas e eventos' : 'Avisos'}
-                  </Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ color: aba === a ? c.texto : c.textoSuave, fontWeight: '600' }}>{a === 'agenda' ? 'Missas e eventos' : 'Avisos'}</Text>
+                    {(a === 'agenda' ? novo.eventos : novo.avisos) && aba !== a ? (
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF3B30' }} />
+                    ) : null}
+                  </View>
                 </View>
               </Pressable>
             ))}

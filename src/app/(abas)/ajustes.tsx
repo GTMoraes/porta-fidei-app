@@ -8,8 +8,10 @@ import { mudarAjustes, useAjustes, type Ajustes } from '@/estado/ajustes';
 import { useServidor } from '@/servidor/api';
 import { Espaco, Marca, usePaleta } from '@/tema';
 import { Chave, Fundo, Icone, Linha, Secao, TituloTela, toque } from '@/ui/base';
+import { useSubirAoTopo } from '@/ui/subirAoTopo';
 
 export default function TelaAjustes() {
+  const lista = useSubirAoTopo();
   const aj = useAjustes();
   const router = useRouter();
   const pacote = usePacote();
@@ -22,7 +24,9 @@ export default function TelaAjustes() {
 
   return (
     <Fundo>
-      <ScrollView contentInsetAdjustmentBehavior="automatic">
+      <ScrollView
+        ref={lista}
+        scrollToOverflowEnabled contentInsetAdjustmentBehavior="automatic">
         <TituloTela titulo="Ajustes" />
 
         <Secao titulo="Oração">

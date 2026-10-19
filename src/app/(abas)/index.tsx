@@ -18,10 +18,12 @@ import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
 import { DeslizarParaArquivar } from '@/ui/Deslizar';
 import { dataParaHora, horaSugerida, quando } from '@/util/datas';
+import { useSubirAoTopo } from '@/ui/subirAoTopo';
 
 const ROMANO = ['', 'I', 'II', 'III', 'IV'];
 
 export default function Hoje() {
+  const lista = useSubirAoTopo();
   const c = usePaleta();
   const router = useRouter();
   const pacote = usePacote();
@@ -100,6 +102,8 @@ export default function Hoje() {
   return (
     <Fundo>
       <ScrollView
+        ref={lista}
+        scrollToOverflowEnabled
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={puxando} onRefresh={puxar} tintColor={c.destaque} />}>
         {/* Cabeçalho com o logo */}

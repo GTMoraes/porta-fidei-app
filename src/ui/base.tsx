@@ -1,5 +1,6 @@
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import type { ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Switch, Text, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -17,14 +18,8 @@ export function toque() {
 export function Fundo({ children }: { children: ReactNode }) {
   const c = usePaleta();
   return (
-    // o degradê é desenhado pela própria View (camada, não subview): assim a lista da tela fica sendo a
-    // primeira subview e o iOS a encontra para subir ao topo quando se toca de novo na aba atual
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: c.fundo[0],
-        experimental_backgroundImage: `linear-gradient(160deg, ${c.fundo[0]} 0%, ${c.fundo[1]} 50%, ${c.fundo[2]} 100%)`,
-      }}>
+    <View style={{ flex: 1, backgroundColor: c.fundo[0] }}>
+      <LinearGradient colors={c.fundo} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
       {children}
     </View>
   );

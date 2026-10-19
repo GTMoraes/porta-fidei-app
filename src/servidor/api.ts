@@ -21,6 +21,8 @@ export interface Evento {
   imagem?: string | null; // URL absoluta
   lat?: number | null; // ponto marcado no mapa (opcional; sem ele, o mapa busca pelo texto do local)
   lng?: number | null;
+  criado?: string | null; // servidor 0.4.16 em diante
+  atualizado?: string | null;
 }
 
 /** Notificação escrita no cadastro do evento (sai para todos ao salvar) */
