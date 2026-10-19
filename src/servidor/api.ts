@@ -2,6 +2,7 @@
 // Tudo que vem daqui fica guardado no aparelho para funcionar sem internet.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { File, Paths, UploadType } from 'expo-file-system';
 import { useSyncExternalStore } from 'react';
 
 import { cabecalhoApp } from '@/conteudo/remoto';
@@ -23,6 +24,23 @@ export interface Evento {
   lng?: number | null;
   criado?: string | null; // servidor 0.4.16 em diante
   atualizado?: string | null;
+  video?: VideoMidia | null;
+  botoes?: BotaoLink[];
+}
+
+/** Vídeo já comprimido pelo servidor; "capa" é a escolhida pela pessoa, "capaAuto" a gerada */
+export interface VideoMidia {
+  url: string;
+  capa?: string | null;
+  capaAuto?: string | null;
+  largura?: number | null;
+  altura?: number | null;
+  duracao?: number | null;
+}
+/** Botão de link (inscrição, formulário...) abaixo da descrição */
+export interface BotaoLink {
+  texto: string;
+  url: string;
 }
 
 /** Notificação escrita no cadastro do evento (sai para todos ao salvar) */
@@ -45,6 +63,8 @@ export interface Aviso {
   fixado?: boolean;
   criado: string;
   atualizado?: string; // última edição (para mostrar "corrigido")
+  video?: VideoMidia | null;
+  botoes?: BotaoLink[];
 }
 
 export interface SecaoProposta {
@@ -259,4 +279,66 @@ export async function registrarDispositivo(token: string, versao: string) {
 export async function enviarImagem(base64: string, tipo: string): Promise<string> {
   const j = await admin('/imagens', 'POST', { base64, tipo });
   return j.url as string;
+}
+
+const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Envia um vídeo em partes (cada uma abaixo do limite do Cloudflare) e espera o servidor comprimir.
+ *  `progresso` recebe a fase e, no envio, a fração já enviada (0 a 1). */
+export async function enviarVideo(uri: string, progresso: (fase: 'enviando' | 'preparando', fracao: number) => void): Promise<VideoMidia> {
+  if (!token) throw new Error('Entre como administrador primeiro');
+  const ini = (await admin('/videos', 'POST')) as { id: string; parteMax: number };
+  const arq = new File(uri);
+  const total = arq.size;
+  if (!total) throw new Error('Não foi possível ler o vídeo');
+  const PARTE = Math.min(ini.parteMax || 8 * 1024 * 1024, 8 * 1024 * 1024); // o nginx na frente aceita até 12 MB
+  const h = arq.open();
+  const tmp = new File(Paths.cache, `pf-parte-${ini.id}.bin`);
+  try {
+    let enviado = 0;
+    for (let n = 0; enviado < total; n++) {
+      h.offset = enviado;
+      const bytes = h.readBytes(Math.min(PARTE, total - enviado));
+      tmp.create({ overwrite: true });
+      tmp.write(bytes);
+      for (let tentativa = 1; ; tentativa++) {
+        try {
+          const r = await tmp.upload(`${SERVIDOR}/api/admin/videos/${ini.id}/parte/${n}`, {
+            httpMethod: 'PUT',
+            uploadType: UploadType.BINARY_CONTENT,
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/octet-stream' },
+            onProgress: (p) => progresso('enviando', Math.min(1, (enviado + p.bytesSent) / total)),
+          });
+          if (r.status >= 300) {
+            let msg = r.body;
+            try {
+              msg = JSON.parse(r.body).erro ?? r.body;
+            } catch {}
+            throw new Error(msg || `Erro ${r.status}`);
+          }
+          break;
+        } catch (e) {
+          if (tentativa >= 3) throw e;
+          await esperar(1500 * tentativa);
+        }
+      }
+      enviado += bytes.length;
+      progresso('enviando', enviado / total);
+    }
+  } finally {
+    try {
+      h.close();
+    } catch {}
+    try {
+      if (tmp.exists) tmp.delete();
+    } catch {}
+  }
+  await admin(`/videos/${ini.id}/fim`, 'POST');
+  progresso('preparando', 0);
+  for (;;) {
+    await esperar(2500);
+    const e = (await admin(`/videos/${ini.id}`, 'GET')) as { estado: string; erro?: string; video?: VideoMidia };
+    if (e.estado === 'pronto' && e.video) return e.video;
+    if (e.estado === 'erro') throw new Error(e.erro || 'O servidor não conseguiu preparar o vídeo');
+  }
 }

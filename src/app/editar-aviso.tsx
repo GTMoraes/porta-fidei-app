@@ -2,10 +2,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 
-import { apagarAviso, atualizar, notificarTodos, salvarAviso, useServidor } from '@/servidor/api';
+import { apagarAviso, atualizar, notificarTodos, salvarAviso, useServidor, type BotaoLink, type VideoMidia } from '@/servidor/api';
 import { Espaco } from '@/tema';
 import { Aviso, Botao, Chave, Fundo, Linha, Secao } from '@/ui/base';
-import { Campo, CampoImagem } from '@/ui/Formulario';
+import { AVISO_TEXTO_NOTIF, AVISO_TITULO_NOTIF, botoesProntos, Campo, CampoBotoes, CampoImagem, CampoVideo } from '@/ui/Formulario';
 
 export default function EditarAviso() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -16,18 +16,25 @@ export default function EditarAviso() {
   const [titulo, setTitulo] = useState(orig?.titulo ?? '');
   const [texto, setTexto] = useState(orig?.texto ?? '');
   const [imagem, setImagem] = useState<string | null>(orig?.imagem ?? null);
+  const [video, setVideo] = useState<VideoMidia | null>(orig?.video ?? null);
+  const [enviandoVideo, setEnviandoVideo] = useState(false);
+  const [botoes, setBotoes] = useState<BotaoLink[]>(orig?.botoes ?? []);
   const [fixado, setFixado] = useState(!!orig?.fixado);
   const [notificar, setNotificar] = useState(!orig);
   const [guardar, setGuardar] = useState(true); // false: só a notificação, sem aparecer em Avisos
   const [salvando, setSalvando] = useState(false);
   const [urgente, setUrgente] = useState(false);
 
+  const soNotificacao = !orig && !guardar;
+  const vaiNotificarJa = notificar || soNotificacao;
   const salvar = async () => {
+    const bts = soNotificacao ? [] : botoesProntos(botoes);
+    if (!bts) return;
     setSalvando(true);
     try {
       const vaiNotificar = notificar || (!orig && !guardar);
       if (!orig && !guardar) await notificarTodos(titulo.trim(), texto.trim(), urgente);
-      else await salvarAviso({ id: orig?.id, titulo: titulo.trim(), texto: texto.trim(), imagem, fixado, notificar, urgente: vaiNotificar && urgente });
+      else await salvarAviso({ id: orig?.id, titulo: titulo.trim(), texto: texto.trim(), imagem, video, botoes: bts, fixado, notificar, urgente: vaiNotificar && urgente });
       await atualizar();
       router.back();
     } catch (e: any) {
@@ -41,10 +48,16 @@ export default function EditarAviso() {
     <Fundo>
       <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
         <Secao titulo="Aviso">
-          <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} />
-          <Campo rotulo="Texto" value={texto} onChangeText={setTexto} multiline />
+          <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} limite={vaiNotificarJa ? 35 : undefined} alerta={AVISO_TITULO_NOTIF} />
+          <Campo rotulo="Texto" value={texto} onChangeText={setTexto} multiline limite={soNotificacao ? 170 : undefined} alerta={AVISO_TEXTO_NOTIF} />
           {guardar || orig ? <CampoImagem url={imagem} mudar={setImagem} /> : null}
+          {guardar || orig ? <CampoVideo video={video} mudar={setVideo} aoOcupar={setEnviandoVideo} /> : null}
         </Secao>
+        {guardar || orig ? (
+          <Secao titulo="Botões">
+            <CampoBotoes botoes={botoes} mudar={setBotoes} />
+          </Secao>
+        ) : null}
         <Secao titulo="Opções">
           {!orig ? (
             <Linha
@@ -84,7 +97,7 @@ export default function EditarAviso() {
           <Botao
             titulo={salvando ? 'Enviando…' : !orig && !guardar ? 'Enviar notificação' : orig ? 'Salvar correção' : 'Publicar'}
             icone="paperplane"
-            desativado={salvando || !titulo.trim() || !texto.trim()}
+            desativado={salvando || enviandoVideo || !titulo.trim() || !texto.trim()}
             onPress={salvar}
           />
           {orig ? (

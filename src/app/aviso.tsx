@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, ScrollView, Share, Text, View } from 'react-native';
 
@@ -6,6 +5,7 @@ import { arquivado, arquivar, remover, useArquivados } from '@/estado/arquivados
 import { useServidor } from '@/servidor/api';
 import { Espaco, Fontes, usePaleta } from '@/tema';
 import { Aviso as Caixa, Botao, Fundo, Secao, Vidro } from '@/ui/base';
+import { BotoesLink, ImagemInteira, PlayerVideo, TextoComLinks } from '@/ui/Midia';
 import { dataLonga } from '@/util/datas';
 
 export default function TelaAviso() {
@@ -32,19 +32,19 @@ export default function TelaAviso() {
       <ScrollView contentInsetAdjustmentBehavior="automatic">
         <View style={{ margin: Espaco.l }}>
           <Vidro style={{ borderRadius: 28 }}>
-            {a.imagem ? <Image source={{ uri: a.imagem }} style={{ height: 240 }} contentFit="cover" /> : null}
+            {a.imagem ? <ImagemInteira uri={a.imagem} /> : null}
             <View style={{ padding: Espaco.xl }}>
               <Text style={{ color: c.textoFraco, fontSize: 13 }}>
                 {dataLonga(new Date(a.criado))}
                 {a.atualizado && Date.parse(a.atualizado) - Date.parse(a.criado) > 60_000 ? ` · corrigido em ${dataLonga(new Date(a.atualizado))}` : ''}
               </Text>
               <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 27, marginTop: 6 }}>{a.titulo}</Text>
-              <Text selectable style={{ color: c.texto, fontSize: 16.5, lineHeight: 24, marginTop: 14 }}>
-                {a.texto}
-              </Text>
+              <TextoComLinks texto={a.texto} style={{ color: c.texto, fontSize: 16.5, lineHeight: 24, marginTop: 14 }} />
             </View>
           </Vidro>
         </View>
+        {a.video ? <PlayerVideo video={a.video} /> : null}
+        <BotoesLink botoes={a.botoes} />
         <View style={{ marginHorizontal: Espaco.l, gap: 12, marginBottom: 50 }}>
           {arquivado(arquivados, a) ? (
             <>
@@ -79,7 +79,7 @@ export default function TelaAviso() {
               }}
             />
           )}
-          <Botao titulo="Compartilhar" icone="square.and.arrow.up" tipo="secundario" onPress={() => Share.share({ message: `${a.titulo}\n\n${a.texto}\n\nComunidade Católica Porta Fidei` })} />
+          <Botao titulo="Compartilhar" icone="square.and.arrow.up" tipo="secundario" onPress={() => Share.share({ message: `${a.titulo}\n\n${a.texto}${(a.botoes ?? []).map((b) => `\n\n${b.texto}: ${b.url}`).join('')}\n\nComunidade Católica Porta Fidei` })} />
           {srv.admin ? <Botao titulo="Editar" icone="pencil" tipo="secundario" onPress={() => router.push({ pathname: '/editar-aviso', params: { id: a.id } })} /> : null}
         </View>
       </ScrollView>

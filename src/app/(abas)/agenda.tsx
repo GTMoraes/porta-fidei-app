@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
@@ -11,6 +10,7 @@ import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base';
 import { DeslizarComAcoes, DeslizarParaArquivar } from '@/ui/Deslizar';
 import { dataLonga, hora } from '@/util/datas';
+import { CapaVideo, ImagemInteira } from '@/ui/Midia';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
 
 const NOME_TIPO: Record<string, string> = {
@@ -187,7 +187,7 @@ function CartaoAviso({ a, onArquivar }: { a: AvisoT; onArquivar: () => void }) {
   return (
     <Pressable onPress={() => router.push({ pathname: '/aviso', params: { id: a.id } })} style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.l }}>
       <Vidro style={{ borderRadius: 24 }}>
-        {a.imagem ? <Image source={{ uri: a.imagem }} style={{ height: 170 }} contentFit="cover" transition={200} /> : null}
+        {a.imagem ? <ImagemInteira uri={a.imagem} /> : a.video ? <CapaVideo video={a.video} /> : null}
         <View style={{ padding: Espaco.l }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             {a.fixado ? <Icone nome="pin.fill" tamanho={13} /> : null}

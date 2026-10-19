@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { pegarPonto } from '@/estado/escolhaLocal';
-import { apagarEvento, atualizar, locaisSalvos, salvarEvento, useServidor, type LocalSalvo, type TipoEvento } from '@/servidor/api';
+import { apagarEvento, atualizar, locaisSalvos, salvarEvento, useServidor, type BotaoLink, type LocalSalvo, type TipoEvento, type VideoMidia } from '@/servidor/api';
 import { Espaco, Marca, usePaleta } from '@/tema';
 import { Botao, Chave, Fundo, Icone, Linha, Secao, toque } from '@/ui/base';
-import { Campo, CampoImagem } from '@/ui/Formulario';
+import { AVISO_TEXTO_NOTIF, AVISO_TITULO_NOTIF, botoesProntos, Campo, CampoBotoes, CampoImagem, CampoVideo } from '@/ui/Formulario';
 import { dataCurta, hora } from '@/util/datas';
 
 const TIPOS: [TipoEvento, string][] = [
@@ -37,6 +37,9 @@ export default function EditarEvento() {
   const [local, setLocal] = useState(orig?.local ?? '');
   const [descricao, setDescricao] = useState(orig?.descricao ?? '');
   const [imagem, setImagem] = useState<string | null>(orig?.imagem ?? null);
+  const [video, setVideo] = useState<VideoMidia | null>(orig?.video ?? null);
+  const [enviandoVideo, setEnviandoVideo] = useState(false);
+  const [botoes, setBotoes] = useState<BotaoLink[]>(orig?.botoes ?? []);
   const [repetir, setRepetir] = useState(0); // semanas
   const [salvando, setSalvando] = useState(false);
   // ponto no mapa (opcional)
@@ -86,6 +89,8 @@ export default function EditarEvento() {
   const temPonto = lat != null && lng != null;
 
   const salvar = async () => {
+    const bts = botoesProntos(botoes);
+    if (!bts) return;
     setSalvando(true);
     try {
       const vezes = orig ? 1 : repetir + 1;
@@ -105,6 +110,8 @@ export default function EditarEvento() {
           local: local.trim() || null,
           descricao: descricao.trim() || null,
           imagem,
+          video,
+          botoes: bts,
         });
       }
       await atualizar();
@@ -205,6 +212,11 @@ export default function EditarEvento() {
           />
           <Campo rotulo="Descrição" value={descricao} onChangeText={setDescricao} multiline placeholder="Detalhes, o que levar, contato…" />
           <CampoImagem url={imagem} mudar={setImagem} />
+          <CampoVideo video={video} mudar={setVideo} aoOcupar={setEnviandoVideo} />
+        </Secao>
+
+        <Secao titulo="Botões">
+          <CampoBotoes botoes={botoes} mudar={setBotoes} />
         </Secao>
 
         <Secao titulo="Quando">
@@ -247,8 +259,8 @@ export default function EditarEvento() {
           />
           {notificar ? (
             <>
-              <Campo rotulo="Título da notificação" value={tituloNotif} onChangeText={setNotifTitulo} />
-              <Campo rotulo="Texto da notificação" value={textoNotif} onChangeText={setNotifTexto} multiline />
+              <Campo rotulo="Título da notificação" value={tituloNotif} onChangeText={setNotifTitulo} limite={35} alerta={AVISO_TITULO_NOTIF} />
+              <Campo rotulo="Texto da notificação" value={textoNotif} onChangeText={setNotifTexto} multiline limite={170} alerta={AVISO_TEXTO_NOTIF} />
               {notifTitulo !== null || notifTexto !== null ? (
                 <Linha
                   titulo="Voltar ao texto automático"
@@ -273,7 +285,7 @@ export default function EditarEvento() {
         </Secao>
 
         <View style={{ marginHorizontal: Espaco.l, gap: 12, marginBottom: 60 }}>
-          <Botao titulo={salvando ? 'Salvando…' : notificar ? 'Publicar e notificar' : 'Publicar'} icone="checkmark" desativado={salvando || !titulo.trim()} onPress={salvar} />
+          <Botao titulo={salvando ? 'Salvando…' : notificar ? 'Publicar e notificar' : 'Publicar'} icone="checkmark" desativado={salvando || enviandoVideo || !titulo.trim()} onPress={salvar} />
           {orig ? (
             <Botao
               titulo="Apagar"
