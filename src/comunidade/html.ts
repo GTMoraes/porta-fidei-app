@@ -31,8 +31,17 @@ export function semana(p: Pick<Proposta, 'inicio' | 'fim'>): string {
   return mi === mf ? `${di} a ${df} de ${MES[mf - 1]}` : `${di} de ${MES[mi - 1]} a ${df} de ${MES[mf - 1]}`;
 }
 
-export function propostaHtml(p: Proposta): string {
-  return `<section class="parte com">${p.secoes.map(secaoHtml).join('')}<p class="fonte">Material de Oração Pessoal · Comunidade Católica Porta Fidei</p></section>`;
+/** Instruções no começo (como no PDF, bom para quem está começando) ou no fim ("Pular instruções" nos Ajustes).
+ *  No começo, vêm com um convite discreto para quem já está habituado. */
+export function propostaHtml(p: Proposta, pularInstrucoes = false): string {
+  const ehInstr = (s: SecaoProposta) => /^Instru/i.test(s.titulo);
+  const instr = p.secoes.filter(ehInstr);
+  const resto = p.secoes.filter((s) => !ehInstr(s));
+  const dica = instr.length
+    ? '<p class="dica"><a href="pf://ajuste/instrucoes">Se você já está habituado e deseja pular as instruções, toque aqui.</a></p>'
+    : '';
+  const ordem = pularInstrucoes ? resto.map(secaoHtml).join('') + instr.map(secaoHtml).join('') : dica + instr.map(secaoHtml).join('') + resto.map(secaoHtml).join('');
+  return `<section class="parte com">${ordem}<p class="fonte">Material de Oração Pessoal · Comunidade Católica Porta Fidei</p></section>`;
 }
 
 export function oracaoHtml(texto: string): string {

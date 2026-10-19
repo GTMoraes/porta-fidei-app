@@ -30,6 +30,7 @@ export interface Ajustes {
   fonte: 'serifa' | 'sem-serifa';
   invitatorio: '94' | '99' | '66' | '23';
   antifonaNasEstrofes: boolean;
+  pularInstrucoes: boolean; // Proposta de oração: instruções no fim (padrão: no começo, como no PDF)
   lembretes: Record<Hora, Lembrete>;
 }
 
@@ -55,6 +56,7 @@ export const PADRAO: Ajustes = {
   fonte: 'serifa',
   invitatorio: '94',
   antifonaNasEstrofes: true,
+  pularInstrucoes: false,
   lembretes: {
     invitatorio: { ativo: false, hora: 6, minuto: 0 },
     leituras: { ativo: false, hora: 6, minuto: 15 },

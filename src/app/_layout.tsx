@@ -110,6 +110,10 @@ export default function Raiz() {
         <Stack.Screen name="evento" options={{ title: '' }} />
         <Stack.Screen name="agenda-dia" options={{ title: '' }} />
         <Stack.Screen name="ir" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen
+          name="ajuste-instrucoes"
+          options={{ headerShown: false, presentation: 'formSheet', sheetAllowedDetents: [0.42], sheetGrabberVisible: true, sheetCornerRadius: 30, contentStyle: { backgroundColor: 'transparent' } }}
+        />
         <Stack.Screen name="aviso" options={{ title: '' }} />
         <Stack.Screen name="sobre" options={{ title: 'Sobre o app' }} />
         <Stack.Screen name="buscar" options={{ title: 'Buscar' }} />

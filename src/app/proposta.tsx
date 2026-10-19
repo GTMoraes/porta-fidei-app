@@ -6,6 +6,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { propostaHtml, semana } from '@/comunidade/html';
 import { lerPrevia } from '@/comunidade/previa';
+import { useAjustes } from '@/estado/ajustes';
 import { urlPdfProposta, useServidor } from '@/servidor/api';
 import { usePaleta } from '@/tema';
 import { Icone, toque } from '@/ui/base';
@@ -17,13 +18,14 @@ export default function TelaProposta() {
   const router = useRouter();
   const c = usePaleta();
   const com = srv.comunidade;
+  const aj = useAjustes();
   const p = lerPrevia(id) ?? com?.propostas.find((x) => x.id === (id || com.atual)) ?? null;
   const corpo = useMemo(
     () =>
       p
-        ? propostaHtml(p)
+        ? propostaHtml(p, aj.pularInstrucoes)
         : '<p class="c" style="margin-top:24px"><span class="lacuna">Nenhuma proposta de oração publicada ainda. Puxe para atualizar a tela Hoje.</span></p>',
-    [p],
+    [p, aj.pularInstrucoes],
   );
   const anteriores = (com?.propostas ?? []).filter((x) => x.id !== p?.id);
   const nav = useNavigation();

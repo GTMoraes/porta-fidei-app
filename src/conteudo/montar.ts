@@ -266,6 +266,8 @@ table{width:100%}
 .com .dia{text-align:center;color:var(--dt);font-weight:600;margin:0 0 1em}
 mark.pfm{background:rgba(222,190,130,.4);color:inherit;border-radius:3px;padding:0 1px}
 mark.pfa{background:#E5A33A;color:#1a1208}
+.dica{text-align:center;margin:4px 0 18px!important;font-family:-apple-system,system-ui,sans-serif;font-size:.74em;line-height:1.35}
+.dica a{color:var(--dt);text-decoration:none;display:inline-block;border:1px solid currentColor;border-radius:14px;padding:6px 12px;opacity:.85}
 .fonte{color:var(--fr);font-size:.72em;text-align:center;margin:28px 0 0!important;font-family:-apple-system,system-ui,sans-serif}
 </style></head><body>${cab}${corpo}
 <script>

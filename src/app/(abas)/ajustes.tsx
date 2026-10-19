@@ -34,6 +34,7 @@ export default function TelaAjustes() {
           {chave('bienal', 'Leituras do ciclo bienal', 'Leituras do Ofício das Leituras pelo ciclo bienal')}
           {chave('evangelhoAoAcaso', 'Habilitar Evangelho ao acaso', 'Possibilitar escolher o Evangelho do dia ou ao acaso')}
           {chave('iniciarMenuAberto', 'Iniciar com menu aberto', 'Iniciar o aplicativo com o menu das horas já aberto')}
+          {chave('pularInstrucoes', 'Pular instruções na Proposta de Oração', 'As instruções de como rezar ficam no fim da proposta, e não no começo')}
           <View style={{ paddingHorizontal: Espaco.l, paddingVertical: 12 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ flex: 1 }}>

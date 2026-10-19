@@ -153,7 +153,9 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
       return;
     }
     if (m.tipo === 'link' && typeof m.href === 'string') {
-      if (m.href.startsWith('pf://abrir/')) {
+      if (m.href.startsWith('pf://ajuste/instrucoes')) {
+        router.push('/ajuste-instrucoes');
+      } else if (m.href.startsWith('pf://abrir/')) {
         router.push({ pathname: '/texto', params: { arquivo: m.href.replace('pf://abrir/', ''), titulo: m.titulo ?? '' } });
       }
     } else if (m.tipo === 'tocou') {
