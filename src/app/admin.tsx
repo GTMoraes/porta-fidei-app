@@ -27,7 +27,7 @@ export default function Admin() {
   if (!srv.admin) {
     return (
       <Fundo>
-        <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
+        <ScrollView keyboardDismissMode="interactive" contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
           <Secao>
             <Aviso icone="lock.shield" texto="Área da coordenação: publicar missas, eventos e avisos para toda a Comunidade." />
           </Secao>
@@ -76,7 +76,7 @@ export default function Admin() {
 
   return (
     <Fundo>
-      <ScrollView contentInsetAdjustmentBehavior="automatic">
+      <ScrollView keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic">
         <Secao titulo="Publicar">
           <Linha titulo="Nova missa ou evento" icone="calendar.badge.plus" onPress={() => router.push('/editar-evento')} />
           <Linha titulo="Novo aviso" icone="megaphone" onPress={() => router.push('/editar-aviso')} />

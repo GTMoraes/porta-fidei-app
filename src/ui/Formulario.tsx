@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, TextInput
 import { enviarImagem, enviarVideo, useServidor, type BotaoLink, type VideoMidia } from '@/servidor/api';
 import { destinos, ehLinkDoApp, nomeDestino, type Destino } from '@/util/destinos';
 import { Espaco, Marca, usePaleta } from '@/tema';
+import { CampoTexto } from './BarraTeclado';
 import { Icone, toque } from './base';
 import { CapaVideo, ImagemInteira } from './Midia';
 
@@ -19,7 +20,7 @@ export function Campo({ rotulo, limite, alerta, ...props }: TextInputProps & { r
         <Text style={{ color: c.textoFraco, fontSize: 13 }}>{rotulo}</Text>
         {limite != null ? <Text style={{ color: passou ? '#D35400' : c.textoFraco, fontSize: 12.5, fontVariant: ['tabular-nums'] }}>{`${n}/${limite}`}</Text> : null}
       </View>
-      <TextInput
+      <CampoTexto
         placeholderTextColor={c.textoFraco}
         {...props}
         style={[
@@ -353,7 +354,7 @@ function EscolherDestino({ grupos, aberto, fechar, escolher }: { grupos: ReturnT
           autoCorrect={false}
           style={{ marginHorizontal: Espaco.l, marginBottom: 8, color: c.texto, backgroundColor: c.escuro ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)', borderRadius: 10, padding: 10, fontSize: 16 }}
         />
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
+        <ScrollView keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
           {filtrados.map((g) => (
             <View key={g.titulo} style={{ marginTop: 14 }}>
               <Text style={{ marginHorizontal: Espaco.l, marginBottom: 4, color: c.textoSuave, fontSize: 12.5, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase' }}>{g.titulo}</Text>

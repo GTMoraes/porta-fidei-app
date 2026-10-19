@@ -92,7 +92,7 @@ export default function EditarJornada() {
 
   return (
     <Fundo>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
+      <ScrollView keyboardDismissMode="interactive" contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
         <Secao titulo="Jornada">
           <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} />
           <Campo rotulo="Descrição (opcional)" value={descricao} onChangeText={setDescricao} multiline />

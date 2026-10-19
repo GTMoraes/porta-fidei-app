@@ -276,7 +276,7 @@ export default function Lista() {
 
   return (
     <Fundo>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardDismissMode="on-drag">
+      <ScrollView keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic" keyboardDismissMode="interactive">
         {total > 12 ? (
           <View style={{ marginHorizontal: Espaco.l, marginTop: Espaco.s, marginBottom: Espaco.l }}>
             <TextInput

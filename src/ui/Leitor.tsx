@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActionSheetIOS, ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActionSheetIOS, ActivityIndicator, Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
@@ -168,6 +168,7 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
       else if (barraVisivel && aj.expandirTexto) setBarraVisivel(false);
       else mostrarBarra(null);
     } else if (m.tipo === 'rolou') {
+      Keyboard.dismiss(); // rolar o texto fecha o teclado da busca, como nos outros apps
       if (!rolando && Date.now() - fonteMudouEm.current > 1200) setBarraVisivel(!m.desce || m.y < 80);
     } else if (m.tipo === 'fimRolagem') {
       setRolando(false);

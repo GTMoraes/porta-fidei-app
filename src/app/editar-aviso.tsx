@@ -46,7 +46,7 @@ export default function EditarAviso() {
 
   return (
     <Fundo>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
+      <ScrollView keyboardDismissMode="interactive" contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
         <Secao titulo="Aviso">
           <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} limite={vaiNotificarJa ? 35 : undefined} alerta={AVISO_TITULO_NOTIF} />
           <Campo rotulo="Texto" value={texto} onChangeText={setTexto} multiline limite={soNotificacao ? 170 : undefined} alerta={AVISO_TEXTO_NOTIF} />

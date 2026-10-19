@@ -4,10 +4,11 @@ import Constants from 'expo-constants';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Updates from 'expo-updates';
 import { useState } from 'react';
-import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 
 import { enviarSugestao } from '@/servidor/api';
 import { Espaco, usePaleta } from '@/tema';
+import { CampoTexto } from '@/ui/BarraTeclado';
 import { Botao, Fundo } from '@/ui/base';
 
 export default function TelaSugestao() {
@@ -33,13 +34,13 @@ export default function TelaSugestao() {
 
   return (
     <Fundo>
-      <ScrollView contentContainerStyle={{ padding: Espaco.l, gap: Espaco.m }} keyboardShouldPersistTaps="handled">
+      <ScrollView keyboardDismissMode="interactive" contentContainerStyle={{ padding: Espaco.l, gap: Espaco.m }} keyboardShouldPersistTaps="handled">
         <Text style={{ color: c.textoSuave, fontSize: 15, lineHeight: 21 }}>
           {origem === 'busca'
             ? 'Diga o que você procurava (o nome da oração, do ofício ou do texto). Vamos ver se dá para incluir.'
             : 'Uma ideia, algo que você não encontrou, um erro no texto ou na tela: escreva aqui. Chega direto para quem cuida do app.'}
         </Text>
-        <TextInput
+        <CampoTexto
           value={texto}
           onChangeText={setTexto}
           multiline

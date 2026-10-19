@@ -25,7 +25,7 @@ export default function Notificacoes() {
 
   return (
     <Fundo>
-      <ScrollView contentInsetAdjustmentBehavior="automatic">
+      <ScrollView keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic">
         <Secao>
           <Aviso texto="Lembretes diários para cada hora canônica. Ficam agendados no próprio aparelho e funcionam sem internet." />
         </Secao>

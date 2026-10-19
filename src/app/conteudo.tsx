@@ -52,7 +52,7 @@ export default function Conteudo() {
   const m = pacote.manifest;
   return (
     <Fundo>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
+      <ScrollView keyboardDismissMode="interactive" contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
         <Secao titulo="Situação" >
           {m ? (
             <>

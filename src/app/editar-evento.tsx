@@ -198,7 +198,7 @@ export default function EditarEvento() {
 
   return (
     <Fundo>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
+      <ScrollView keyboardDismissMode="interactive" contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
         <Secao titulo="Tipo">
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: Espaco.l }}>
             {TIPOS.map(([v, n]) => (
@@ -220,7 +220,7 @@ export default function EditarEvento() {
           <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} />
           <Campo rotulo="Local" value={local} onChangeText={setLocal} placeholder="Ex.: Casa de Missão, Recife" />
           {locais.length ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 8, paddingHorizontal: Espaco.l, paddingBottom: 8 }}>
+            <ScrollView keyboardDismissMode="interactive" horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 8, paddingHorizontal: Espaco.l, paddingBottom: 8 }}>
               <Text style={{ color: c.textoFraco, fontSize: 13, alignSelf: 'center' }}>Já usados:</Text>
               {locais.map((l) => {
                 const escolhido = igual(l.local, local) && (l.lat == null || (l.lat === lat && l.lng === lng));
