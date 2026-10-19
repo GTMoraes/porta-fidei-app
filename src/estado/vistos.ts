@@ -15,12 +15,16 @@ export type SecaoAgenda = 'eventos' | 'avisos';
 type Marcas = Partial<Record<SecaoAgenda, string>>;
 
 let marcas: Marcas = {};
-let estado: 'carregando' | 'pronto' | 'primeira' = 'carregando';
+type Estado = 'carregando' | 'pronto' | 'primeira';
+let estado: Estado = 'carregando';
 let iniciado = false;
 const ouvintes = new Set<() => void>();
-let versao = 0;
+// o que os componentes leem: um objeto novo a cada mudança (o React Compiler guarda resultados em cache
+// e só refaz a conta quando o que ele recebe muda; ler a variável do módulo direto deixava o pontinho preso)
+type Foto = { estado: Estado; marcas: Marcas };
+let foto: Foto = { estado, marcas };
 const emitir = () => {
-  versao++;
+  foto = { estado, marcas };
   ouvintes.forEach((f) => f());
 };
 
@@ -68,12 +72,12 @@ export const eventosDaAgenda = (eventos: Evento[], agora = Date.now()) =>
 /** Há novidade em cada seção da Agenda? (só conta o que de fato aparece lá) */
 export function useNovidadesAgenda() {
   carregar();
-  const v = useSyncExternalStore(
-    (f) => {
-      ouvintes.add(f);
-      return () => ouvintes.delete(f);
+  const f = useSyncExternalStore(
+    (o) => {
+      ouvintes.add(o);
+      return () => ouvintes.delete(o);
     },
-    () => versao,
+    () => foto,
   );
   const srv = useServidor();
   const arquivados = useArquivados();
@@ -85,9 +89,9 @@ export function useNovidadesAgenda() {
     if (prontos) iniciarSePrimeira(eventos, avisos);
   });
 
-  if (estado !== 'pronto' || v < 0) return { eventos: false, avisos: false };
+  if (f.estado !== 'pronto') return { eventos: false, avisos: false };
   return {
-    eventos: eventos.some((e) => quando(e) > (marcas.eventos ?? '')),
-    avisos: avisos.some((a) => quando(a) > (marcas.avisos ?? '')),
+    eventos: eventos.some((e) => quando(e) > (f.marcas.eventos ?? '')),
+    avisos: avisos.some((a) => quando(a) > (f.marcas.avisos ?? '')),
   };
 }

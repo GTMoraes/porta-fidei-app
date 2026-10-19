@@ -26,6 +26,9 @@ export interface Evento {
   atualizado?: string | null;
   video?: VideoMidia | null;
   botoes?: BotaoLink[];
+  /** cancelado: fica na agenda marcado; reagendado: o original, na data antiga, apontando para o novo */
+  situacao?: 'cancelado' | 'reagendado' | null;
+  reagendadoPara?: string | null;
 }
 
 /** Vídeo já comprimido pelo servidor; "capa" é a escolhida pela pessoa, "capaAuto" a gerada */
@@ -235,8 +238,19 @@ async function admin(caminho: string, metodo: string, corpo?: unknown, ms = 1200
   return r.status === 204 ? null : r.json();
 }
 
-export const salvarEvento = (e: Partial<Evento> & { notificacao?: NotificacaoEvento }) => (e.id ? admin(`/eventos/${e.id}`, 'PUT', e) : admin('/eventos', 'POST', e));
+/** "Também publicar em Avisos": a notificação do evento vira um aviso (com o botão "Ver evento") */
+export interface AvisoDoEvento {
+  publicarAviso?: boolean;
+  fixarAviso?: boolean;
+}
+export const salvarEvento = (e: Partial<Evento> & { notificacao?: NotificacaoEvento } & AvisoDoEvento) => (e.id ? admin(`/eventos/${e.id}`, 'PUT', e) : admin('/eventos', 'POST', e));
 export const apagarEvento = (id: string) => admin(`/eventos/${id}`, 'DELETE');
+/** sinalizar: fica na agenda como CANCELADO; senão é apagado */
+export const cancelarEvento = (id: string, sinalizar: boolean, notificacao?: NotificacaoEvento, av?: AvisoDoEvento) =>
+  admin(`/eventos/${id}/cancelar`, 'POST', { sinalizar, notificacao, ...av });
+export const descancelarEvento = (id: string, notificacao?: NotificacaoEvento, av?: AvisoDoEvento) => admin(`/eventos/${id}/descancelar`, 'POST', { notificacao, ...av });
+/** Cria o evento na nova data e deixa o original como REAGENDADO */
+export const reagendarEvento = (id: string, e: Partial<Evento> & { notificacao?: NotificacaoEvento } & AvisoDoEvento) => admin(`/eventos/${id}/reagendar`, 'POST', e) as Promise<Evento>;
 /** Locais já usados nos eventos (com o ponto no mapa, quando houver) */
 export const locaisSalvos = () => admin('/locais', 'GET') as Promise<LocalSalvo[]>;
 export const salvarAviso = (a: Partial<Aviso> & { notificar?: boolean; urgente?: boolean }) =>

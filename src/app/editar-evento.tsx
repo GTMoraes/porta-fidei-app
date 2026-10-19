@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { pegarPonto } from '@/estado/escolhaLocal';
-import { apagarEvento, atualizar, locaisSalvos, salvarEvento, useServidor, type BotaoLink, type LocalSalvo, type TipoEvento, type VideoMidia } from '@/servidor/api';
+import { apagarEvento, atualizar, cancelarEvento, descancelarEvento, locaisSalvos, reagendarEvento, salvarEvento, useServidor, type BotaoLink, type LocalSalvo, type TipoEvento, type VideoMidia } from '@/servidor/api';
 import { Espaco, Marca, usePaleta } from '@/tema';
 import { Botao, Chave, Fundo, Icone, Linha, Secao, toque } from '@/ui/base';
 import { AVISO_TEXTO_NOTIF, AVISO_TITULO_NOTIF, botoesProntos, Campo, CampoBotoes, CampoImagem, CampoVideo } from '@/ui/Formulario';
@@ -51,6 +51,9 @@ export default function EditarEvento() {
   const [notifTitulo, setNotifTitulo] = useState<string | null>(null);
   const [notifTexto, setNotifTexto] = useState<string | null>(null);
   const [urgente, setUrgente] = useState(false);
+  const [publicarAviso, setPublicarAviso] = useState(false);
+  const [fixarAviso, setFixarAviso] = useState(false);
+  const av = { publicarAviso, fixarAviso: publicarAviso && fixarAviso };
 
   const [tirou, setTirou] = useState(false); // tirou o ponto de propósito: não põe de novo sozinho
   useEffect(() => {
@@ -88,9 +91,86 @@ export default function EditarEvento() {
   const textoNotif = notifTexto ?? linhaPadrao();
   const temPonto = lat != null && lng != null;
 
+  // notificação de cancelar / reagendar / desfazer: o texto que a pessoa escreveu ou um automático com o prefixo certo
+  const notifCom = (prefixo: string) => ({
+    titulo: (notifTitulo ?? `${prefixo}: ${titulo.trim()}`).trim(),
+    texto: textoNotif.trim(),
+    urgente,
+  });
+  const perguntarNotificar = (prefixo: string, fazer: (n?: { titulo: string; texto: string; urgente: boolean }) => void) =>
+    Alert.alert('Avisar os membros?', `Sai uma notificação para todos: "${notifCom(prefixo).titulo}".`, [
+      { text: 'Voltar', style: 'cancel' },
+      { text: 'Sem notificação', onPress: () => fazer(undefined) },
+      { text: publicarAviso ? 'Notificar e publicar em Avisos' : 'Notificar', onPress: () => fazer(notifCom(prefixo)) },
+    ]);
+  const executar = async (acao: () => Promise<unknown>) => {
+    setSalvando(true);
+    try {
+      await acao();
+      await atualizar();
+      router.back();
+    } catch (e: any) {
+      Alert.alert('Não foi possível salvar', String(e?.message ?? e));
+    } finally {
+      setSalvando(false);
+    }
+  };
+  const cancelar = () => {
+    if (!orig) return;
+    Alert.alert('Cancelar esta missa ou evento?', 'Pode ficar na agenda marcado como CANCELADO ou sumir dela como se nada tivesse acontecido.', [
+      { text: 'Voltar', style: 'cancel' },
+      { text: 'Só retirar da agenda', style: 'destructive', onPress: () => perguntarNotificar('Cancelado', (n) => executar(() => cancelarEvento(orig.id, false, n, av))) },
+      { text: 'Mostrar como CANCELADO', onPress: () => perguntarNotificar('Cancelado', (n) => executar(() => cancelarEvento(orig.id, true, n, av))) },
+    ]);
+  };
+  const desfazerCancelamento = () => {
+    if (!orig) return;
+    Alert.alert('Tem certeza?', 'O evento volta a aparecer normalmente na agenda.', [
+      { text: 'Voltar', style: 'cancel' },
+      { text: 'Desfazer cancelamento', onPress: () => perguntarNotificar('Confirmado', (n) => executar(() => descancelarEvento(orig.id, n, av))) },
+    ]);
+  };
+
+  const dados = (bts: BotaoLink[]) => ({
+    lat: temPonto ? lat : null,
+    lng: temPonto ? lng : null,
+    tipo,
+    titulo: titulo.trim(),
+    local: local.trim() || null,
+    descricao: descricao.trim() || null,
+    imagem,
+    video,
+    botoes: bts,
+  });
+
   const salvar = async () => {
     const bts = botoesProntos(botoes);
     if (!bts) return;
+    // mudou a data ou a hora de um evento que já existia: perguntar se é para sinalizar o reagendamento
+    if (orig && orig.situacao !== 'cancelado' && new Date(orig.inicio).getTime() !== inicio.getTime()) {
+      Alert.alert('Sinalizar o reagendamento?', 'Com a sinalização, a data antiga fica na agenda marcada como REAGENDADO, indicando a nova data. Sem ela, o evento só muda de data.', [
+        { text: 'Voltar', style: 'cancel' },
+        { text: 'Só mudar a data', onPress: () => gravar(bts) },
+        {
+          text: 'Sinalizar REAGENDADO',
+          onPress: () =>
+            executar(() =>
+              reagendarEvento(orig.id, {
+                ...dados(bts),
+                inicio: inicio.toISOString(),
+                fim: temFim ? fim.toISOString() : null,
+                notificacao: notificar && textoNotif.trim() ? notifCom('Reagendado') : undefined,
+                ...av,
+              }),
+            ),
+        },
+      ]);
+      return;
+    }
+    gravar(bts);
+  };
+
+  const gravar = async (bts: BotaoLink[]) => {
     setSalvando(true);
     try {
       const vezes = orig ? 1 : repetir + 1;
@@ -99,19 +179,12 @@ export default function EditarEvento() {
         const fi = temFim ? new Date(fim.getTime() + k * 7 * 86400_000) : null;
         await salvarEvento({
           id: orig?.id,
-          lat: temPonto ? lat : null,
-          lng: temPonto ? lng : null,
+          ...dados(bts),
           // só a primeira data leva a notificação (missa repetida por semanas = uma notificação)
           notificacao: notificar && k === 0 && tituloNotif.trim() && textoNotif.trim() ? { titulo: tituloNotif.trim(), texto: textoNotif.trim(), urgente } : undefined,
-          tipo,
-          titulo: titulo.trim(),
+          ...(k === 0 ? av : {}),
           inicio: ini.toISOString(),
           fim: fi ? fi.toISOString() : null,
-          local: local.trim() || null,
-          descricao: descricao.trim() || null,
-          imagem,
-          video,
-          botoes: bts,
         });
       }
       await atualizar();
@@ -273,6 +346,13 @@ export default function EditarEvento() {
                 />
               ) : null}
               <Linha
+                titulo="Também publicar em Avisos"
+                sub={publicarAviso ? 'O título e o texto da notificação viram um aviso, com o botão "Ver evento"' : 'A notificação fica só na central de notificações'}
+                icone="megaphone"
+                direita={<Chave valor={publicarAviso} mudar={setPublicarAviso} />}
+              />
+              {publicarAviso ? <Linha titulo="Fixar no topo" icone="pin" direita={<Chave valor={fixarAviso} mudar={setFixarAviso} />} /> : null}
+              <Linha
                 titulo="Urgente"
                 sub="Passa por cima do Foco (Dormir, Trabalho…). Use só quando for importante, como missa cancelada ou mudança em cima da hora."
                 icone="exclamationmark.triangle"
@@ -286,6 +366,11 @@ export default function EditarEvento() {
 
         <View style={{ marginHorizontal: Espaco.l, gap: 12, marginBottom: 60 }}>
           <Botao titulo={salvando ? 'Salvando…' : notificar ? 'Publicar e notificar' : 'Publicar'} icone="checkmark" desativado={salvando || enviandoVideo || !titulo.trim()} onPress={salvar} />
+          {orig && orig.situacao === 'cancelado' ? (
+            <Botao titulo="Desfazer cancelamento" icone="arrow.uturn.backward" tipo="secundario" desativado={salvando} onPress={desfazerCancelamento} />
+          ) : orig ? (
+            <Botao titulo="Cancelar evento" icone="xmark.circle" tipo="secundario" desativado={salvando} onPress={cancelar} />
+          ) : null}
           {orig ? (
             <Botao
               titulo="Apagar"

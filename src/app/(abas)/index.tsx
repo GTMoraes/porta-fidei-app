@@ -18,6 +18,7 @@ import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
 import { DeslizarParaArquivar } from '@/ui/Deslizar';
 import { dataParaHora, horaSugerida, quando } from '@/util/datas';
+import { LinhaEvento } from '@/ui/Agenda';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
 
 const ROMANO = ['', 'I', 'II', 'III', 'IV'];
@@ -310,15 +311,7 @@ export default function Hoje() {
           }>
           {proximos.length ? (
             proximos.map((e, i) => (
-              <Linha
-                key={e.id}
-                titulo={e.titulo}
-                sub={`${quando(e.inicio, e.fim)}${e.local ? ` · ${e.local}` : ''}`}
-                icone={e.tipo === 'missa' ? 'building.columns' : 'person.3'}
-                corIcone={e.tipo === 'missa' ? Marca.vinho : undefined}
-                onPress={() => router.push({ pathname: '/evento', params: { id: e.id } })}
-                ultimo={i === proximos.length - 1}
-              />
+              <LinhaEvento key={e.id} e={e} comData ultimo={i === proximos.length - 1} />
             ))
           ) : (
             <Aviso

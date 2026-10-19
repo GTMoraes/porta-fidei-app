@@ -1,8 +1,9 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
 
-import { enviarImagem, enviarVideo, type BotaoLink, type VideoMidia } from '@/servidor/api';
+import { enviarImagem, enviarVideo, useServidor, type BotaoLink, type VideoMidia } from '@/servidor/api';
+import { destinos, ehLinkDoApp, nomeDestino, type Destino } from '@/util/destinos';
 import { Espaco, Marca, usePaleta } from '@/tema';
 import { Icone, toque } from './base';
 import { CapaVideo, ImagemInteira } from './Midia';
@@ -206,6 +207,30 @@ export function CampoBotoes({ botoes, mudar }: { botoes: BotaoLink[]; mudar: (b:
     const n = [...botoes];
     [n[i], n[i + d]] = [n[i + d], n[i]];
     mudar(n);
+    // o modo "Tela do app" acompanha o botão
+    setModoApp((m) => {
+      const r = new Set<number>();
+      for (const k of m) r.add(k === i ? i + d : k === i + d ? i : k);
+      return r;
+    });
+  };
+  const tirar = (i: number) => {
+    mudar(botoes.filter((_, j) => j !== i));
+    setModoApp((m) => {
+      const r = new Set<number>();
+      for (const k of m) if (k !== i) r.add(k > i ? k - 1 : k);
+      return r;
+    });
+  };
+  const srv = useServidor();
+  const grupos = destinos(srv.eventos, srv.avisos, srv.comunidade);
+  const [modoApp, setModoApp] = useState<Set<number>>(new Set());
+  const [escolhendo, setEscolhendo] = useState<number | null>(null);
+  const escolher = (d: Destino) => {
+    if (escolhendo == null) return;
+    toque();
+    mudar(botoes.map((b, j) => (j === escolhendo ? { texto: b.texto.trim() ? b.texto : d.sugestao, url: d.link } : b)));
+    setEscolhendo(null);
   };
   return (
     <View style={{ paddingHorizontal: Espaco.l, paddingVertical: 10, gap: 12 }}>
@@ -229,9 +254,9 @@ export function CampoBotoes({ botoes, mudar }: { botoes: BotaoLink[]; mudar: (b:
                 b.texto.trim() || b.url.trim()
                   ? Alert.alert('Tem certeza?', 'Este botão será retirado.', [
                       { text: 'Cancelar', style: 'cancel' },
-                      { text: 'Retirar', style: 'destructive', onPress: () => mudar(botoes.filter((_, j) => j !== i)) },
+                      { text: 'Retirar', style: 'destructive', onPress: () => tirar(i) },
                     ])
-                  : mudar(botoes.filter((_, j) => j !== i))
+                  : tirar(i)
               }>
               <Icone nome="trash" cor="#C0392B" tamanho={16} />
             </Pressable>
@@ -244,18 +269,53 @@ export function CampoBotoes({ botoes, mudar }: { botoes: BotaoLink[]; mudar: (b:
             maxLength={60}
             style={{ color: c.texto, backgroundColor: fundo, borderRadius: 10, padding: 10, fontSize: 16 }}
           />
-          <TextInput
-            value={b.url}
-            onChangeText={(v) => alterar(i, 'url', v)}
-            placeholder="Link (ex.: https://forms.gle/...)"
-            placeholderTextColor={c.textoFraco}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            style={{ color: c.texto, backgroundColor: fundo, borderRadius: 10, padding: 10, fontSize: 15 }}
-          />
+          <View style={{ flexDirection: 'row', backgroundColor: fundo, borderRadius: 10, padding: 3 }}>
+            {(['site', 'app'] as const).map((tipo) => {
+              const ativo = (tipo === 'app') === (modoApp.has(i) || ehLinkDoApp(b.url));
+              return (
+                <Pressable
+                  key={tipo}
+                  onPress={() => {
+                    toque();
+                    if (tipo === 'app') {
+                      setModoApp((m) => new Set(m).add(i));
+                      if (!ehLinkDoApp(b.url)) alterar(i, 'url', '');
+                    } else {
+                      setModoApp((m) => {
+                        const n = new Set(m);
+                        n.delete(i);
+                        return n;
+                      });
+                      if (ehLinkDoApp(b.url)) alterar(i, 'url', '');
+                    }
+                  }}
+                  style={{ flex: 1, paddingVertical: 7, borderRadius: 8, backgroundColor: ativo ? (c.escuro ? 'rgba(222,190,130,0.25)' : 'rgba(188,140,68,0.22)') : 'transparent' }}>
+                  <Text style={{ textAlign: 'center', color: ativo ? c.texto : c.textoFraco, fontWeight: '600', fontSize: 14 }}>{tipo === 'site' ? 'Site' : 'Tela do app'}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {modoApp.has(i) || ehLinkDoApp(b.url) ? (
+            <Pressable onPress={() => setEscolhendo(i)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: fundo, borderRadius: 10, padding: 11 }}>
+              <Icone nome="square.grid.2x2" tamanho={16} />
+              <Text style={{ flex: 1, color: b.url ? c.texto : c.textoFraco, fontSize: 15 }}>{b.url ? nomeDestino(b.url, grupos) : 'Escolher a tela…'}</Text>
+              <Icone nome="chevron.right" cor={c.textoFraco} tamanho={13} />
+            </Pressable>
+          ) : (
+            <TextInput
+              value={b.url}
+              onChangeText={(v) => alterar(i, 'url', v)}
+              placeholder="Link (ex.: https://forms.gle/...)"
+              placeholderTextColor={c.textoFraco}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              style={{ color: c.texto, backgroundColor: fundo, borderRadius: 10, padding: 10, fontSize: 15 }}
+            />
+          )}
         </View>
       ))}
+      <EscolherDestino grupos={grupos} aberto={escolhendo != null} fechar={() => setEscolhendo(null)} escolher={escolher} />
       <Pressable
         onPress={() => {
           toque();
@@ -269,6 +329,47 @@ export function CampoBotoes({ botoes, mudar }: { botoes: BotaoLink[]; mudar: (b:
   );
 }
 
+/** Lista das partes do app para escolher o destino de um botão (com busca) */
+function EscolherDestino({ grupos, aberto, fechar, escolher }: { grupos: ReturnType<typeof destinos>; aberto: boolean; fechar: () => void; escolher: (d: Destino) => void }) {
+  const c = usePaleta();
+  const [busca, setBusca] = useState('');
+  const sem = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const q = sem(busca.trim());
+  const filtrados = grupos.map((g) => ({ ...g, itens: q ? g.itens.filter((i) => sem(`${g.titulo} ${i.rotulo}`).includes(q)) : g.itens })).filter((g) => g.itens.length);
+  return (
+    <Modal visible={aberto} animationType="slide" presentationStyle="pageSheet" onRequestClose={fechar}>
+      <View style={{ flex: 1, backgroundColor: c.fundo[0] }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', padding: Espaco.l, paddingBottom: 8 }}>
+          <Text style={{ flex: 1, color: c.texto, fontSize: 18, fontWeight: '600' }}>Para onde o botão leva</Text>
+          <Pressable onPress={fechar} hitSlop={10}>
+            <Text style={{ color: c.destaque, fontSize: 16 }}>Fechar</Text>
+          </Pressable>
+        </View>
+        <TextInput
+          value={busca}
+          onChangeText={setBusca}
+          placeholder="Buscar (ex.: completas, dolorosos, avisos)"
+          placeholderTextColor={c.textoFraco}
+          autoCorrect={false}
+          style={{ marginHorizontal: Espaco.l, marginBottom: 8, color: c.texto, backgroundColor: c.escuro ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)', borderRadius: 10, padding: 10, fontSize: 16 }}
+        />
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
+          {filtrados.map((g) => (
+            <View key={g.titulo} style={{ marginTop: 14 }}>
+              <Text style={{ marginHorizontal: Espaco.l, marginBottom: 4, color: c.textoSuave, fontSize: 12.5, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase' }}>{g.titulo}</Text>
+              {g.itens.map((i) => (
+                <Pressable key={i.link} onPress={() => escolher(i)} style={({ pressed }) => ({ paddingVertical: 12, paddingHorizontal: Espaco.l, opacity: pressed ? 0.5 : 1, borderBottomWidth: 0.5, borderBottomColor: c.separador })}>
+                  <Text style={{ color: c.texto, fontSize: 16 }}>{i.rotulo}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 /** Confere os botões antes de salvar: tira os vazios, completa "https://" e aponta o que está faltando.
  *  Devolve null (e já avisa a pessoa) quando algum botão está pela metade. */
 export function botoesProntos(botoes: BotaoLink[]): BotaoLink[] | null {
@@ -277,9 +378,9 @@ export function botoesProntos(botoes: BotaoLink[]): BotaoLink[] | null {
     const texto = b.texto.trim();
     let url = b.url.trim();
     if (!texto && !url) continue;
-    if (url && !/^(https?:\/\/|mailto:|tel:)/i.test(url) && /^[\w-]+(\.[\w-]+)+/.test(url)) url = `https://${url}`;
-    if (!texto || !/^(https?:\/\/|mailto:|tel:)/i.test(url)) {
-      Alert.alert('Botão incompleto', `O botão ${i + 1} precisa de um texto e de um link válido (começando com https://).`);
+    if (url && !/^(https?:\/\/|mailto:|tel:|portafidei:\/\/)/i.test(url) && /^[\w-]+(\.[\w-]+)+/.test(url)) url = `https://${url}`;
+    if (!texto || !/^(https?:\/\/|mailto:|tel:|portafidei:\/\/)/i.test(url)) {
+      Alert.alert('Botão incompleto', `O botão ${i + 1} precisa de um texto e de um link (um site começando com https:// ou uma tela do app).`);
       return null;
     }
     prontos.push({ texto, url });

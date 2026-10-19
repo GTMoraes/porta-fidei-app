@@ -8,6 +8,7 @@ import { WebView } from 'react-native-webview';
 
 import { SERVIDOR, type BotaoLink, type VideoMidia } from '@/servidor/api';
 import { Espaco, Marca, usePaleta } from '@/tema';
+import { ehLinkDoApp, irPara } from '@/util/destinos';
 import { Botao, Icone } from './base';
 
 // ---------------------------------------------------------------- imagem inteira (sem cortes)
@@ -85,6 +86,7 @@ const APPS = /(^|\.)(wa\.me|whatsapp\.com|instagram\.com|youtube\.com|youtu\.be|
 /** Abre um link: WhatsApp, Instagram, YouTube etc. no app deles; o resto no navegador dentro do app */
 export async function abrirLink(bruto: string) {
   let url = bruto.trim();
+  if (ehLinkDoApp(url)) return irPara(url);
   if (/^www\./i.test(url)) url = `https://${url}`;
   try {
     if (!/^https?:\/\//i.test(url)) return void (await Linking.openURL(url));
@@ -96,7 +98,7 @@ export async function abrirLink(bruto: string) {
   }
 }
 
-const RE_LINK = /\b(?:https?:\/\/|www\.)[^\s<>"]+/gi;
+const RE_LINK = /\b(?:https?:\/\/|portafidei:\/\/|www\.)[^\s<>"]+/gi;
 /** Texto com os links (http://, https://, www.) clicáveis */
 export function TextoComLinks({ texto, style }: { texto: string; style?: StyleProp<TextStyle> }) {
   const c = usePaleta();
@@ -137,7 +139,7 @@ export function BotoesLink({ botoes }: { botoes?: BotaoLink[] | null }) {
     <>
       <View style={{ marginHorizontal: Espaco.l, gap: 12 }}>
         {botoes.map((b, i) => (
-          <Botao key={`${i}-${b.url}`} titulo={b.texto} icone="arrow.up.right" onPress={() => abrirLink(b.url)} />
+          <Botao key={`${i}-${b.url}`} titulo={b.texto} icone={ehLinkDoApp(b.url) ? 'arrow.right' : 'arrow.up.right'} onPress={() => abrirLink(b.url)} />
         ))}
       </View>
       <View style={{ height: 1, backgroundColor: c.separador, marginHorizontal: Espaco.xl * 2, marginTop: 26, marginBottom: 22 }} />

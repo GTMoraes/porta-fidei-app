@@ -4,7 +4,8 @@ import MapView, { Marker } from 'react-native-maps';
 
 import { useServidor } from '@/servidor/api';
 import { Espaco, Fontes, usePaleta } from '@/tema';
-import { Aviso, Botao, Fundo, Linha, Secao, Vidro } from '@/ui/base';
+import { COR_CANCELADO, COR_REAGENDADO, Etiqueta, textoReagendado } from '@/ui/Agenda';
+import { Aviso, Botao, Fundo, Icone, Linha, Secao, Vidro } from '@/ui/base';
 import { BotoesLink, ImagemInteira, PlayerVideo, TextoComLinks } from '@/ui/Midia';
 import { quando } from '@/util/datas';
 import { abrirNoMapa, linkMapa, temPonto } from '@/util/mapas';
@@ -16,6 +17,7 @@ export default function TelaEvento() {
   const router = useRouter();
   const c = usePaleta();
   const e = srv.eventos.find((x) => x.id === id);
+  const novo = e?.reagendadoPara ? srv.eventos.find((x) => x.id === e.reagendadoPara) : undefined;
 
   if (!e)
     return (
@@ -31,7 +33,7 @@ export default function TelaEvento() {
   const lugar = { nome: e.titulo, local: e.local, lat: e.lat, lng: e.lng };
   const compartilhar = () =>
     Share.share({
-      message: `${e.titulo}\n${quando(e.inicio, e.fim)}${e.local ? `\n${e.local}` : ''}${temPonto(lugar) ? `\n${linkMapa(lugar)}` : ''}${e.descricao ? `\n\n${e.descricao}` : ''}${(e.botoes ?? []).map((b) => `\n\n${b.texto}: ${b.url}`).join('')}\n\nComunidade Católica Porta Fidei`,
+      message: `${e.situacao === 'cancelado' ? 'CANCELADO: ' : e.situacao === 'reagendado' ? `${textoReagendado(e, srv.eventos).toUpperCase()}: ` : ''}${e.titulo}\n${quando(e.inicio, e.fim)}${e.local ? `\n${e.local}` : ''}${temPonto(lugar) ? `\n${linkMapa(lugar)}` : ''}${e.descricao ? `\n\n${e.descricao}` : ''}${(e.botoes ?? []).map((b) => `\n\n${b.texto}: ${b.url}`).join('')}\n\nComunidade Católica Porta Fidei`,
     });
 
   return (
@@ -42,7 +44,22 @@ export default function TelaEvento() {
             {e.imagem ? <ImagemInteira uri={e.imagem} /> : null}
             <View style={{ padding: Espaco.xl }}>
               <Text style={{ color: c.destaque, fontSize: 13, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase' }}>{e.tipo === 'missa' ? 'Santa Missa' : 'Evento da Comunidade'}</Text>
-              <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 27, marginTop: 6 }}>{e.titulo}</Text>
+              <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 27, marginTop: 6, textDecorationLine: e.situacao === 'cancelado' ? 'line-through' : 'none' }}>{e.titulo}</Text>
+              {e.situacao ? (
+                <View style={{ marginTop: 12, gap: 8 }}>
+                  <Etiqueta situacao={e.situacao} />
+                  {e.situacao === 'cancelado' ? (
+                    <Text style={{ color: COR_CANCELADO, fontSize: 15 }}>Esta missa ou evento foi cancelado.</Text>
+                  ) : novo ? (
+                    <Pressable onPress={() => router.push({ pathname: '/evento', params: { id: novo.id } })} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={{ color: COR_REAGENDADO, fontSize: 15, fontWeight: '600', flex: 1 }}>{textoReagendado(e, srv.eventos)}</Text>
+                      <Icone nome="chevron.right" cor={COR_REAGENDADO} tamanho={13} />
+                    </Pressable>
+                  ) : (
+                    <Text style={{ color: COR_REAGENDADO, fontSize: 15 }}>Esta missa ou evento foi reagendado.</Text>
+                  )}
+                </View>
+              ) : null}
             </View>
           </Vidro>
         </View>
@@ -76,7 +93,7 @@ export default function TelaEvento() {
         ) : null}
         <BotoesLink botoes={e.botoes} />
         <View style={{ marginHorizontal: Espaco.l, gap: 12, marginBottom: 50 }}>
-          {new Date(e.fim ?? e.inicio).getTime() > Date.now() ? (
+          {!e.situacao && new Date(e.fim ?? e.inicio).getTime() > Date.now() ? (
             <Botao titulo="Adicionar à agenda" icone="calendar.badge.plus" tipo="secundario" onPress={() => salvarNaAgenda(e)} />
           ) : null}
           <Botao titulo="Compartilhar" icone="square.and.arrow.up" tipo="secundario" onPress={compartilhar} />

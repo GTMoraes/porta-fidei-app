@@ -1,4 +1,4 @@
-import { useIsFocused, useRouter } from 'expo-router';
+import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
@@ -9,17 +9,10 @@ import { atualizar, useServidor, type Aviso as AvisoT, type Evento } from '@/ser
 import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base';
 import { DeslizarComAcoes, DeslizarParaArquivar } from '@/ui/Deslizar';
-import { dataLonga, hora } from '@/util/datas';
+import { dataLonga } from '@/util/datas';
+import { CalendarioAgenda, LinhaEvento } from '@/ui/Agenda';
 import { CapaVideo, ImagemInteira } from '@/ui/Midia';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
-
-const NOME_TIPO: Record<string, string> = {
-  missa: 'Missa',
-  evento: 'Evento',
-  formacao: 'Formação',
-  retiro: 'Retiro',
-  reuniao: 'Reunião',
-};
 
 export default function Agenda() {
   const lista = useSubirAoTopo();
@@ -27,6 +20,11 @@ export default function Agenda() {
   const router = useRouter();
   const srv = useServidor();
   const [aba, setAba] = useState<'agenda' | 'avisos'>('agenda');
+  // links do app (botão "Ver avisos" etc.) escolhem a seção
+  const { aba: abaPedida } = useLocalSearchParams<{ aba?: string }>();
+  useEffect(() => {
+    if (abaPedida === 'agenda' || abaPedida === 'avisos') setAba(abaPedida);
+  }, [abaPedida]);
   const [puxando, setPuxando] = useState(false);
   const puxar = async () => {
     setPuxando(true);
@@ -40,8 +38,15 @@ export default function Agenda() {
   const agora = Date.now();
   const futuros = eventosDaAgenda(srv.eventos, agora)
     .sort((a, b) => a.inicio.localeCompare(b.inicio));
+  // próximos 7 dias; "Ver mais…" estende para 30 e depois de 30 em 30
+  const [dias, setDias] = useState(7);
+  const meiaNoite = new Date();
+  meiaNoite.setHours(0, 0, 0, 0);
+  const ate = meiaNoite.getTime() + dias * 86400_000;
+  const naJanela = futuros.filter((e) => new Date(e.inicio).getTime() < ate);
+  const temMais = futuros.some((e) => new Date(e.inicio).getTime() >= ate);
   const porDia = new Map<string, Evento[]>();
-  for (const e of futuros) {
+  for (const e of naJanela) {
     const k = new Date(e.inicio).toDateString();
     porDia.set(k, [...(porDia.get(k) ?? []), e]);
   }
@@ -111,27 +116,35 @@ export default function Agenda() {
         ) : null}
 
         {aba === 'agenda' ? (
-          porDia.size ? (
-            [...porDia.entries()].map(([k, lista]) => (
-              <Secao key={k} titulo={dataLonga(new Date(lista[0].inicio))}>
-                {lista.map((e, i) => (
-                  <Linha
-                    key={e.id}
-                    titulo={e.titulo}
-                    sub={`${hora(new Date(e.inicio))}${e.fim ? ` às ${hora(new Date(e.fim))}` : ''} · ${NOME_TIPO[e.tipo] ?? ''}${e.local ? ` · ${e.local}` : ''}`}
-                    icone={e.tipo === 'missa' ? 'building.columns' : e.tipo === 'retiro' ? 'leaf' : e.tipo === 'formacao' ? 'graduationcap' : 'person.3'}
-                    corIcone={e.tipo === 'missa' ? Marca.vinho : undefined}
-                    onPress={() => router.push({ pathname: '/evento', params: { id: e.id } })}
-                    ultimo={i === lista.length - 1}
-                  />
-                ))}
+          <>
+            <CalendarioAgenda eventos={srv.eventos} />
+            {porDia.size ? (
+              [...porDia.entries()].map(([k, doDia]) => (
+                <Secao key={k} titulo={dataLonga(new Date(doDia[0].inicio))}>
+                  {doDia.map((e, i) => (
+                    <LinhaEvento key={e.id} e={e} ultimo={i === doDia.length - 1} />
+                  ))}
+                </Secao>
+              ))
+            ) : (
+              <Secao>
+                <Aviso
+                  icone="calendar.badge.clock"
+                  texto={temMais ? `Nenhuma missa ou evento nos próximos ${dias} dias.` : 'Nenhuma missa ou evento agendado por enquanto.'}
+                />
               </Secao>
-            ))
-          ) : (
-            <Secao>
-              <Aviso icone="calendar.badge.clock" texto="Nenhuma missa ou evento agendado por enquanto." />
-            </Secao>
-          )
+            )}
+            {temMais ? (
+              <Pressable
+                onPress={() => {
+                  toque();
+                  setDias((d) => (d < 30 ? 30 : d + 30));
+                }}
+                style={({ pressed }) => ({ alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 24, marginBottom: Espaco.l, opacity: pressed ? 0.5 : 1 })}>
+                <Text style={{ color: c.destaque, fontSize: 16, fontWeight: '600' }}>Ver mais…</Text>
+              </Pressable>
+            ) : null}
+          </>
         ) : (
           <>
             {avisos.length ? (

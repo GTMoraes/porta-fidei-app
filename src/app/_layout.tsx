@@ -108,6 +108,8 @@ export default function Raiz() {
         <Stack.Screen name="editar-aviso" options={{ title: 'Aviso', presentation: 'modal' }} />
         <Stack.Screen name="mapa-local" options={{ title: 'Marcar no mapa', presentation: 'modal', gestureEnabled: false }} />
         <Stack.Screen name="evento" options={{ title: '' }} />
+        <Stack.Screen name="agenda-dia" options={{ title: '' }} />
+        <Stack.Screen name="ir" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="aviso" options={{ title: '' }} />
         <Stack.Screen name="sobre" options={{ title: 'Sobre o app' }} />
         <Stack.Screen name="buscar" options={{ title: 'Buscar' }} />
