@@ -49,9 +49,20 @@ export function rotaDoLink(p: Record<string, string>): { aba?: boolean; pathname
     case 'liturgia':
       return { pathname: '/liturgia' };
     case 'lista':
-      return p.tipo ? { pathname: '/lista', params: { tipo: p.tipo } } : null;
-    case 'texto':
-      return p.arquivo ? { pathname: '/texto', params: { arquivo: p.arquivo, titulo: p.titulo ?? '' } } : null;
+      return p.tipo ? { pathname: '/lista', params: p.pasta ? { tipo: p.tipo, pasta: p.pasta } : { tipo: p.tipo } } : null;
+    case 'exame':
+      return { pathname: '/exame' };
+    case 'texto': {
+      if (!p.arquivo) return null;
+      // itens dos catálogos que não são texto do pacote (o exame completo, o Rosário...) ou que abrem
+      // num trecho ("arquivo#âncora"): o mesmo caminho do toque normal na lista (conteudo/abrir.ts)
+      const [arq, ancora] = p.arquivo.split('#');
+      if (arq === '@app:exame') return { pathname: '/exame' };
+      if (arq.startsWith('@lista:')) return { pathname: '/lista', params: { tipo: arq.slice(7) } };
+      if (arq.startsWith('@pasta:')) return { pathname: '/lista', params: { tipo: 'missal-proprio', pasta: arq.slice(7) } };
+      if (arq.startsWith('@prefacio:')) return { pathname: '/lista', params: { tipo: 'missal-proprio', pasta: `prefacio-${arq.slice(10)}` } };
+      return { pathname: '/texto', params: { arquivo: arq, titulo: p.titulo ?? '', desde: ancora ?? '', ate: ancora ? 'Ant.' : '' } };
+    }
     case 'proposta':
       return { pathname: '/proposta' };
     case 'propostas':

@@ -33,7 +33,17 @@ export default function EditarEvento() {
   const [titulo, setTitulo] = useState(orig?.titulo ?? 'Santa Missa');
   const [inicio, setInicio] = useState(orig ? new Date(orig.inicio) : amanha19);
   const [temFim, setTemFim] = useState(!!orig?.fim);
-  const [fim, setFim] = useState(orig?.fim ? new Date(orig.fim) : new Date(amanha19.getTime() + 3600_000));
+  const [fim, setFim] = useState(orig?.fim ? new Date(orig.fim) : new Date((orig ? new Date(orig.inicio) : amanha19).getTime() + 3600_000));
+  // mudar o início leva o término junto (mantém a duração): sem isso, quem trocava só a data do início
+  // deixava o término no dia antigo e o evento sumia da Agenda (ela esconde o que já terminou)
+  const mudarInicio = (d: Date) => {
+    setFim((f) => new Date(f.getTime() + (d.getTime() - inicio.getTime())));
+    setInicio(d);
+  };
+  const ligarFim = (v: boolean) => {
+    if (v && fim.getTime() <= inicio.getTime()) setFim(new Date(inicio.getTime() + 3600_000));
+    setTemFim(v);
+  };
   const [local, setLocal] = useState(orig?.local ?? '');
   const [descricao, setDescricao] = useState(orig?.descricao ?? '');
   const [imagem, setImagem] = useState<string | null>(orig?.imagem ?? null);
@@ -144,6 +154,10 @@ export default function EditarEvento() {
   });
 
   const salvar = async () => {
+    if (temFim && fim.getTime() <= inicio.getTime()) {
+      Alert.alert('Confira o horário', 'O término precisa ser depois do início.');
+      return;
+    }
     const bts = botoesProntos(botoes);
     if (!bts) return;
     // mudou a data ou a hora de um evento que já existia: perguntar se é para sinalizar o reagendamento
@@ -295,13 +309,13 @@ export default function EditarEvento() {
         <Secao titulo="Quando">
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Espaco.l }}>
             <Text style={{ color: c.texto, fontSize: 17 }}>Início</Text>
-            <DateTimePicker value={inicio} mode="datetime" display="compact" locale="pt-BR" accentColor={Marca.ouro} themeVariant={c.escuro ? 'dark' : 'light'} onChange={(_e, d) => d && setInicio(d)} />
+            <DateTimePicker value={inicio} mode="datetime" display="compact" locale="pt-BR" accentColor={Marca.ouro} themeVariant={c.escuro ? 'dark' : 'light'} onChange={(_e, d) => d && mudarInicio(d)} />
           </View>
-          <Linha titulo="Informar horário de término" direita={<Chave valor={temFim} mudar={setTemFim} />} ultimo={!temFim} />
+          <Linha titulo="Informar horário de término" direita={<Chave valor={temFim} mudar={ligarFim} />} ultimo={!temFim} />
           {temFim ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Espaco.l }}>
               <Text style={{ color: c.texto, fontSize: 17 }}>Término</Text>
-              <DateTimePicker value={fim} mode="datetime" display="compact" locale="pt-BR" accentColor={Marca.ouro} themeVariant={c.escuro ? 'dark' : 'light'} onChange={(_e, d) => d && setFim(d)} />
+              <DateTimePicker value={fim} minimumDate={inicio} mode="datetime" display="compact" locale="pt-BR" accentColor={Marca.ouro} themeVariant={c.escuro ? 'dark' : 'light'} onChange={(_e, d) => d && setFim(d)} />
             </View>
           ) : null}
           {!orig ? (

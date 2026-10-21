@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { registrarPush } from '@/estado/push';
+import { eventosDaAgenda } from '@/estado/vistos';
 import { apagarAviso, apagarEvento, atualizar, entrar, sair, testarNotificacao, useServidor } from '@/servidor/api';
 import { Espaco, usePaleta } from '@/tema';
 import { Aviso, Botao, Fundo, Linha, Secao } from '@/ui/base';
@@ -57,6 +58,9 @@ export default function Admin() {
     );
   }
 
+  // só o que ainda vai acontecer (a agenda guarda também os últimos 90 dias, e a lista ficava enorme)
+  const proximos = eventosDaAgenda(srv.eventos);
+
   const confirmarApagar = (oque: string, acao: () => Promise<unknown>) =>
     Alert.alert('Tem certeza?', `${oque} será apagado para todos os membros.`, [
       { text: 'Cancelar', style: 'cancel' },
@@ -104,9 +108,9 @@ export default function Admin() {
           />
         </Secao>
 
-        <Secao titulo="Missas e eventos publicados">
-          {srv.eventos.length ? (
-            srv.eventos.map((e, i) => (
+        <Secao titulo="Próximas missas e eventos">
+          {proximos.length ? (
+            proximos.map((e, i) => (
               <Linha
                 key={e.id}
                 titulo={e.titulo}
@@ -118,13 +122,16 @@ export default function Admin() {
                     { text: 'Fechar', style: 'cancel' },
                   ])
                 }
-                ultimo={i === srv.eventos.length - 1}
+                ultimo={i === proximos.length - 1}
               />
             ))
           ) : (
-            <Aviso texto="Nenhum evento publicado." />
+            <Aviso texto="Nenhuma missa ou evento pela frente." />
           )}
         </Secao>
+        <Text style={{ color: c.textoFraco, fontSize: 13, marginHorizontal: Espaco.xl, marginTop: -Espaco.m, marginBottom: Espaco.xl }}>
+          Os que já passaram ficam no calendário da Agenda: toque no dia para abrir e editar.
+        </Text>
 
         <Secao titulo="Avisos publicados">
           {srv.avisos.length ? (

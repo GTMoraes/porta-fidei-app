@@ -7,6 +7,7 @@ import { Espaco, Fontes, usePaleta } from '@/tema';
 import { Aviso as Caixa, Botao, Fundo, Secao, Vidro } from '@/ui/base';
 import { BotoesLink, ImagemInteira, PlayerVideo, TextoComLinks } from '@/ui/Midia';
 import { dataLonga } from '@/util/datas';
+import { ehLinkDoApp } from '@/util/destinos';
 
 export default function TelaAviso() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -79,7 +80,7 @@ export default function TelaAviso() {
               }}
             />
           )}
-          <Botao titulo="Compartilhar" icone="square.and.arrow.up" tipo="secundario" onPress={() => Share.share({ message: `${a.titulo}\n\n${a.texto}${(a.botoes ?? []).map((b) => `\n\n${b.texto}: ${b.url}`).join('')}\n\nComunidade Católica Porta Fidei` })} />
+          <Botao titulo="Compartilhar" icone="square.and.arrow.up" tipo="secundario" onPress={() => Share.share({ message: `${a.titulo}\n\n${a.texto}${(a.botoes ?? []).filter((b) => !ehLinkDoApp(b.url)).map((b) => `\n\n${b.texto}: ${b.url}`).join('')}\n\nComunidade Católica Porta Fidei` })} />
           {srv.admin ? <Botao titulo="Editar" icone="pencil" tipo="secundario" onPress={() => router.push({ pathname: '/editar-aviso', params: { id: a.id } })} /> : null}
         </View>
       </ScrollView>

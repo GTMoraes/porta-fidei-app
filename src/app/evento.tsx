@@ -8,6 +8,7 @@ import { COR_CANCELADO, COR_REAGENDADO, Etiqueta, textoReagendado } from '@/ui/A
 import { Aviso, Botao, Fundo, Icone, Linha, Secao, Vidro } from '@/ui/base';
 import { BotoesLink, ImagemInteira, PlayerVideo, TextoComLinks } from '@/ui/Midia';
 import { quando } from '@/util/datas';
+import { ehLinkDoApp } from '@/util/destinos';
 import { abrirNoMapa, linkMapa, temPonto } from '@/util/mapas';
 import { salvarNaAgenda } from '@/util/salvarNaAgenda';
 
@@ -33,7 +34,7 @@ export default function TelaEvento() {
   const lugar = { nome: e.titulo, local: e.local, lat: e.lat, lng: e.lng };
   const compartilhar = () =>
     Share.share({
-      message: `${e.situacao === 'cancelado' ? 'CANCELADO: ' : e.situacao === 'reagendado' ? `${textoReagendado(e, srv.eventos).toUpperCase()}: ` : ''}${e.titulo}\n${quando(e.inicio, e.fim)}${e.local ? `\n${e.local}` : ''}${temPonto(lugar) ? `\n${linkMapa(lugar)}` : ''}${e.descricao ? `\n\n${e.descricao}` : ''}${(e.botoes ?? []).map((b) => `\n\n${b.texto}: ${b.url}`).join('')}\n\nComunidade Católica Porta Fidei`,
+      message: `${e.situacao === 'cancelado' ? 'CANCELADO: ' : e.situacao === 'reagendado' ? `${textoReagendado(e, srv.eventos).toUpperCase()}: ` : ''}${e.titulo}\n${quando(e.inicio, e.fim)}${e.local ? `\n${e.local}` : ''}${temPonto(lugar) ? `\n${linkMapa(lugar)}` : ''}${e.descricao ? `\n\n${e.descricao}` : ''}${(e.botoes ?? []).filter((b) => !ehLinkDoApp(b.url)).map((b) => `\n\n${b.texto}: ${b.url}`).join('')}\n\nComunidade Católica Porta Fidei`,
     });
 
   return (

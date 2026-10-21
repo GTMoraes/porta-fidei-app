@@ -349,7 +349,10 @@ export async function enviarVideo(uri: string, progresso: (fase: 'enviando' | 'p
   }
   await admin(`/videos/${ini.id}/fim`, 'POST');
   progresso('preparando', 0);
+  // vídeo de 5 min leva poucos minutos; se passar de 30, algo travou no servidor (não fica esperando para sempre)
+  const limite = Date.now() + 30 * 60_000;
   for (;;) {
+    if (Date.now() > limite) throw new Error('O servidor está demorando demais para preparar o vídeo. Tente de novo mais tarde.');
     await esperar(2500);
     const e = (await admin(`/videos/${ini.id}`, 'GET')) as { estado: string; erro?: string; video?: VideoMidia };
     if (e.estado === 'pronto' && e.video) return e.video;

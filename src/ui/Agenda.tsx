@@ -90,16 +90,20 @@ export function CalendarioAgenda({ eventos }: { eventos: Evento[] }) {
 
   // por dia: há algo que acontece (não cancelado) ou só cancelados/reagendados?
   const porDia = useMemo(() => {
-    const m = new Map<string, { ativos: number; outros: number }>();
+    const m = new Map<string, { ativos: number; cancelados: number; reagendados: number }>();
     for (const e of eventos) {
       const k = diaIso(new Date(e.inicio));
-      const v = m.get(k) ?? { ativos: 0, outros: 0 };
-      if (e.situacao) v.outros++;
+      const v = m.get(k) ?? { ativos: 0, cancelados: 0, reagendados: 0 };
+      if (e.situacao === 'cancelado') v.cancelados++;
+      else if (e.situacao === 'reagendado') v.reagendados++;
       else v.ativos++;
       m.set(k, v);
     }
     return m;
   }, [eventos]);
+  // dourado: tem missa ou evento; vermelho: só cancelados; laranja: só a data antiga de um reagendado
+  const corPonto = (info: { ativos: number; cancelados: number } | undefined, passado: boolean) =>
+    !info ? 'transparent' : info.ativos ? (passado ? c.textoFraco : Marca.ouro) : info.cancelados ? COR_CANCELADO : COR_REAGENDADO;
 
   const dias = useMemo(() => {
     const n = new Date(ano, mes, 0).getDate();
@@ -187,7 +191,7 @@ export function CalendarioAgenda({ eventos }: { eventos: Evento[] }) {
                             height: 6,
                             borderRadius: 3,
                             marginTop: 3,
-                            backgroundColor: !info ? 'transparent' : info.ativos ? (passado ? c.textoFraco : Marca.ouro) : COR_CANCELADO,
+                            backgroundColor: corPonto(info, passado),
                             opacity: info && !info.ativos ? 0.6 : 1,
                           }}
                         />
