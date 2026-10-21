@@ -34,7 +34,7 @@ export default function TelaSugestao() {
 
   return (
     <Fundo>
-      <ScrollView keyboardDismissMode="interactive" contentContainerStyle={{ padding: Espaco.l, gap: Espaco.m }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardDismissMode="interactive" contentContainerStyle={{ padding: Espaco.l, gap: Espaco.m }} keyboardShouldPersistTaps="handled">
         <Text style={{ color: c.textoSuave, fontSize: 15, lineHeight: 21 }}>
           {origem === 'busca'
             ? 'Diga o que você procurava (o nome da oração, do ofício ou do texto). Vamos ver se dá para incluir.'

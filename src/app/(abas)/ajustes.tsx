@@ -8,6 +8,7 @@ import { mudarAjustes, useAjustes, type Ajustes } from '@/estado/ajustes';
 import { useServidor } from '@/servidor/api';
 import { Espaco, Marca, usePaleta } from '@/tema';
 import { Chave, Fundo, Icone, Linha, Secao, TituloTela, toque } from '@/ui/base';
+import { abrirDoacao } from '@/comunidade/Contribuir';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
 
 export default function TelaAjustes() {
@@ -142,6 +143,7 @@ export default function TelaAjustes() {
             onPress={() => router.push('/conteudo')}
           />
           <Linha titulo="Administração" sub={srv.admin ? 'Conectado como administrador' : 'Para a coordenação publicar agenda e avisos'} icone="lock.shield" onPress={() => router.push('/admin')} />
+          <Linha titulo="Contribuir com a Comunidade" sub="Doação única ou ser Benfeitor" icone="heart" onPress={() => abrirDoacao(false)} />
           <Linha titulo="Enviar sugestão" sub="Uma ideia, algo que não encontrou, um erro" icone="text.bubble" onPress={() => router.push('/sugestao')} />
           <Linha titulo="Sobre o app" icone="info.circle" onPress={() => router.push('/sobre')} ultimo />
         </Secao>

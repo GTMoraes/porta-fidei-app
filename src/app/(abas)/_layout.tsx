@@ -26,6 +26,11 @@ export default function Abas() {
         <NativeTabs.Trigger.Label>Rezar</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'book.closed', selected: 'book.closed.fill' }} md="menu_book" />
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="comunidade">
+        <NativeTabs.Trigger.Label>Comunidade</NativeTabs.Trigger.Label>
+        {/* o brasão da Comunidade, na cor da aba (cinza fora de foco, vinho ou dourado selecionado) */}
+        <NativeTabs.Trigger.Icon src={require('@/comunidade/brasao-aba.png')} renderingMode="template" md="groups" />
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="agenda">
         <NativeTabs.Trigger.Label>Agenda</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'calendar', selected: 'calendar' }} md="event" />
