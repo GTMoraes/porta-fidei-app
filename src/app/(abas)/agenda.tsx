@@ -14,8 +14,10 @@ import { CalendarioAgenda, LinhaEvento } from '@/ui/Agenda';
 import { CapaVideo, ImagemInteira } from '@/ui/Midia';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
 import { APARELHO } from '@/util/plataforma';
+import { useFolgaAbas } from '@/ui/AbasAndroid';
 
 export default function Agenda() {
+  const folga = useFolgaAbas();
   const lista = useSubirAoTopo();
   const c = usePaleta();
   const router = useRouter();
@@ -206,7 +208,7 @@ export default function Agenda() {
             ) : null}
           </>
         )}
-        <View style={{ height: 40 }} />
+        <View style={{ height: 40 + folga }} />
       </ScrollView>
     </Fundo>
   );

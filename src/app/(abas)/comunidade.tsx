@@ -10,8 +10,10 @@ import { Espaco, Fontes, usePaleta } from '@/tema';
 import { Fundo, Linha, Secao, TituloTela } from '@/ui/base';
 import { abrirLink } from '@/ui/Midia';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
+import { useFolgaAbas } from '@/ui/AbasAndroid';
 
 export default function Comunidade() {
+  const folga = useFolgaAbas();
   const lista = useSubirAoTopo();
   const router = useRouter();
   const c = usePaleta();
@@ -57,7 +59,7 @@ export default function Comunidade() {
         </Secao>
 
         <RodapeContribuir />
-        <View style={{ height: 30 }} />
+        <View style={{ height: 30 + folga }} />
       </ScrollView>
     </Fundo>
   );

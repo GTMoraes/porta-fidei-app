@@ -13,6 +13,7 @@ import { useServidor } from '@/servidor/api';
 import { Espaco, Marca, usePaleta } from '@/tema';
 import { Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
+import { useFolgaAbas } from '@/ui/AbasAndroid';
 
 const ICONE_HORA: Record<string, any> = {
   invitatorio: 'bell',
@@ -26,6 +27,7 @@ const ICONE_HORA: Record<string, any> = {
 };
 
 export default function Orar() {
+  const folga = useFolgaAbas();
   const lista = useSubirAoTopo();
   const router = useRouter();
   const aj = useAjustes();
@@ -142,7 +144,7 @@ export default function Orar() {
           <Linha titulo="Calendário litúrgico" icone="calendar" onPress={() => router.push('/calendario')} />
           <Linha titulo="Instrução Geral da Liturgia das Horas" icone="doc.text" onPress={() => router.push({ pathname: '/texto', params: { arquivo: 'IGLH', titulo: 'Instrução Geral' } })} ultimo />
         </Secao>
-        <View style={{ height: 40 }} />
+        <View style={{ height: 40 + folga }} />
       </ScrollView>
     </Fundo>
   );

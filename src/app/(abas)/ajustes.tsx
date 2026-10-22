@@ -10,8 +10,10 @@ import { Espaco, Marca, usePaleta } from '@/tema';
 import { Chave, Fundo, Icone, Linha, Secao, TituloTela, toque } from '@/ui/base';
 import { abrirDoacao } from '@/comunidade/Contribuir';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
+import { useFolgaAbas } from '@/ui/AbasAndroid';
 
 export default function TelaAjustes() {
+  const folga = useFolgaAbas();
   const lista = useSubirAoTopo();
   const aj = useAjustes();
   const router = useRouter();
@@ -147,7 +149,7 @@ export default function TelaAjustes() {
           <Linha titulo="Enviar sugestão" sub="Uma ideia, algo que não encontrou, um erro" icone="text.bubble" onPress={() => router.push('/sugestao')} />
           <Linha titulo="Sobre o app" icone="info.circle" onPress={() => router.push('/sobre')} ultimo />
         </Secao>
-        <View style={{ height: 50 }} />
+        <View style={{ height: 50 + folga }} />
       </ScrollView>
     </Fundo>
   );

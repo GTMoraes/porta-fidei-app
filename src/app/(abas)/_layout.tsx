@@ -4,10 +4,13 @@ import {
   createStandardAppearanceFromOptions,
 } from 'expo-router/build/native-tabs/appearance';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { Platform } from 'react-native';
+import { Tabs } from 'expo-router/js-tabs';
+import { useRef } from 'react';
+import { Platform, View } from 'react-native';
 
 import { useNovidadesAgenda } from '@/estado/vistos';
 import { Marca, usePaleta } from '@/tema';
+import { AlvoDesfoque, BarraAbasAndroid, PonteAbas } from '@/ui/AbasAndroid';
 
 // Antes do iOS 26 não existe o vidro líquido: a barra das abas ficava transparente sobre o conteúdo
 // (o iOS a deixa assim quando acha que a tela está no fim da rolagem). Nesses aparelhos ela ganha
@@ -21,7 +24,6 @@ const SEM_VIDRO = Platform.OS === 'ios' && !isLiquidGlassAvailable();
 // cobriria o nome; lá ficam o brasão menor e os nomes no lugar de sempre.
 const DESCE_NOME = { horizontal: 0, vertical: 4 };
 const VIDRO = Platform.OS === 'ios' && isLiquidGlassAvailable();
-// Android: a barra de abas do Material desenha todo ícone com 24 dp, então vai o brasão de traço mais fino
 const BRASAO = VIDRO ? require('@/comunidade/brasao-aba.png') : require('@/comunidade/brasao-aba-classica.png');
 const ANDROID = Platform.OS === 'android';
 
@@ -42,6 +44,32 @@ function aparencia(tint: string, antigo: { disableTransparentOnScrollEdge?: bool
 }
 
 export default function Abas() {
+  return ANDROID ? <AbasDoAndroid /> : <AbasDoIphone />;
+}
+
+/** Android: abas em JS com a barra desenhada pelo app (translúcida, com desfoque e o brasão grande) */
+function AbasDoAndroid() {
+  const c = usePaleta();
+  const alvo = useRef<View>(null);
+  return (
+    <View style={{ flex: 1, backgroundColor: c.fundo[0] }}>
+      <AlvoDesfoque ref={alvo} style={{ flex: 1 }}>
+        <Tabs
+          tabBar={(p) => <PonteAbas state={p.state} navigation={p.navigation} descriptors={p.descriptors} />}
+          screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.fundo[0] }, animation: 'none' }}>
+          <Tabs.Screen name="index" />
+          <Tabs.Screen name="orar" />
+          <Tabs.Screen name="comunidade" />
+          <Tabs.Screen name="agenda" />
+          <Tabs.Screen name="ajustes" />
+        </Tabs>
+      </AlvoDesfoque>
+      <BarraAbasAndroid alvo={alvo} />
+    </View>
+  );
+}
+
+function AbasDoIphone() {
   const c = usePaleta();
   const novo = useNovidadesAgenda();
   const antigo = SEM_VIDRO
@@ -50,20 +78,8 @@ export default function Abas() {
   const tint = c.escuro ? Marca.ouroClaro : Marca.vinho;
   // as funções de aparência só existem no iOS (no Android o módulo é outro)
   const nativo = VIDRO ? aparencia(tint, antigo) : undefined;
-  // Android: barra nas cores do app (sem as cores dinâmicas do papel de parede)
-  const coresAndroid = ANDROID
-    ? {
-        backgroundColor: c.escuro ? '#141B36' : '#F6EEDF',
-        iconColor: { default: c.textoFraco, selected: tint },
-        labelStyle: { default: { color: c.textoFraco }, selected: { color: tint } },
-        indicatorColor: c.escuro ? 'rgba(222,190,130,0.18)' : 'rgba(129,50,52,0.12)',
-        rippleColor: c.escuro ? 'rgba(222,190,130,0.18)' : 'rgba(129,50,52,0.12)',
-        badgeBackgroundColor: '#D93025',
-        labelVisibilityMode: 'labeled' as const,
-      }
-    : {};
   return (
-    <NativeTabs tintColor={tint} minimizeBehavior="onScrollDown" {...antigo} {...coresAndroid}>
+    <NativeTabs tintColor={tint} minimizeBehavior="onScrollDown" {...antigo}>
       <NativeTabs.Trigger unstable_nativeProps={nativo} name="index">
         <NativeTabs.Trigger.Label>Hoje</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'sun.horizon', selected: 'sun.horizon.fill' }} md="wb_twilight" />

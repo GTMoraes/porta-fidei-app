@@ -20,10 +20,12 @@ import { DeslizarParaArquivar } from '@/ui/Deslizar';
 import { dataParaHora, horaSugerida, quando } from '@/util/datas';
 import { LinhaEvento } from '@/ui/Agenda';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
+import { useFolgaAbas } from '@/ui/AbasAndroid';
 
 const ROMANO = ['', 'I', 'II', 'III', 'IV'];
 
 export default function Hoje() {
+  const folga = useFolgaAbas();
   const lista = useSubirAoTopo();
   const c = usePaleta();
   const router = useRouter();
@@ -99,7 +101,10 @@ export default function Hoje() {
   const ativos = srv.avisos.filter((a) => !encerrado(a, agoraMs));
   const avisos = ativos.filter((a) => visivel(arquivados, a)).sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado)).slice(0, 3);
   // avisos fixados: também no topo da tela (deslizar tira só daqui; o aviso continua em Avisos)
-  const fixados = ativos.filter((a) => a.fixado && visivel(arquivados, a) && !dispensado(arquivados, a));
+  // no topo, só o aviso fixado mais recente (quem instala o app não recebe uma pilha de fixados antigos;
+  // os outros continuam em Avisos). Dispensado ou arquivado, o topo fica vazio até chegar um fixado novo.
+  const fixadoTopo = ativos.filter((a) => a.fixado).sort((a, b) => b.criado.localeCompare(a.criado))[0];
+  const fixados = fixadoTopo && visivel(arquivados, fixadoTopo) && !dispensado(arquivados, fixadoTopo) ? [fixadoTopo] : [];
   const atualizacaoPronta = useAtualizacaoPronta();
 
   return (
@@ -159,6 +164,9 @@ export default function Hoje() {
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Icone nome="pin.fill" cor={c.destaque} tamanho={13} />
                         <Text style={{ color: c.destaque, fontSize: 12.5, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase', flex: 1 }}>Aviso</Text>
+                        {/* o único card da tela que desliza: a dica mostra que dá para tirar daqui */}
+                        <Icone nome="chevron.left" cor={c.textoFraco} tamanho={10} />
+                        <Text style={{ color: c.textoFraco, fontSize: 11.5 }}>arraste para dispensar</Text>
                       </View>
                       <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 20, marginTop: 4 }}>{a.titulo}</Text>
                       <Text style={{ color: c.textoSuave, fontSize: 14.5, lineHeight: 20, marginTop: 4 }} numberOfLines={3}>
@@ -337,7 +345,7 @@ export default function Hoje() {
             ))}
           </Secao>
         ) : null}
-        <View style={{ height: 40 }} />
+        <View style={{ height: 40 + folga }} />
       </ScrollView>
     </Fundo>
   );

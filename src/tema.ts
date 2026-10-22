@@ -18,7 +18,7 @@ export interface Paleta {
   destaque: string; // dourado
   rubrica: string; // vermelho litúrgico
   vidroTinta: string;
-  cartao: string; // usado quando o vidro nativo não existe
+  cartao: string; // fundo do "vidro" onde o vidro nativo não existe (Android e iPhone sem iOS 26): quase opaco, para o texto de baixo não confundir
   borda: string;
   separador: string;
   leitorFundo: string;
@@ -34,7 +34,7 @@ const claro: Paleta = {
   destaque: '#9C6F2C',
   rubrica: '#A3262A',
   vidroTinta: 'rgba(255,250,240,0.35)',
-  cartao: 'rgba(255,252,246,0.78)',
+  cartao: 'rgba(255,252,246,0.95)',
   borda: 'rgba(120,90,40,0.16)',
   separador: 'rgba(90,70,40,0.12)',
   leitorFundo: '#FBF7EF',
@@ -50,7 +50,7 @@ const escuro: Paleta = {
   destaque: '#DEBE82',
   rubrica: '#E58A86',
   vidroTinta: 'rgba(30,38,70,0.35)',
-  cartao: 'rgba(30,36,60,0.72)',
+  cartao: 'rgba(27,33,60,0.95)',
   borda: 'rgba(222,190,130,0.16)',
   separador: 'rgba(222,190,130,0.12)',
   leitorFundo: '#0F1424',
@@ -62,7 +62,7 @@ const sepia: Paleta = {
   fundo: ['#F4E8CE', '#EEDDBB', '#E4CFA6'],
   leitorFundo: '#F3E5C6',
   leitorTexto: '#3B2C1A',
-  cartao: 'rgba(250,240,218,0.8)',
+  cartao: 'rgba(250,240,218,0.95)',
 };
 
 export function usePaleta(): Paleta {
