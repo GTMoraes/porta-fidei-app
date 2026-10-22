@@ -226,9 +226,11 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
           containerStyle={{ backgroundColor: c.leitorFundo }}
           setSupportMultipleWindows={false}
           allowsLinkPreview={false}
-          dataDetectorTypes="none"
+          // só no iOS: no Android o componente nativo espera outro formato (lista e número) e um texto aqui
+          // derruba o app ao abrir o leitor
+          dataDetectorTypes={Platform.OS === 'ios' ? 'none' : undefined}
           textInteractionEnabled
-          decelerationRate="normal"
+          decelerationRate={Platform.OS === 'ios' ? 'normal' : undefined}
           contentInsetAdjustmentBehavior="never"
           textZoom={100} // Android: o tamanho da letra é o do app (não soma o tamanho de fonte do sistema)
         />
