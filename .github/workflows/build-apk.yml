@@ -1,0 +1,139 @@
+name: Android (Porta Fidei)
+
+# Compila o instalador do Android (APK) assinado com a chave da Comunidade e manda para o servidor,
+# onde fica no link secreto (APK_LINK do .env do pf-app). Não vai para a Play Store.
+# Secrets necessários (Settings > Secrets and variables > Actions):
+#   ANDROID_KEYSTORE_B64     chave de assinatura (.p12) em base64, numa linha (arquivo keystore-base64.txt)
+#   ANDROID_KEYSTORE_SENHA   senha da chave (arquivo senha.txt)
+#   GOOGLE_MAPS_ANDROID_KEY  chave da API do Google Maps (Maps SDK for Android), restrita ao app
+#   PF_CHAVE_CONTEUDO        a mesma da build do iPhone (baixar o pacote de conteúdo)
+#   OTA_CHAVE                a mesma das atualizações pelo ar (enviar o APK ao servidor)
+#
+# A chave de assinatura tem de ser SEMPRE a mesma: o Android só instala uma versão nova por cima
+# da antiga se as duas tiverem a mesma assinatura. Guarde o .p12 e a senha (pasta assinatura).
+
+# Build nova só quando muda algo nativo (dependências, app.json, imagens do app) ou pelo botão "Run workflow".
+# Mudanças só em src/ vão pelo ar (ota.yml), sem build.
+on:
+  push:
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'app.json'
+      - 'assets/**'
+      - 'scripts/assinar-android.mjs'
+      - 'scripts/publicar-apk.mjs'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir os secrets
+        env:
+          A: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          B: ${{ secrets.ANDROID_KEYSTORE_SENHA }}
+          C: ${{ secrets.GOOGLE_MAPS_ANDROID_KEY }}
+          D: ${{ secrets.OTA_CHAVE }}
+          E: ${{ secrets.PF_CHAVE_CONTEUDO }}
+        run: |
+          falta=""
+          [ -z "$A" ] && falta="$falta ANDROID_KEYSTORE_B64"
+          [ -z "$B" ] && falta="$falta ANDROID_KEYSTORE_SENHA"
+          [ -z "$C" ] && falta="$falta GOOGLE_MAPS_ANDROID_KEY"
+          [ -z "$D" ] && falta="$falta OTA_CHAVE"
+          if [ -n "$falta" ]; then echo "::error::Faltam os secrets:$falta"; exit 1; fi
+          [ -z "$E" ] && echo "::warning::Sem o Secret PF_CHAVE_CONTEUDO: o app não vai conseguir baixar o conteúdo do CDN."
+          echo "Secrets presentes."
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Cache do Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('package-lock.json') }}
+          restore-keys: gradle-
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Conferir o código (TypeScript)
+        run: npx tsc --noEmit
+
+      - name: Número da versão, chave do conteúdo e do mapa
+        env:
+          PF_CHAVE: ${{ secrets.PF_CHAVE_CONTEUDO }}
+          MAPA: ${{ secrets.GOOGLE_MAPS_ANDROID_KEY }}
+        run: |
+          N=$(( 100 + ${{ github.run_number }} ))
+          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('app.json','utf8'));j.expo.android.versionCode=$N;j.expo.android.config={...(j.expo.android.config||{}),googleMaps:{apiKey:process.env.MAPA}};j.expo.extra={...(j.expo.extra||{}),chaveConteudo:process.env.PF_CHAVE||''};fs.writeFileSync('app.json',JSON.stringify(j,null,2));console.log('versão',j.expo.version,'versionCode',$N)"
+          echo "BUILD_N=$N" >> $GITHUB_ENV
+          echo "VERSAO=$(node -p "require('./app.json').expo.version")" >> $GITHUB_ENV
+
+      - name: Gerar o projeto Android (Expo prebuild)
+        run: |
+          npx expo prebuild --platform android --clean --no-install
+          node scripts/assinar-android.mjs android/app/build.gradle
+
+      - name: Compilar o APK assinado
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          PF_KEYSTORE_SENHA: ${{ secrets.ANDROID_KEYSTORE_SENHA }}
+        run: |
+          set -o pipefail
+          export PF_KEYSTORE="$RUNNER_TEMP/porta-fidei.p12"
+          echo "$KS_B64" | base64 --decode > "$PF_KEYSTORE"
+          cd android
+          ./gradlew app:assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --stacktrace 2>&1 | tee ../gradle.log | grep -E "^> Task :app:|BUILD (SUCCESSFUL|FAILED)|error:|e: " || true
+          grep -q "BUILD SUCCESSFUL" ../gradle.log
+
+      - name: Conferir a assinatura
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          ls -la "$APK"
+          AS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner
+          "$AS" verify --print-certs "$APK" | tee assinatura.txt
+          grep -q "Porta Fidei" assinatura.txt || { echo "::error::O APK não saiu assinado com a chave da Comunidade"; exit 1; }
+          echo "APK=$APK" >> $GITHUB_ENV
+
+      - name: Enviar ao servidor (link secreto)
+        env:
+          OTA_CHAVE: ${{ secrets.OTA_CHAVE }}
+        run: node scripts/publicar-apk.mjs "$APK" "$VERSAO" "$BUILD_N"
+
+      - name: Resumo dos erros (se falhar)
+        if: failure()
+        run: grep -n -E "error:|e: |FAILURE|What went wrong" -A4 gradle.log 2>/dev/null | head -80 || true
+
+      - name: Limpar chaves
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/*.p12 || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-android
+          path: gradle.log
+          if-no-files-found: ignore
