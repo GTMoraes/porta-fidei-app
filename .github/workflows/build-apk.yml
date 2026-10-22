@@ -102,7 +102,9 @@ jobs:
           node scripts/assinar-android.mjs android/app/build.gradle
           # memória: com os 2 GB padrão do Expo o Gradle passa o tempo todo limpando memória (a máquina tem 16 GB)
           sed -i '/^org.gradle.jvmargs=/d' android/gradle.properties
+          # (o arquivo do Expo não termina com quebra de linha: a primeira linha em branco evita grudar na última)
           {
+            echo ''
             echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8'
             echo 'kotlin.daemon.jvmargs=-Xmx3g'
             echo 'org.gradle.caching=true'
@@ -110,6 +112,8 @@ jobs:
           } >> android/gradle.properties
           # sem a "lint vital" em nenhum módulo: na 1ª build ela estourou a memória e travou o Gradle até o tempo acabar
           printf '\nsubprojects {\n    tasks.configureEach { t -> if (t.name.startsWith("lintVital")) t.enabled = false }\n}\n' >> android/build.gradle
+          echo "== memória do Gradle"; grep -E '^(org.gradle.jvmargs|kotlin.daemon.jvmargs)=' android/gradle.properties
+          grep -q '^org.gradle.jvmargs=-Xmx6g' android/gradle.properties || { echo "::error::A memória do Gradle não ficou configurada"; exit 1; }
 
       - name: Compilar o APK assinado
         env:
