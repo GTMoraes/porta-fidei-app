@@ -80,6 +80,7 @@ export default function TelaEvento() {
                 zoomEnabled={false}
                 rotateEnabled={false}
                 pitchEnabled={false}
+                liteMode // Android: imagem fixa do mapa (mais leve e respeita os cantos arredondados)
                 showsPointsOfInterests>
                 <Marker coordinate={{ latitude: e.lat!, longitude: e.lng! }} />
               </MapView>

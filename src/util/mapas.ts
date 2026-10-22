@@ -1,7 +1,10 @@
 // Abre o local de um evento no app de mapa que a pessoa preferir (Apple Maps, Google Maps ou Waze).
 // Com o ponto marcado no mapa, abre no ponto exato; sem ele, busca pelo texto do local.
+// No Android quem pergunta qual app usar é o próprio sistema (link geo:).
 
-import { ActionSheetIOS, Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
+
+import { mostrarOpcoes } from '@/ui/Opcoes';
 
 export interface LugarMapa {
   nome: string; // título do evento (rótulo do alfinete)
@@ -29,22 +32,28 @@ function opcoes(l: LugarMapa) {
   ];
 }
 
-/** Link do Apple Maps (vai no campo "URL" do evento salvo na agenda) */
+/** Link do mapa (vai no campo "URL" do evento salvo na agenda): Apple Maps no iOS, Google Maps no Android */
 export function linkMapa(l: LugarMapa) {
   const q = encodeURIComponent(l.local || l.nome);
+  if (Platform.OS === 'android') {
+    return `https://www.google.com/maps/search/?api=1&query=${temPonto(l) ? `${l.lat},${l.lng}` : q}`;
+  }
   return temPonto(l) ? `https://maps.apple.com/?ll=${l.lat},${l.lng}&q=${q}` : `https://maps.apple.com/?q=${q}`;
 }
 
 export async function abrirNoMapa(l: LugarMapa) {
+  if (Platform.OS === 'android') {
+    const rotulo = encodeURIComponent(l.local || l.nome);
+    const url = temPonto(l) ? `geo:${l.lat},${l.lng}?q=${l.lat},${l.lng}(${rotulo})` : `geo:0,0?q=${rotulo}`;
+    return Linking.openURL(url).catch(() => Linking.openURL(linkMapa(l)).catch(() => {}));
+  }
   const todas = opcoes(l);
   // o Apple Maps sempre existe; os outros só aparecem se estiverem instalados
   const extras = await Promise.all(todas.slice(1).map(async (o) => ((await Linking.canOpenURL(o.url).catch(() => false)) ? o : null)));
   const lista = [todas[0], ...extras.filter((o): o is (typeof todas)[number] => !!o)];
   if (lista.length === 1) return Linking.openURL(lista[0].url).catch(() => {});
-  ActionSheetIOS.showActionSheetWithOptions(
-    { title: l.local || l.nome, options: [...lista.map((o) => o.nome), 'Cancelar'], cancelButtonIndex: lista.length },
-    (i) => {
-      if (i < lista.length) Linking.openURL(lista[i].url).catch(() => {});
-    },
+  mostrarOpcoes(
+    l.local || l.nome,
+    lista.map((o) => ({ rotulo: o.nome, onPress: () => void Linking.openURL(o.url).catch(() => {}) })),
   );
 }

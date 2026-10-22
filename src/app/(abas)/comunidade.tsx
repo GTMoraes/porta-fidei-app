@@ -18,7 +18,7 @@ export default function Comunidade() {
   const abrir = (id: string) => router.push({ pathname: '/pagina', params: { id } });
 
   return (
-    <Fundo>
+    <Fundo aba>
       <ScrollView ref={lista} scrollToOverflowEnabled contentInsetAdjustmentBehavior="automatic">
         <TituloTela titulo="Comunidade" sobre="Comunidade Católica Porta Fidei" />
 

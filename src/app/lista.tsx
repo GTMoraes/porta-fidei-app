@@ -279,7 +279,7 @@ export default function Lista() {
       <ScrollView keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic" keyboardDismissMode="interactive">
         {total > 12 ? (
           <View style={{ marginHorizontal: Espaco.l, marginTop: Espaco.s, marginBottom: Espaco.l }}>
-            <TextInput
+            <TextInput underlineColorAndroid="transparent" cursorColor="#BC8C44"
               value={busca}
               onChangeText={setBusca}
               placeholder="Buscar"

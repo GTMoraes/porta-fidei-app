@@ -1,4 +1,3 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
@@ -7,6 +6,7 @@ import { pegarPonto } from '@/estado/escolhaLocal';
 import { apagarEvento, atualizar, cancelarEvento, descancelarEvento, locaisSalvos, reagendarEvento, salvarEvento, useServidor, type BotaoLink, type LocalSalvo, type TipoEvento, type VideoMidia } from '@/servidor/api';
 import { Espaco, Marca, usePaleta } from '@/tema';
 import { Botao, Chave, Fundo, Icone, Linha, Secao, toque } from '@/ui/base';
+import { SeletorData } from '@/ui/Data';
 import { AVISO_TEXTO_NOTIF, AVISO_TITULO_NOTIF, botoesProntos, Campo, CampoBotoes, CampoImagem, CampoVideo } from '@/ui/Formulario';
 import { dataCurta, hora } from '@/util/datas';
 
@@ -309,13 +309,13 @@ export default function EditarEvento() {
         <Secao titulo="Quando">
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Espaco.l }}>
             <Text style={{ color: c.texto, fontSize: 17 }}>Início</Text>
-            <DateTimePicker value={inicio} mode="datetime" display="compact" locale="pt-BR" accentColor={Marca.ouro} themeVariant={c.escuro ? 'dark' : 'light'} onChange={(_e, d) => d && mudarInicio(d)} />
+            <SeletorData valor={inicio} modo="datetime" mudar={mudarInicio} />
           </View>
           <Linha titulo="Informar horário de término" direita={<Chave valor={temFim} mudar={ligarFim} />} ultimo={!temFim} />
           {temFim ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Espaco.l }}>
               <Text style={{ color: c.texto, fontSize: 17 }}>Término</Text>
-              <DateTimePicker value={fim} minimumDate={inicio} mode="datetime" display="compact" locale="pt-BR" accentColor={Marca.ouro} themeVariant={c.escuro ? 'dark' : 'light'} onChange={(_e, d) => d && setFim(d)} />
+              <SeletorData valor={fim} minimo={inicio} modo="datetime" mudar={setFim} />
             </View>
           ) : null}
           {!orig ? (

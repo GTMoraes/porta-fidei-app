@@ -106,7 +106,7 @@ export default function EditarAviso() {
               tipo="perigo"
               icone="trash"
               onPress={() =>
-                Alert.alert('Tem certeza?', 'O aviso some da tela de Avisos de todos os membros. A notificação que já chegou continua na central de notificações do iPhone, mas ao tocar nela o app diz que o aviso não existe mais.', [
+                Alert.alert('Tem certeza?', 'O aviso some da tela de Avisos de todos os membros. A notificação que já chegou continua na central de notificações dos celulares, mas ao tocar nela o app diz que o aviso não existe mais.', [
                   { text: 'Cancelar', style: 'cancel' },
                   {
                     text: 'Apagar',

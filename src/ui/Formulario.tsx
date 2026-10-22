@@ -262,7 +262,7 @@ export function CampoBotoes({ botoes, mudar }: { botoes: BotaoLink[]; mudar: (b:
               <Icone nome="trash" cor="#C0392B" tamanho={16} />
             </Pressable>
           </View>
-          <TextInput
+          <TextInput underlineColorAndroid="transparent" cursorColor="#BC8C44"
             value={b.texto}
             onChangeText={(v) => alterar(i, 'texto', v)}
             placeholder="Texto do botão (ex.: Fazer inscrição)"
@@ -303,7 +303,7 @@ export function CampoBotoes({ botoes, mudar }: { botoes: BotaoLink[]; mudar: (b:
               <Icone nome="chevron.right" cor={c.textoFraco} tamanho={13} />
             </Pressable>
           ) : (
-            <TextInput
+            <TextInput underlineColorAndroid="transparent" cursorColor="#BC8C44"
               value={b.url}
               onChangeText={(v) => alterar(i, 'url', v)}
               placeholder="Link (ex.: https://forms.gle/...)"
@@ -346,7 +346,7 @@ function EscolherDestino({ grupos, aberto, fechar, escolher }: { grupos: ReturnT
             <Text style={{ color: c.destaque, fontSize: 16 }}>Fechar</Text>
           </Pressable>
         </View>
-        <TextInput
+        <TextInput underlineColorAndroid="transparent" cursorColor="#BC8C44"
           value={busca}
           onChangeText={setBusca}
           placeholder="Buscar (ex.: completas, dolorosos, avisos)"

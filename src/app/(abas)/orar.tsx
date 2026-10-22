@@ -48,7 +48,7 @@ export default function Orar() {
   };
 
   return (
-    <Fundo>
+    <Fundo aba>
       <ScrollView
         ref={lista}
         scrollToOverflowEnabled contentInsetAdjustmentBehavior="automatic">

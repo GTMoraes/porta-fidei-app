@@ -2,23 +2,53 @@ import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
-import type { ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, Switch, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Keyboard, Platform, Pressable, StyleSheet, Switch, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { lerAjustes } from '@/estado/ajustes';
 import { Espaco, Fontes, Marca, Raio, usePaleta } from '@/tema';
 
+import { MATERIAL } from './icones-android';
+
 const VIDRO = Platform.OS === 'ios' && isLiquidGlassAvailable();
+const ANDROID = Platform.OS === 'android';
 
 export function toque() {
   if (lerAjustes().feedbackTatil) Haptics.selectionAsync().catch(() => {});
 }
 
 /** Fundo do app: gradiente quente (claro) ou azul-noite (escuro) */
-export function Fundo({ children }: { children: ReactNode }) {
+/**
+ * Altura do teclado no Android. Lá o app ocupa a tela inteira (de ponta a ponta) e a janela não
+ * encolhe sozinha quando o teclado abre: a tela tem de abrir espaço, senão o campo fica por baixo dele.
+ */
+function useAlturaTecladoAndroid() {
+  const [altura, setAltura] = useState(0);
+  useEffect(() => {
+    if (!ANDROID) return;
+    const abre = Keyboard.addListener('keyboardDidShow', (e) => setAltura(e.endCoordinates.height));
+    const fecha = Keyboard.addListener('keyboardDidHide', () => setAltura(0));
+    return () => {
+      abre.remove();
+      fecha.remove();
+    };
+  }, []);
+  return altura;
+}
+
+/**
+ * Fundo das telas. No Android o app desenha atrás das barras do sistema e não existe o recuo
+ * automático do iOS: as abas (sem cabeçalho) descem o conteúdo abaixo da barra de status, e as
+ * demais telas sobem o fim do conteúdo acima da barra de navegação do aparelho.
+ */
+export function Fundo({ children, aba }: { children: ReactNode; aba?: boolean }) {
   const c = usePaleta();
+  const ins = useSafeAreaInsets();
+  const teclado = useAlturaTecladoAndroid();
+  const recuo = ANDROID ? (aba ? { paddingTop: ins.top } : { paddingBottom: Math.max(ins.bottom, teclado) }) : null;
   return (
-    <View style={{ flex: 1, backgroundColor: c.fundo[0] }}>
+    <View style={[{ flex: 1, backgroundColor: c.fundo[0] }, recuo]}>
       <LinearGradient colors={c.fundo} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
       {children}
     </View>
@@ -65,7 +95,7 @@ export function Icone({ nome, cor, tamanho = 20 }: { nome: SFSymbol; cor?: strin
   const c = usePaleta();
   return (
     <SymbolView
-      name={nome}
+      name={Platform.OS === 'android' ? { ios: nome, android: MATERIAL[nome] } : nome}
       tintColor={cor ?? c.destaque}
       size={tamanho}
       weight="medium"
@@ -162,6 +192,7 @@ export function Chave({ valor, mudar }: { valor: boolean; mudar: (v: boolean) =>
         mudar(v);
       }}
       trackColor={{ true: Marca.ouro, false: undefined }}
+      thumbColor={ANDROID ? (valor ? '#FFF8EC' : '#F3F0EA') : undefined}
     />
   );
 }

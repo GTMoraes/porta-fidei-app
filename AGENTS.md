@@ -46,3 +46,16 @@ Docs: https://docs.expo.dev/eas/index.md
 - `.github/workflows/ota.yml` publica sozinho a cada push que mexe em `src/`. `build-ipa.yml` só roda quando muda `package.json`, `app.json`, `assets/` ou pelo botão "Run workflow".
 - **Regra:** sempre que entrar algo nativo (módulo novo, plugin, permissão, entitlement), suba `runtimeVersion` no `app.json` ("1" → "2"...). Sem isso, o código novo iria pelo ar para builds que não têm o módulo e o app quebraria.
 - A chave do conteúdo (`extra.chaveConteudo`) não vai no manifest público: o app guarda a da build na primeira abertura (`src/conteudo/remoto.ts`).
+- **Textos litúrgicos nunca entram neste repositório** (ele é público). O app lê os textos do pacote `pf-conteudo.zip`, instalado no aparelho a partir do CDN privado; aqui fica só a lógica (calendário, qual texto vale em cada dia). Orações próprias da Comunidade moram no servidor, não no código.
+- **Chaves nunca no código:** `OTA_CHAVE`, `PF_CHAVE_CONTEUDO` e as de assinatura da Apple ficam só nos Secrets do GitHub e no `.env` do servidor.
+- O Gabriel sobe as mudanças pelo upload web do GitHub, a partir de uma pasta `_subir/<versão>/` só com os arquivos alterados.
+
+## Porta Fidei: Android
+
+- O mesmo código serve iPhone e Android. Diferenças ficam em `Platform.OS` (nunca mudar o comportamento do iPhone ao mexer no Android).
+- Ícones: o app usa nomes de SF Symbols; no Android, `src/ui/icones-android.ts` traduz cada nome para o Material Symbols. **Nome de ícone novo no app = acrescentar o par nesse arquivo** (sem par, aparece um pontinho).
+- Android não tem o recuo automático do iOS: cabeçalho sólido (`app/_layout.tsx`), `<Fundo aba>` nas abas (desce o conteúdo abaixo da barra de status) e `<Fundo>` nas outras telas (sobe acima da barra de navegação e do teclado).
+- Sem `ActionSheetIOS` direto: use `mostrarOpcoes` (`src/ui/Opcoes.tsx`). Sem `DateTimePicker` direto: use `SeletorData` (`src/ui/Data.tsx`). O alerta do Android aceita no máximo 3 botões.
+- PDF no Android: o WebView não mostra PDF, então `app/pdf.tsx` desenha com o pdf.js (cdnjs).
+- Build: `build-apk.yml` (ubuntu) gera o APK assinado e manda para o servidor (link secreto `APK_LINK`). versionCode = 100 + número da execução. A chave de assinatura nunca muda (sem ela o Android não atualiza por cima). Secrets: `ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_SENHA`, `GOOGLE_MAPS_ANDROID_KEY`.
+- Atualização pelo ar: `ota.yml` exporta iOS e Android; o servidor guarda cada uma na sua pasta (`ota.js`). O push silencioso só existe no iPhone por enquanto (Android sem Firebase).

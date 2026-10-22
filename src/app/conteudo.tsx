@@ -107,7 +107,7 @@ export default function Conteudo() {
 
             <Secao titulo="Baixar de um link">
               <View style={{ padding: Espaco.l, gap: 12 }}>
-                <TextInput
+                <TextInput underlineColorAndroid="transparent" cursorColor="#BC8C44"
                   value={link}
                   onChangeText={setLink}
                   placeholder="https://… (link temporário do pacote)"

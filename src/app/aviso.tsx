@@ -8,6 +8,7 @@ import { Aviso as Caixa, Botao, Fundo, Secao, Vidro } from '@/ui/base';
 import { BotoesLink, ImagemInteira, PlayerVideo, TextoComLinks } from '@/ui/Midia';
 import { dataLonga } from '@/util/datas';
 import { ehLinkDoApp } from '@/util/destinos';
+import { APARELHO } from '@/util/plataforma';
 
 export default function TelaAviso() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -51,11 +52,11 @@ export default function TelaAviso() {
             <>
               <Botao titulo="Voltar para Avisos" icone="tray.and.arrow.up" tipo="secundario" onPress={() => arquivar(a, false)} />
               <Botao
-                titulo="Remover deste iPhone"
+                titulo={`Remover deste ${APARELHO}`}
                 icone="trash"
                 tipo="perigo"
                 onPress={() =>
-                  Alert.alert('Tem certeza?', 'O aviso some deste iPhone de vez. Para os outros membros nada muda.', [
+                  Alert.alert('Tem certeza?', `O aviso some deste ${APARELHO} de vez. Para os outros membros nada muda.`, [
                     { text: 'Cancelar', style: 'cancel' },
                     {
                       text: 'Remover',

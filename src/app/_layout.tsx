@@ -4,13 +4,14 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import { carregarPacote } from '@/conteudo/pacote';
 import { carregarChaveConteudo } from '@/conteudo/remoto';
 import { carregarAjustes } from '@/estado/ajustes';
 import { buscarNova } from '@/estado/atualizacaoApp';
 import { registrarTarefaPush } from '@/estado/segundoPlano';
+import { FolhaOpcoes } from '@/ui/Opcoes';
 import { PilulaAtualizado } from '@/ui/PilulaAtualizado';
 import { reagendarLembretes } from '@/estado/lembretes';
 import { registrarPush } from '@/estado/push';
@@ -18,6 +19,8 @@ import { atualizar, carregarCache, carregarToken } from '@/servidor/api';
 import { Fontes, usePaleta } from '@/tema';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const ANDROID = Platform.OS === 'android';
 
 export default function Raiz() {
   const [pronto, setPronto] = useState(false);
@@ -87,7 +90,10 @@ export default function Raiz() {
       <StatusBar style={c.escuro ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
-          headerTransparent: true,
+          // iOS: cabeçalho transparente (o conteúdo rola por baixo e o iOS recua sozinho). Android: não existe
+          // esse recuo automático, então o cabeçalho é sólido na cor do fundo e o conteúdo começa abaixo dele.
+          headerTransparent: !ANDROID,
+          headerStyle: ANDROID ? { backgroundColor: c.fundo[0] } : undefined,
           headerTintColor: c.destaque,
           headerTitleStyle: { fontFamily: Fontes.titulo, color: c.texto, fontSize: 19 },
           headerBackButtonDisplayMode: 'minimal',
@@ -135,6 +141,7 @@ export default function Raiz() {
         <Stack.Screen name="editar-oracao" options={{ title: 'Oração', presentation: 'modal' }} />
       </Stack>
       <PilulaAtualizado />
+      <FolhaOpcoes />
     </ThemeProvider>
     </GestureHandlerRootView>
   );

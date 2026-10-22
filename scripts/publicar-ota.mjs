@@ -1,4 +1,5 @@
-// Publica no servidor da Comunidade a atualização pelo ar gerada por `npx expo export --platform ios`.
+// Publica no servidor da Comunidade a atualização pelo ar gerada por
+// `npx expo export --platform ios --platform android` (o servidor publica uma para cada plataforma).
 // Uso (no GitHub Actions): node scripts/publicar-ota.mjs dist
 // Variáveis: OTA_CHAVE (Secret do GitHub, igual à do .env do servidor), OTA_URL (opcional).
 
@@ -20,9 +21,10 @@ if (typeof runtime !== 'string' || !runtime) {
   console.error('::error::app.json precisa de "runtimeVersion" em texto');
   process.exit(1);
 }
-const ios = metadata.fileMetadata.ios;
+const plataformas = Object.keys(metadata.fileMetadata);
 const envio = `${Date.now()}`;
-const arquivos = [ios.bundle, ...ios.assets.map((a) => a.path)];
+// os arquivos de imagem e fonte são os mesmos nas duas plataformas: cada um vai uma vez só
+const arquivos = [...new Set(plataformas.flatMap((p) => [metadata.fileMetadata[p].bundle, ...metadata.fileMetadata[p].assets.map((a) => a.path)]))];
 
 for (const [i, p] of arquivos.entries()) {
   const corpo = fs.readFileSync(path.join(pasta, p));
@@ -54,9 +56,12 @@ if (!r.ok) {
   process.exit(1);
 }
 const j = JSON.parse(t);
-console.log(`Publicada: runtime ${j.runtime}, atualização ${j.id}`);
+const publicadas = j.publicadas ?? [{ plataforma: 'ios', id: j.id, arquivos: j.arquivos }];
+for (const p of publicadas) console.log(`Publicada (${p.plataforma}): runtime ${j.runtime}, atualização ${p.id}`);
+const naoPublicou = plataformas.filter((p) => !publicadas.some((x) => x.plataforma === p));
+if (naoPublicou.length) console.warn(`::warning::O servidor não publicou para ${naoPublicou.join(', ')} (servidor.js/ota.js antigos no pf-app?)`);
 if (process.env.GITHUB_STEP_SUMMARY)
   fs.appendFileSync(
     process.env.GITHUB_STEP_SUMMARY,
-    `### Atualização pelo ar publicada\nRuntime ${j.runtime}, ${j.arquivos} arquivos. Os iPhones com a build deste runtime baixam ao abrir o app e passam a usar na abertura seguinte.\n`,
+    `### Atualização pelo ar publicada\n${publicadas.map((p) => `- ${p.plataforma === 'ios' ? 'iPhone' : 'Android'}: ${p.arquivos} arquivos`).join('\n')}\n\nRuntime ${j.runtime}. Os aparelhos com a build deste runtime baixam ao abrir o app e passam a usar na abertura seguinte.\n`,
   );

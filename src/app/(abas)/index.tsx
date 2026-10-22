@@ -101,12 +101,12 @@ export default function Hoje() {
   const atualizacaoPronta = useAtualizacaoPronta();
 
   return (
-    <Fundo>
+    <Fundo aba>
       <ScrollView
         ref={lista}
         scrollToOverflowEnabled
         contentInsetAdjustmentBehavior="automatic"
-        refreshControl={<RefreshControl refreshing={puxando} onRefresh={puxar} tintColor={c.destaque} />}>
+        refreshControl={<RefreshControl refreshing={puxando} onRefresh={puxar} tintColor={c.destaque} colors={[c.destaque]} />}>
         {/* Cabeçalho com o logo */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: Espaco.xl, paddingTop: Espaco.s }}>
           <Image source={require('@/assets/marca/logo-cor.png')} style={{ width: 44, height: 48 }} contentFit="contain" tintColor={c.escuro ? '#FFFFFF' : undefined} />

@@ -4,7 +4,7 @@
 
 import { useNavigation } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import type { ScrollView } from 'react-native';
+import { Platform, type ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function useSubirAoTopo() {
@@ -18,7 +18,8 @@ export function useSubirAoTopo() {
       requestAnimationFrame(() => {
         if (e?.defaultPrevented) return;
         // a lista começa abaixo da barra de status (o iOS recua o conteúdo): o topo é o recuo negativo
-        ref.current?.scrollTo({ y: -ins.top, animated: true });
+        // (no Android o conteúdo já começa abaixo dela: o topo é zero)
+        ref.current?.scrollTo({ y: Platform.OS === 'ios' ? -ins.top : 0, animated: true });
       });
     });
     return sair;

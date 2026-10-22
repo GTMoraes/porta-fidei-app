@@ -20,7 +20,10 @@ const SEM_VIDRO = Platform.OS === 'ios' && !isLiquidGlassAvailable();
 // Só na barra de vidro (iOS 26): na barra antiga, mais baixa, o nome desceria demais e o brasão grande
 // cobriria o nome; lá ficam o brasão menor e os nomes no lugar de sempre.
 const DESCE_NOME = { horizontal: 0, vertical: 4 };
-const BRASAO = SEM_VIDRO ? require('@/comunidade/brasao-aba-classica.png') : require('@/comunidade/brasao-aba.png');
+const VIDRO = Platform.OS === 'ios' && isLiquidGlassAvailable();
+// Android: a barra de abas do Material desenha todo ícone com 24 dp, então vai o brasão de traço mais fino
+const BRASAO = VIDRO ? require('@/comunidade/brasao-aba.png') : require('@/comunidade/brasao-aba-classica.png');
+const ANDROID = Platform.OS === 'android';
 
 function aparencia(tint: string, antigo: { disableTransparentOnScrollEdge?: boolean; blurEffect?: any }) {
   const opcoes: any = {
@@ -44,9 +47,23 @@ export default function Abas() {
   const antigo = SEM_VIDRO
     ? ({ disableTransparentOnScrollEdge: true, blurEffect: c.escuro ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight' } as const)
     : {};
-  const nativo = SEM_VIDRO ? undefined : aparencia(c.escuro ? Marca.ouroClaro : Marca.vinho, antigo);
+  const tint = c.escuro ? Marca.ouroClaro : Marca.vinho;
+  // as funções de aparência só existem no iOS (no Android o módulo é outro)
+  const nativo = VIDRO ? aparencia(tint, antigo) : undefined;
+  // Android: barra nas cores do app (sem as cores dinâmicas do papel de parede)
+  const coresAndroid = ANDROID
+    ? {
+        backgroundColor: c.escuro ? '#141B36' : '#F6EEDF',
+        iconColor: { default: c.textoFraco, selected: tint },
+        labelStyle: { default: { color: c.textoFraco }, selected: { color: tint } },
+        indicatorColor: c.escuro ? 'rgba(222,190,130,0.18)' : 'rgba(129,50,52,0.12)',
+        rippleColor: c.escuro ? 'rgba(222,190,130,0.18)' : 'rgba(129,50,52,0.12)',
+        badgeBackgroundColor: '#D93025',
+        labelVisibilityMode: 'labeled' as const,
+      }
+    : {};
   return (
-    <NativeTabs tintColor={c.escuro ? Marca.ouroClaro : Marca.vinho} minimizeBehavior="onScrollDown" {...antigo}>
+    <NativeTabs tintColor={tint} minimizeBehavior="onScrollDown" {...antigo} {...coresAndroid}>
       <NativeTabs.Trigger unstable_nativeProps={nativo} name="index">
         <NativeTabs.Trigger.Label>Hoje</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'sun.horizon', selected: 'sun.horizon.fill' }} md="wb_twilight" />
@@ -58,7 +75,7 @@ export default function Abas() {
       <NativeTabs.Trigger unstable_nativeProps={nativo} name="comunidade">
         <NativeTabs.Trigger.Label>Comunidade</NativeTabs.Trigger.Label>
         {/* o brasão da Comunidade, na cor da aba (cinza fora de foco, vinho ou dourado selecionado) */}
-        <NativeTabs.Trigger.Icon src={BRASAO} renderingMode="template" md="groups" />
+        <NativeTabs.Trigger.Icon src={BRASAO} renderingMode="template" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger unstable_nativeProps={nativo} name="agenda">
         <NativeTabs.Trigger.Label>Agenda</NativeTabs.Trigger.Label>

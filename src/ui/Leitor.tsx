@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActionSheetIOS, ActivityIndicator, Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
@@ -14,6 +14,7 @@ import { paginaHtml, textoParaVoz } from '@/conteudo/montar';
 import { mudarAjustes, useAjustes } from '@/estado/ajustes';
 import { usePaleta } from '@/tema';
 import { Icone, toque, Vidro } from './base';
+import { mostrarOpcoes } from './Opcoes';
 
 interface Props {
   corpo: string | null; // null = carregando
@@ -34,6 +35,9 @@ interface Props {
 }
 
 const ALTURA_RODAPE = 58;
+// altura do cabeçalho de navegação: no iOS ele é transparente e o texto passa por baixo dele;
+// no Android ele é sólido e o texto já começa abaixo
+const CABECALHO_IOS = 44;
 
 export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseUrl, alturaTopo = 64, rodape, tipo = 'texto', busca, acoes, iconeAcoes = 'ellipsis.circle', tituloAcoes, favorito, extra }: Props) {
   const aj = useAjustes();
@@ -91,6 +95,7 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
   }, [silencio]);
 
   // a página só é recriada quando mudam o texto ou a aparência (não a cada toque)
+  const cabecalho = Platform.OS === 'ios' ? insets.top + CABECALHO_IOS : 0;
   const html = useMemo(
     () =>
       corpo == null
@@ -99,11 +104,11 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
             titulo,
             subtitulo,
             tipo,
-            topoExtra: insets.top + 44 + (topo ? alturaTopo + 8 : 0),
+            topoExtra: cabecalho + (topo ? alturaTopo + 8 : 0),
             rodapeExtra: insets.bottom + (rodape ? ALTURA_RODAPE : 0),
           }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [corpo, aj.fonte, aj.alinhamento, aj.tema, c.leitorFundo, titulo, subtitulo, insets.top, insets.bottom, !!topo, !!rodape, alturaTopo, tipo],
+    [corpo, aj.fonte, aj.alinhamento, aj.tema, c.leitorFundo, titulo, subtitulo, cabecalho, insets.bottom, !!topo, !!rodape, alturaTopo, tipo],
   );
 
   // página nova (outro texto ou outra aparência): o índice vem de novo dela
@@ -197,7 +202,7 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
     setIndiceAberto(false);
     js(`window.pfIr(${JSON.stringify(id)})`);
   };
-  const topoBusca = insets.top + 50 + (topo ? alturaTopo + 8 : 0);
+  const topoBusca = cabecalho + 6 + (topo ? alturaTopo + 8 : 0);
 
   return (
     <View style={{ flex: 1, backgroundColor: c.leitorFundo }}>
@@ -225,10 +230,11 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
           textInteractionEnabled
           decelerationRate="normal"
           contentInsetAdjustmentBehavior="never"
+          textZoom={100} // Android: o tamanho da letra é o do app (não soma o tamanho de fonte do sistema)
         />
       )}
 
-      {topo && barraVisivel ? <View style={{ position: 'absolute', top: insets.top + 50, left: 12, right: 12 }}>{topo}</View> : null}
+      {topo && barraVisivel ? <View style={{ position: 'absolute', top: cabecalho + 6, left: 12, right: 12 }}>{topo}</View> : null}
 
       {silencio != null ? (
         <View style={{ position: 'absolute', top: '38%', alignSelf: 'center' }}>
@@ -278,12 +284,7 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
             {acoes?.length ? (
               <BotaoBarra
                 icone={iconeAcoes}
-                onPress={() =>
-                  ActionSheetIOS.showActionSheetWithOptions(
-                    { title: tituloAcoes, options: [...acoes.map((a) => a.rotulo), 'Cancelar'], cancelButtonIndex: acoes.length },
-                    (i) => i < acoes.length && acoes[i].onPress(),
-                  )
-                }
+                onPress={() => mostrarOpcoes(tituloAcoes, acoes)}
               />
             ) : null}
             {favorito ? <BotaoBarra icone={favorito.ativo ? 'star.fill' : 'star'} onPress={favorito.alternar} /> : null}
@@ -304,7 +305,7 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
           <Vidro style={{ borderRadius: 22 }} interativo>
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 14, paddingRight: 4 }}>
               <Icone nome="magnifyingglass" cor={c.textoFraco} tamanho={16} />
-              <TextInput
+              <TextInput underlineColorAndroid="transparent" cursorColor="#BC8C44"
                 value={termo}
                 onChangeText={mudarTermo}
                 autoFocus={!busca}

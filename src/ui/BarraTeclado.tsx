@@ -12,7 +12,7 @@ export const CampoTexto = forwardRef<TextInput, TextInputProps>(function CampoTe
   const comBarra = Platform.OS === 'ios' && !!props.multiline;
   return (
     <>
-      <TextInput ref={ref} {...props} inputAccessoryViewID={comBarra ? id : props.inputAccessoryViewID} />
+      <TextInput underlineColorAndroid="transparent" cursorColor="#BC8C44" ref={ref} {...props} inputAccessoryViewID={comBarra ? id : props.inputAccessoryViewID} />
       {comBarra ? (
         <InputAccessoryView nativeID={id}>
           <View

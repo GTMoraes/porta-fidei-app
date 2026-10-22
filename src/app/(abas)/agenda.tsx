@@ -13,6 +13,7 @@ import { dataLonga } from '@/util/datas';
 import { CalendarioAgenda, LinhaEvento } from '@/ui/Agenda';
 import { CapaVideo, ImagemInteira } from '@/ui/Midia';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
+import { APARELHO } from '@/util/plataforma';
 
 export default function Agenda() {
   const lista = useSubirAoTopo();
@@ -65,18 +66,18 @@ export default function Agenda() {
     else marcarVisto('avisos', avisos);
   });
   const confirmarRemover = (a: AvisoT, desfazer?: () => void) =>
-    Alert.alert('Tem certeza?', 'O aviso some deste iPhone de vez. Para os outros membros nada muda.', [
+    Alert.alert('Tem certeza?', `O aviso some deste ${APARELHO} de vez. Para os outros membros nada muda.`, [
       { text: 'Cancelar', style: 'cancel', onPress: desfazer },
       { text: 'Remover', style: 'destructive', onPress: () => remover(a) },
     ]);
 
   return (
-    <Fundo>
+    <Fundo aba>
       <ScrollView
         ref={lista}
         scrollToOverflowEnabled
         contentInsetAdjustmentBehavior="automatic"
-        refreshControl={<RefreshControl refreshing={puxando} onRefresh={puxar} tintColor={c.destaque} />}>
+        refreshControl={<RefreshControl refreshing={puxando} onRefresh={puxar} tintColor={c.destaque} colors={[c.destaque]} />}>
         <TituloTela titulo="Agenda" sobre="Missas, eventos e avisos" />
 
         <View style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.l }}>

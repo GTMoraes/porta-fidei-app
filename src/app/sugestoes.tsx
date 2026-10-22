@@ -45,7 +45,7 @@ export default function Sugestoes() {
 
   return (
     <Fundo>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" refreshControl={<RefreshControl refreshing={carregando} onRefresh={carregar} tintColor={c.destaque} />}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" refreshControl={<RefreshControl refreshing={carregando} onRefresh={carregar} tintColor={c.destaque} colors={[c.destaque]} />}>
         <Secao>
           {lista && !lista.length ? <Aviso texto="Nenhuma sugestão por enquanto." /> : null}
           {(lista ?? []).map((s, i, l) => {

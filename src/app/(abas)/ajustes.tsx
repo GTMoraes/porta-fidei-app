@@ -24,7 +24,7 @@ export default function TelaAjustes() {
   );
 
   return (
-    <Fundo>
+    <Fundo aba>
       <ScrollView
         ref={lista}
         scrollToOverflowEnabled contentInsetAdjustmentBehavior="automatic">

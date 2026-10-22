@@ -3,7 +3,7 @@
 
 import { createEventInCalendarAsync, requestCalendarPermissionsAsync } from 'expo-calendar/legacy';
 import * as Location from 'expo-location';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import type { Evento } from '@/servidor/api';
 import { linkMapa } from './mapas';
@@ -46,7 +46,12 @@ export async function salvarNaAgenda(e: Evento) {
   };
   try {
     await createEventInCalendarAsync(dados);
-  } catch {
+  } catch (err: any) {
+    // Android: a tela de novo evento é do app de agenda do celular e não precisa de permissão
+    if (Platform.OS === 'android') {
+      Alert.alert('Não foi possível abrir a agenda', String(err?.message ?? err));
+      return;
+    }
     // iPhone mais antigo: precisa da permissão antes de mostrar a tela
     try {
       const p = await requestCalendarPermissionsAsync();

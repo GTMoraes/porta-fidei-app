@@ -34,8 +34,8 @@ export default function Admin() {
           </Secao>
           <Secao titulo="Entrar">
             <View style={{ padding: Espaco.l, gap: 12 }}>
-              <TextInput value={usuario} onChangeText={setUsuario} placeholder="Usuário" placeholderTextColor={c.textoFraco} autoCapitalize="none" autoCorrect={false} style={estilo} />
-              <TextInput value={senha} onChangeText={setSenha} placeholder="Senha" placeholderTextColor={c.textoFraco} secureTextEntry style={estilo} />
+              <TextInput underlineColorAndroid="transparent" cursorColor="#BC8C44" value={usuario} onChangeText={setUsuario} placeholder="Usuário" placeholderTextColor={c.textoFraco} autoCapitalize="none" autoCorrect={false} style={estilo} />
+              <TextInput underlineColorAndroid="transparent" cursorColor="#BC8C44" value={senha} onChangeText={setSenha} placeholder="Senha" placeholderTextColor={c.textoFraco} secureTextEntry style={estilo} />
               <Botao
                 titulo={ocupado ? 'Entrando…' : 'Entrar'}
                 desativado={ocupado || !usuario || !senha}

@@ -134,7 +134,7 @@ export default function Buscar() {
     <Fundo>
       <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
         <View style={{ marginHorizontal: Espaco.l, marginTop: Espaco.s, marginBottom: Espaco.l }}>
-          <TextInput
+          <TextInput underlineColorAndroid="transparent" cursorColor="#BC8C44"
             value={termo}
             onChangeText={setTermo}
             autoFocus

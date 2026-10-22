@@ -4,7 +4,7 @@
 import * as Location from 'expo-location';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import MapView, { type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -63,7 +63,7 @@ export default function MapaLocal() {
     toque();
     const perm = await Location.requestForegroundPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Sem acesso à localização', 'Permita em Ajustes > Porta Fidei > Localização, ou busque o endereço.');
+      Alert.alert('Sem acesso à localização', Platform.OS === 'ios' ? 'Permita em Ajustes > Porta Fidei > Localização, ou busque o endereço.' : 'Permita a localização do app nas Configurações do celular, ou busque o endereço.');
       return;
     }
     try {
@@ -124,7 +124,7 @@ export default function MapaLocal() {
         <Vidro style={{ borderRadius: 22 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 8 }}>
             <Icone nome="magnifyingglass" cor={c.textoFraco} tamanho={16} />
-            <TextInput
+            <TextInput underlineColorAndroid="transparent" cursorColor="#BC8C44"
               value={busca}
               onChangeText={setBusca}
               onSubmitEditing={() => buscar()}

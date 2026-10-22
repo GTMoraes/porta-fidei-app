@@ -1,21 +1,20 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Alert, ScrollView, View } from 'react-native';
 
 import { mudarAjustes, useAjustes } from '@/estado/ajustes';
 import { pedirPermissao, reagendarLembretes } from '@/estado/lembretes';
 import { HORAS, type Hora } from '@/liturgia/horas';
-import { Marca, usePaleta } from '@/tema';
 import { Aviso, Chave, Fundo, Linha, Secao } from '@/ui/base';
+import { SeletorData } from '@/ui/Data';
+import { AJUSTES_DO_APARELHO } from '@/util/plataforma';
 
 export default function Notificacoes() {
   const aj = useAjustes();
-  const c = usePaleta();
 
   const mudar = async (h: Hora, parcial: Partial<(typeof aj.lembretes)[Hora]>) => {
     if (parcial.ativo) {
       const ok = await pedirPermissao();
       if (!ok) {
-        Alert.alert('Notificações desligadas', 'Permita as notificações do app nos Ajustes do iPhone para receber os lembretes.');
+        Alert.alert('Notificações desligadas', `Permita as notificações do app ${AJUSTES_DO_APARELHO} para receber os lembretes.`);
         return;
       }
     }
@@ -44,15 +43,7 @@ export default function Notificacoes() {
                 />
                 {l.ativo ? (
                   <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, paddingBottom: 10 }}>
-                    <DateTimePicker
-                      value={d}
-                      mode="time"
-                      display="compact"
-                      locale="pt-BR"
-                      accentColor={Marca.ouro}
-                      themeVariant={c.escuro ? 'dark' : 'light'}
-                      onChange={(_e, nova) => nova && mudar(h.id, { hora: nova.getHours(), minuto: nova.getMinutes() })}
-                    />
+                    <SeletorData valor={d} modo="time" mudar={(nova) => mudar(h.id, { hora: nova.getHours(), minuto: nova.getMinutes() })} />
                   </View>
                 ) : null}
               </View>
