@@ -36,7 +36,8 @@ concurrency:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # a primeira build compila tudo do zero (C++ e Kotlin de cada biblioteca); com o cache, as próximas são bem mais rápidas
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
 
@@ -67,14 +68,17 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Cache do Gradle
-        uses: actions/cache@v4
+      # o cache é salvo no fim mesmo se a build falhar ou estourar o tempo (a próxima continua de onde parou)
+      - name: Restaurar o cache do Gradle
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('package-lock.json') }}
-          restore-keys: gradle-
+          key: gradle-${{ hashFiles('package-lock.json') }}-${{ github.run_id }}
+          restore-keys: |
+            gradle-${{ hashFiles('package-lock.json') }}-
+            gradle-
 
       - name: Instalar dependências
         run: npm ci
@@ -96,6 +100,16 @@ jobs:
         run: |
           npx expo prebuild --platform android --clean --no-install
           node scripts/assinar-android.mjs android/app/build.gradle
+          # memória: com os 2 GB padrão do Expo o Gradle passa o tempo todo limpando memória (a máquina tem 16 GB)
+          sed -i '/^org.gradle.jvmargs=/d' android/gradle.properties
+          {
+            echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8'
+            echo 'kotlin.daemon.jvmargs=-Xmx3g'
+            echo 'org.gradle.caching=true'
+            echo 'org.gradle.workers.max=4'
+          } >> android/gradle.properties
+          # sem a "lint vital" em nenhum módulo: na 1ª build ela estourou a memória e travou o Gradle até o tempo acabar
+          printf '\nsubprojects {\n    tasks.configureEach { t -> if (t.name.startsWith("lintVital")) t.enabled = false }\n}\n' >> android/build.gradle
 
       - name: Compilar o APK assinado
         env:
@@ -106,7 +120,9 @@ jobs:
           export PF_KEYSTORE="$RUNNER_TEMP/porta-fidei.p12"
           echo "$KS_B64" | base64 --decode > "$PF_KEYSTORE"
           cd android
-          ./gradlew app:assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --stacktrace 2>&1 | tee ../gradle.log | grep -E "^> Task :app:|BUILD (SUCCESSFUL|FAILED)|error:|e: " || true
+          ./gradlew app:assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --stacktrace --console=plain 2>&1 \
+            | while IFS= read -r l; do printf '%s %s\n' "$(date +%H:%M:%S)" "$l"; done | tee ../gradle.log \
+            | grep -E "> Task :[^ ]+:(compile|build|configureCMake|assemble|package|lintVital)|BUILD (SUCCESSFUL|FAILED)|error:| e: " || true
           grep -q "BUILD SUCCESSFUL" ../gradle.log
 
       - name: Conferir a assinatura
@@ -124,9 +140,18 @@ jobs:
         run: node scripts/publicar-apk.mjs "$APK" "$VERSAO" "$BUILD_N"
 
       - name: Resumo dos erros (se falhar)
-        if: failure()
+        if: failure() || cancelled() || cancelled()
         run: |
           grep -n -E "error:|e: |FAILURE|What went wrong" -A4 gradle.log 2>/dev/null | head -80 || true
+
+      - name: Salvar o cache do Gradle
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('package-lock.json') }}-${{ github.run_id }}
 
       - name: Limpar chaves
         if: always()
