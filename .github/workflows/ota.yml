@@ -1,6 +1,7 @@
 name: Atualização pelo ar (Porta Fidei)
 
-# Manda as mudanças de tela e de lógica (pasta src/) direto para os iPhones, sem build nova e sem TestFlight.
+# Manda as mudanças de tela e de lógica (pasta src/) direto para os iPhones e os Androids, sem build nova
+# (sem TestFlight e sem APK novo).
 # O app baixa ao abrir e usa na abertura seguinte.
 # Só vale para as builds com o mesmo "runtimeVersion" do app.json. Quando entra algo nativo novo
 # (mapa, agenda, permissão...), o runtimeVersion sobe e é preciso build nova (build-ipa.yml).
@@ -38,9 +39,9 @@ jobs:
       - name: Conferir o código (TypeScript)
         run: npx tsc --noEmit
 
-      - name: Gerar a atualização (iOS)
+      - name: Gerar a atualização (iOS e Android)
         run: |
-          npx expo export --platform ios --output-dir dist
+          npx expo export --platform ios --platform android --output-dir dist
           npx expo config --type public --json > dist/expoConfig.json
           node -e "const c=require('./dist/expoConfig.json');console.log('runtime',c.runtimeVersion,'versão',c.version)"
 
