@@ -125,7 +125,8 @@ jobs:
 
       - name: Resumo dos erros (se falhar)
         if: failure()
-        run: grep -n -E "error:|e: |FAILURE|What went wrong" -A4 gradle.log 2>/dev/null | head -80 || true
+        run: |
+          grep -n -E "error:|e: |FAILURE|What went wrong" -A4 gradle.log 2>/dev/null | head -80 || true
 
       - name: Limpar chaves
         if: always()
