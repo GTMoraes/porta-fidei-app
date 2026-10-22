@@ -3,13 +3,13 @@ import { useEffect, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 
-import { arquivado, arquivar, remover, useArquivados, visivel } from '@/estado/arquivados';
+import { arquivado, arquivar, remover, removido, useArquivados, visivel } from '@/estado/arquivados';
 import { eventosDaAgenda, marcarVisto, useNovidadesAgenda } from '@/estado/vistos';
-import { atualizar, useServidor, type Aviso as AvisoT, type Evento } from '@/servidor/api';
+import { atualizar, encerrado, useServidor, type Aviso as AvisoT, type Evento } from '@/servidor/api';
 import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base';
 import { DeslizarComAcoes, DeslizarParaArquivar } from '@/ui/Deslizar';
-import { dataLonga } from '@/util/datas';
+import { dataLonga, diaEHora } from '@/util/datas';
 import { CalendarioAgenda, LinhaEvento } from '@/ui/Agenda';
 import { CapaVideo, ImagemInteira } from '@/ui/Midia';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
@@ -54,8 +54,12 @@ export default function Agenda() {
   const arquivados = useArquivados();
   const [verArquivados, setVerArquivados] = useState(false);
   const todos = [...srv.avisos].sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado) || b.criado.localeCompare(a.criado));
-  const avisos = todos.filter((a) => visivel(arquivados, a));
-  const guardados = todos.filter((a) => arquivado(arquivados, a));
+  // encerrados (passou a validade) vão para Arquivados de todo mundo, com a data em que encerraram
+  const avisos = todos.filter((a) => visivel(arquivados, a) && !encerrado(a, agora));
+  const guardados = todos
+    .filter((a) => (arquivado(arquivados, a) || encerrado(a, agora)) && !removido(arquivados, a))
+    .sort((a, b) => b.criado.localeCompare(a.criado));
+  const soEncerrados = guardados.every((a) => encerrado(a, agora));
 
   // o que está na seção aberta conta como visto (inclusive o que chegar enquanto a pessoa olha)
   const focada = useIsFocused();
@@ -166,24 +170,37 @@ export default function Agenda() {
               <Secao>
                 <Linha
                   titulo={`Arquivados (${guardados.length})`}
-                  sub="Só neste aparelho"
+                  sub={soEncerrados ? 'Avisos que já passaram' : 'Os que você arquivou e os que já passaram'}
                   icone={verArquivados ? 'chevron.up' : 'archivebox'}
                   onPress={() => setVerArquivados((v) => !v)}
                   ultimo={!verArquivados}
                 />
                 {verArquivados
-                  ? guardados.map((a, i) => (
-                      <Animated.View key={a.id} layout={LinearTransition.duration(260)}>
-                        <DeslizarComAcoes
-                          onTocar={() => router.push({ pathname: '/aviso', params: { id: a.id } })}
-                          acoes={[
-                            { texto: 'Voltar', icone: 'tray.and.arrow.up', cor: Marca.ouro, onPress: (fechar) => (fechar(), arquivar(a, false)) },
-                            { texto: 'Remover', icone: 'trash', cor: '#C0392B', onPress: (fechar) => confirmarRemover(a, fechar) },
-                          ]}>
-                          <Linha titulo={a.titulo} sub={`${dataLonga(new Date(a.criado))} · deslize para voltar ou remover`} seta ultimo={i === guardados.length - 1} />
-                        </DeslizarComAcoes>
-                      </Animated.View>
-                    ))
+                  ? guardados.map((a, i) => {
+                      const fim = encerrado(a, agora);
+                      return (
+                        <Animated.View key={a.id} layout={LinearTransition.duration(260)}>
+                          <DeslizarComAcoes
+                            onTocar={() => router.push({ pathname: '/aviso', params: { id: a.id } })}
+                            acoes={[
+                              // encerrado não volta para a lista (a validade é para todos); só sai deste aparelho
+                              ...(fim ? [] : [{ texto: 'Voltar', icone: 'tray.and.arrow.up' as const, cor: Marca.ouro, onPress: (fechar: () => void) => (fechar(), arquivar(a, false)) }]),
+                              { texto: 'Remover', icone: 'trash', cor: '#C0392B', onPress: (fechar) => confirmarRemover(a, fechar) },
+                            ]}>
+                            <Linha
+                              titulo={a.titulo}
+                              sub={
+                                fim
+                                  ? `Encerrado em ${diaEHora(new Date(a.venceEm!))} · deslize para remover`
+                                  : `${dataLonga(new Date(a.criado))} · deslize para voltar ou remover`
+                              }
+                              seta
+                              ultimo={i === guardados.length - 1}
+                            />
+                          </DeslizarComAcoes>
+                        </Animated.View>
+                      );
+                    })
                   : null}
               </Secao>
             ) : null}

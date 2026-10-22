@@ -8,7 +8,7 @@ import { Espaco, Marca, usePaleta } from '@/tema';
 import { Botao, Chave, Fundo, Icone, Linha, Secao, toque } from '@/ui/base';
 import { SeletorData } from '@/ui/Data';
 import { AVISO_TEXTO_NOTIF, AVISO_TITULO_NOTIF, botoesProntos, Campo, CampoBotoes, CampoImagem, CampoVideo } from '@/ui/Formulario';
-import { dataCurta, hora } from '@/util/datas';
+import { dataCurta, diaEHora, fimDoDia, hora } from '@/util/datas';
 
 const TIPOS: [TipoEvento, string][] = [
   ['missa', 'Missa'],
@@ -63,7 +63,9 @@ export default function EditarEvento() {
   const [urgente, setUrgente] = useState(false);
   const [publicarAviso, setPublicarAviso] = useState(false);
   const [fixarAviso, setFixarAviso] = useState(false);
-  const av = { publicarAviso, fixarAviso: publicarAviso && fixarAviso };
+  // o aviso que nasce da notificação vale até o fim do dia do evento (ou de hoje, se o evento já passou)
+  const fimAviso = new Date(Math.max(fimDoDia(temFim ? fim : inicio).getTime(), fimDoDia().getTime()));
+  const av = { publicarAviso, fixarAviso: publicarAviso && fixarAviso, avisoVenceEm: publicarAviso ? fimAviso.toISOString() : null };
 
   const [tirou, setTirou] = useState(false); // tirou o ponto de propósito: não põe de novo sozinho
   useEffect(() => {
@@ -361,7 +363,11 @@ export default function EditarEvento() {
               ) : null}
               <Linha
                 titulo="Também publicar em Avisos"
-                sub={publicarAviso ? 'O título e o texto da notificação viram um aviso, com o botão "Ver evento"' : 'A notificação fica só na central de notificações'}
+                sub={
+                  publicarAviso
+                    ? `O título e o texto da notificação viram um aviso, com o botão "Ver evento". Vale até ${diaEHora(fimAviso)} (fim do dia do evento); depois fica como "Encerrado".`
+                    : 'A notificação fica só na central de notificações'
+                }
                 icone="megaphone"
                 direita={<Chave valor={publicarAviso} mudar={setPublicarAviso} />}
               />

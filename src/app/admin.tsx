@@ -4,10 +4,11 @@ import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { registrarPush } from '@/estado/push';
 import { eventosDaAgenda } from '@/estado/vistos';
-import { apagarAviso, apagarEvento, atualizar, entrar, sair, testarNotificacao, useServidor } from '@/servidor/api';
+import { apagarAviso, apagarEvento, atualizar, encerrado, encerrarAvisos, entrar, sair, testarNotificacao, useServidor, type Aviso as AvisoT } from '@/servidor/api';
 import { Espaco, usePaleta } from '@/tema';
-import { Aviso, Botao, Fundo, Linha, Secao } from '@/ui/base';
-import { quando } from '@/util/datas';
+import { Aviso, Botao, Fundo, Icone, Linha, Secao } from '@/ui/base';
+import { mostrarOpcoes } from '@/ui/Opcoes';
+import { diaEHora, quando } from '@/util/datas';
 
 export default function Admin() {
   const srv = useServidor();
@@ -16,6 +17,9 @@ export default function Admin() {
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
   const [ocupado, setOcupado] = useState(false);
+  // "Encerrar vários": escolher avisos e encerrar todos de uma vez
+  const [escolhendo, setEscolhendo] = useState(false);
+  const [escolhidos, setEscolhidos] = useState<string[]>([]);
 
   const estilo = {
     color: c.texto,
@@ -60,6 +64,47 @@ export default function Admin() {
 
   // só o que ainda vai acontecer (a agenda guarda também os últimos 90 dias, e a lista ficava enorme)
   const proximos = eventosDaAgenda(srv.eventos);
+  const noAr = srv.avisos.filter((a) => !encerrado(a));
+  const encerrados = srv.avisos.filter((a) => encerrado(a)).sort((a, b) => (b.venceEm ?? '').localeCompare(a.venceEm ?? ''));
+  const alternarEscolha = (id: string) => setEscolhidos((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
+  const encerrar = (ids: string[], depois?: () => void) =>
+    Alert.alert(
+      'Tem certeza?',
+      `${ids.length === 1 ? 'O aviso sai' : `Os ${ids.length} avisos saem`} do topo e da lista de Avisos de todos e ${ids.length === 1 ? 'fica guardado' : 'ficam guardados'} como "Encerrado". Dá para reativar depois.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Encerrar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await encerrarAvisos(ids);
+              await atualizar();
+              depois?.();
+            } catch (e: any) {
+              Alert.alert('Erro', String(e?.message ?? e));
+            }
+          },
+        },
+      ],
+    );
+  const reativar = async (id: string) => {
+    try {
+      await encerrarAvisos([id], true);
+      await atualizar();
+    } catch (e: any) {
+      Alert.alert('Erro', String(e?.message ?? e));
+    }
+  };
+  const opcoesAviso = (a: AvisoT) =>
+    mostrarOpcoes(a.titulo, [
+      { rotulo: 'Abrir', onPress: () => router.push({ pathname: '/aviso', params: { id: a.id } }) },
+      { rotulo: 'Editar', onPress: () => router.push({ pathname: '/editar-aviso', params: { id: a.id } }) },
+      encerrado(a)
+        ? { rotulo: 'Reativar para todos (sem vencimento)', onPress: () => reativar(a.id) }
+        : { rotulo: 'Encerrar para todos', onPress: () => encerrar([a.id]) },
+      { rotulo: 'Apagar', destrutivo: true, onPress: () => confirmarApagar('Este aviso', () => apagarAviso(a.id)) },
+    ]);
 
   const confirmarApagar = (oque: string, acao: () => Promise<unknown>) =>
     Alert.alert('Tem certeza?', `${oque} será apagado para todos os membros.`, [
@@ -133,27 +178,58 @@ export default function Admin() {
           Os que já passaram ficam no calendário da Agenda: toque no dia para abrir e editar.
         </Text>
 
-        <Secao titulo="Avisos publicados">
-          {srv.avisos.length ? (
-            srv.avisos.map((a, i) => (
+        <Secao titulo="Avisos no ar">
+          {noAr.length ? (
+            noAr.map((a, i) => (
               <Linha
                 key={a.id}
                 titulo={a.titulo}
-                sub={new Date(a.criado).toLocaleDateString('pt-BR')}
-                onPress={() =>
-                  Alert.alert(a.titulo, a.texto.slice(0, 200), [
-                    { text: 'Editar', onPress: () => router.push({ pathname: '/editar-aviso', params: { id: a.id } }) },
-                    { text: 'Apagar', style: 'destructive', onPress: () => confirmarApagar('Este aviso', () => apagarAviso(a.id)) },
-                    { text: 'Fechar', style: 'cancel' },
-                  ])
-                }
-                ultimo={i === srv.avisos.length - 1}
+                sub={`${new Date(a.criado).toLocaleDateString('pt-BR')}${a.fixado ? ' · fixado' : ''}${a.venceEm ? ` · até ${diaEHora(new Date(a.venceEm))}` : ' · sem vencimento'}`}
+                icone={a.fixado ? 'pin.fill' : 'megaphone'}
+                direita={escolhendo ? <Icone nome={escolhidos.includes(a.id) ? 'checkmark.circle.fill' : 'circle'} tamanho={22} /> : undefined}
+                onPress={() => (escolhendo ? alternarEscolha(a.id) : opcoesAviso(a))}
+                ultimo={i === noAr.length - 1}
               />
             ))
           ) : (
-            <Aviso texto="Nenhum aviso publicado." />
+            <Aviso texto="Nenhum aviso no ar." />
           )}
         </Secao>
+        {noAr.length > 1 || escolhendo ? (
+          <View style={{ marginHorizontal: Espaco.l, marginTop: -Espaco.s, marginBottom: Espaco.xl, gap: 10 }}>
+            {escolhendo ? (
+              <>
+                <Botao
+                  titulo={escolhidos.length ? `Encerrar ${escolhidos.length === 1 ? '1 aviso' : `${escolhidos.length} avisos`} para todos` : 'Toque nos avisos para escolher'}
+                  icone="archivebox"
+                  desativado={!escolhidos.length}
+                  onPress={() => encerrar(escolhidos, () => (setEscolhendo(false), setEscolhidos([])))}
+                />
+                <Botao titulo="Cancelar" tipo="secundario" onPress={() => (setEscolhendo(false), setEscolhidos([]))} />
+              </>
+            ) : (
+              <Botao titulo="Encerrar vários" icone="checkmark.circle" tipo="secundario" onPress={() => setEscolhendo(true)} />
+            )}
+          </View>
+        ) : null}
+
+        {encerrados.length ? (
+          <Secao titulo="Encerrados">
+            {encerrados.map((a, i) => (
+              <Linha
+                key={a.id}
+                titulo={a.titulo}
+                sub={`Encerrado em ${diaEHora(new Date(a.venceEm!))}`}
+                icone="archivebox"
+                onPress={() => opcoesAviso(a)}
+                ultimo={i === encerrados.length - 1}
+              />
+            ))}
+          </Secao>
+        ) : null}
+        <Text style={{ color: c.textoFraco, fontSize: 13, marginHorizontal: Espaco.xl, marginTop: encerrados.length ? -Espaco.m : 0, marginBottom: Espaco.xl }}>
+          Encerrado sai do topo e da lista de Avisos de todos e fica em Arquivados como &quot;Encerrado&quot;. Nada é apagado: dá para reativar.
+        </Text>
 
         <View style={{ marginHorizontal: Espaco.l, marginBottom: 40 }}>
           <Botao titulo="Sair da administração" tipo="secundario" icone="rectangle.portrait.and.arrow.right" onPress={() => sair()} />

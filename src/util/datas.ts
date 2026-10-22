@@ -43,3 +43,14 @@ export function horaSugerida(agora = new Date()) {
   if (h < 20) return 'vesperas' as const;
   return 'completas' as const;
 }
+
+/** 23h59 do dia de `d` (mais `dias` dias): a validade "Fim de hoje", "Amanhã"... dos avisos */
+export function fimDoDia(d = new Date(), dias = 0) {
+  const f = new Date(d);
+  f.setDate(f.getDate() + dias);
+  f.setHours(23, 59, 0, 0);
+  return f;
+}
+
+/** "qui. 22 de out. às 23h59" */
+export const diaEHora = (d: Date) => `${dataCurta(d)} às ${hora(d)}`;

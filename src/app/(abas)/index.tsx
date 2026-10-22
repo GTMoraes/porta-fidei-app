@@ -13,7 +13,7 @@ import { lerAjustes } from '@/estado/ajustes';
 import { COR_HEX, NOME_GRAU, NOME_TEMPO, dataPorExtenso, diaLiturgico, hojeIso } from '@/liturgia/calendario';
 import { HORAS } from '@/liturgia/horas';
 import { santosDoDia } from '@/liturgia/martirologio';
-import { atualizar, useServidor } from '@/servidor/api';
+import { atualizar, encerrado, useServidor } from '@/servidor/api';
 import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
 import { DeslizarParaArquivar } from '@/ui/Deslizar';
@@ -95,9 +95,11 @@ export default function Hoje() {
   const jornadas = jornadasDeHoje(com?.jornadas, hoje);
   const feitos = useFeitos();
   const arquivados = useArquivados();
-  const avisos = srv.avisos.filter((a) => visivel(arquivados, a)).sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado)).slice(0, 3);
+  // avisos encerrados (passou a validade) não aparecem mais aqui: ficam em Avisos › Arquivados
+  const ativos = srv.avisos.filter((a) => !encerrado(a, agoraMs));
+  const avisos = ativos.filter((a) => visivel(arquivados, a)).sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado)).slice(0, 3);
   // avisos fixados: também no topo da tela (deslizar tira só daqui; o aviso continua em Avisos)
-  const fixados = srv.avisos.filter((a) => a.fixado && visivel(arquivados, a) && !dispensado(arquivados, a));
+  const fixados = ativos.filter((a) => a.fixado && visivel(arquivados, a) && !dispensado(arquivados, a));
   const atualizacaoPronta = useAtualizacaoPronta();
 
   return (

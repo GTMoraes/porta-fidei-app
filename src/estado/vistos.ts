@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useSyncExternalStore } from 'react';
 
 import { useArquivados, visivel } from './arquivados';
-import { useServidor, type Evento } from '@/servidor/api';
+import { encerrado, useServidor, type Evento } from '@/servidor/api';
 
 const CHAVE = 'pf.agenda.vistos.v1';
 export type SecaoAgenda = 'eventos' | 'avisos';
@@ -82,7 +82,7 @@ export function useNovidadesAgenda() {
   const srv = useServidor();
   const arquivados = useArquivados();
   const eventos = eventosDaAgenda(srv.eventos);
-  const avisos = srv.avisos.filter((a) => visivel(arquivados, a));
+  const avisos = srv.avisos.filter((a) => visivel(arquivados, a) && !encerrado(a));
   const prontos = !!srv.atualizado;
 
   useEffect(() => {

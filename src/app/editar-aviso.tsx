@@ -5,6 +5,8 @@ import { Alert, ScrollView, View } from 'react-native';
 import { apagarAviso, atualizar, notificarTodos, salvarAviso, useServidor, type BotaoLink, type VideoMidia } from '@/servidor/api';
 import { Espaco } from '@/tema';
 import { Aviso, Botao, Chave, Fundo, Linha, Secao } from '@/ui/base';
+import { CampoValidade } from '@/ui/Validade';
+import { fimDoDia } from '@/util/datas';
 import { AVISO_TEXTO_NOTIF, AVISO_TITULO_NOTIF, botoesProntos, Campo, CampoBotoes, CampoImagem, CampoVideo } from '@/ui/Formulario';
 
 export default function EditarAviso() {
@@ -20,6 +22,17 @@ export default function EditarAviso() {
   const [enviandoVideo, setEnviandoVideo] = useState(false);
   const [botoes, setBotoes] = useState<BotaoLink[]>(orig?.botoes ?? []);
   const [fixado, setFixado] = useState(!!orig?.fixado);
+  const [venceEm, setVenceEm] = useState<Date | null>(orig?.venceEm ? new Date(orig.venceEm) : null);
+  const [mexeuValidade, setMexeuValidade] = useState(!!orig?.venceEm);
+  // aviso fixado vem com "Fim de hoje" (enquanto a pessoa não escolher outra validade)
+  const mudarFixado = (v: boolean) => {
+    setFixado(v);
+    if (!mexeuValidade) setVenceEm(v ? fimDoDia() : null);
+  };
+  const mudarValidade = (d: Date | null) => {
+    setMexeuValidade(true);
+    setVenceEm(d);
+  };
   const [notificar, setNotificar] = useState(!orig);
   const [guardar, setGuardar] = useState(true); // false: só a notificação, sem aparecer em Avisos
   const [salvando, setSalvando] = useState(false);
@@ -34,7 +47,19 @@ export default function EditarAviso() {
     try {
       const vaiNotificar = notificar || (!orig && !guardar);
       if (!orig && !guardar) await notificarTodos(titulo.trim(), texto.trim(), urgente);
-      else await salvarAviso({ id: orig?.id, titulo: titulo.trim(), texto: texto.trim(), imagem, video, botoes: bts, fixado, notificar, urgente: vaiNotificar && urgente });
+      else
+        await salvarAviso({
+          id: orig?.id,
+          titulo: titulo.trim(),
+          texto: texto.trim(),
+          imagem,
+          video,
+          botoes: bts,
+          fixado,
+          venceEm: venceEm ? venceEm.toISOString() : null,
+          notificar,
+          urgente: vaiNotificar && urgente,
+        });
       await atualizar();
       router.back();
     } catch (e: any) {
@@ -66,7 +91,7 @@ export default function EditarAviso() {
               direita={<Chave valor={guardar} mudar={(v) => (setGuardar(v), !v && setNotificar(true))} />}
             />
           ) : null}
-          {guardar || orig ? <Linha titulo="Fixar no topo" direita={<Chave valor={fixado} mudar={setFixado} />} /> : null}
+          {guardar || orig ? <Linha titulo="Fixar no topo" direita={<Chave valor={fixado} mudar={mudarFixado} />} /> : null}
           <Linha
             titulo={orig ? 'Notificar de novo' : 'Notificar os membros'}
             sub={
@@ -88,6 +113,11 @@ export default function EditarAviso() {
             />
           ) : null}
         </Secao>
+        {guardar || orig ? (
+          <Secao titulo="Validade">
+            <CampoValidade valor={venceEm} mudar={mudarValidade} />
+          </Secao>
+        ) : null}
         {orig ? (
           <Secao>
             <Aviso icone="arrow.triangle.2.circlepath" texto="A correção substitui o aviso no app de todos, que passa a mostrar “corrigido”. Quem tinha arquivado volta a ver o aviso." />

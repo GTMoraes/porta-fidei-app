@@ -3,6 +3,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { File, Paths, UploadType } from 'expo-file-system';
+import * as Notifications from 'expo-notifications';
 import { useSyncExternalStore } from 'react';
 
 import { cabecalhoApp } from '@/conteudo/remoto';
@@ -68,7 +69,11 @@ export interface Aviso {
   atualizado?: string; // última edição (para mostrar "corrigido")
   video?: VideoMidia | null;
   botoes?: BotaoLink[];
+  venceEm?: string | null; // validade: depois dela o aviso sai do topo e da lista e fica como "Encerrado"
 }
+
+/** Aviso que já passou da validade (pelo relógio do aparelho: vale até sem internet) */
+export const encerrado = (a: Aviso, agora = Date.now()) => !!a.venceEm && Date.parse(a.venceEm) <= agora;
 
 export interface SecaoProposta {
   titulo: string;
@@ -178,10 +183,35 @@ export async function atualizar() {
     const comunidade = rc?.ok ? ((await rc.json()) as Comunidade) : dados.comunidade;
     dados = { eventos, avisos, comunidade, atualizado: new Date().toISOString(), carregando: false, admin: !!token };
     AsyncStorage.setItem(CHAVE, JSON.stringify(dados)).catch(() => {});
+    limparNotificacoesEncerradas(avisos);
   } catch (e: any) {
     dados = { ...dados, carregando: false, erro: e?.name === 'AbortError' ? 'Sem resposta do servidor' : String(e?.message ?? e) };
   }
   emitir();
+}
+
+/**
+ * Tira da central de notificações do aparelho as notificações de avisos que já encerraram ou foram
+ * apagados (roda a cada atualização, inclusive pelo push silencioso). É um extra: se o aparelho não
+ * acordar o app, a notificação fica, e ao tocar nela o aviso abre com a faixa "encerrado".
+ */
+function limparNotificacoesEncerradas(avisos: Aviso[]) {
+  const agora = Date.now();
+  const porId = new Map(avisos.map((a) => [a.id, a]));
+  Notifications.getPresentedNotificationsAsync()
+    .then((lista) =>
+      Promise.all(
+        lista.map((n) => {
+          const d = (n.request.content.data ?? {}) as Record<string, unknown>;
+          if (d.tipo !== 'aviso' || typeof d.id !== 'string') return null;
+          const a = porId.get(d.id);
+          // só some se o aviso encerrou (ou não existe mais e a notificação tem mais de 1 dia)
+          const sai = a ? encerrado(a, agora) : agora - n.date > 86400_000;
+          return sai ? Notifications.dismissNotificationAsync(n.request.identifier).catch(() => {}) : null;
+        }),
+      ),
+    )
+    .catch(() => {});
 }
 
 // ---------------- administração
@@ -242,6 +272,7 @@ async function admin(caminho: string, metodo: string, corpo?: unknown, ms = 1200
 export interface AvisoDoEvento {
   publicarAviso?: boolean;
   fixarAviso?: boolean;
+  avisoVenceEm?: string | null;
 }
 export const salvarEvento = (e: Partial<Evento> & { notificacao?: NotificacaoEvento } & AvisoDoEvento) => (e.id ? admin(`/eventos/${e.id}`, 'PUT', e) : admin('/eventos', 'POST', e));
 export const apagarEvento = (id: string) => admin(`/eventos/${id}`, 'DELETE');
@@ -256,6 +287,9 @@ export const locaisSalvos = () => admin('/locais', 'GET') as Promise<LocalSalvo[
 export const salvarAviso = (a: Partial<Aviso> & { notificar?: boolean; urgente?: boolean }) =>
   a.id ? admin(`/avisos/${a.id}`, 'PUT', a) : admin('/avisos', 'POST', a);
 export const apagarAviso = (id: string) => admin(`/avisos/${id}`, 'DELETE');
+/** Encerrar para todos (vence agora) ou reativar (sem vencimento), um ou vários avisos */
+export const encerrarAvisos = (ids: string[], reativar = false) =>
+  admin('/avisos/encerrar', 'POST', { ids, reativar }) as Promise<{ alterados: number }>;
 /** Só a notificação, para todos os aparelhos, sem criar aviso */
 export const notificarTodos = (titulo: string, texto: string, urgente = false) =>
   admin('/notificar-teste', 'POST', { titulo, texto, urgente }) as Promise<{ resultado: string }>;
