@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
 import { COR_HEX, MESES, NOME_GRAU, NOME_TEMPO, diaLiturgico, hojeIso } from '@/liturgia/calendario';
 import { Espaco, Fontes, usePaleta } from '@/tema';
 import { Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
@@ -12,6 +13,7 @@ const iso = (y: number, m: number, d: number) => `${y}-${String(m).padStart(2, '
 export default function Calendario() {
   const c = usePaleta();
   const router = useRouter();
+  usePacote(); // redesenha quando o conteúdo litúrgico termina de carregar (biografias dos santos)
   const hoje = hojeIso();
   const [ano, setAno] = useState(Number(hoje.slice(0, 4)));
   const [mes, setMes] = useState(Number(hoje.slice(5, 7)));
@@ -120,9 +122,19 @@ export default function Calendario() {
             onPress={() => router.push({ pathname: '/dia', params: { data: sel } })}
             ultimo={!dSel.facultativas.length}
           />
-          {dSel.facultativas.map((f, i) => (
-            <Linha key={f.nome} titulo={f.nome} sub="Memória facultativa" ultimo={i === dSel.facultativas.length - 1} />
-          ))}
+          {dSel.facultativas.map((f, i) => {
+            // com a biografia no pacote, abre direto (como na tela do dia)
+            const santo = f.slug && existe(`santos/${f.slug}`) ? `santos/${f.slug}` : null;
+            return (
+              <Linha
+                key={f.nome}
+                titulo={f.nome}
+                sub="Memória facultativa"
+                onPress={santo ? () => router.push({ pathname: '/texto', params: { arquivo: santo, titulo: f.nome, imagem: imagemUri(santo) ? santo : '' } }) : undefined}
+                ultimo={i === dSel.facultativas.length - 1}
+              />
+            );
+          })}
         </Secao>
 
         {destaques.length ? (

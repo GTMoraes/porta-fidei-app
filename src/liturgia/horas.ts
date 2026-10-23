@@ -22,6 +22,8 @@ export interface Parte {
   ate?: string; // texto que marca o fim (exclusivo)
   /** usado quando o arquivo próprio não traz a salmodia: entra antes dele, até "Leitura breve" */
   seFaltarSalmodia?: Parte;
+  /** troca o trecho [de, ate) deste arquivo pelo mesmo trecho das partes indicadas (ex.: memória com a salmodia do dia de semana) */
+  trocarTrecho?: { de: string; ate: string; partes: Parte[] };
   rotulo?: string;
 }
 
@@ -214,6 +216,27 @@ function temporal(dia: DiaLiturgico, h: Hora, op: Opcoes): { partes: Parte[]; or
   }
 }
 
+// ------------------------------------------------------------------ memórias (Instrução Geral da Liturgia das Horas, 235-236)
+// Numa memória (obrigatória ou facultativa), o próprio/comum do santo dá o hino, a leitura breve, o responsório,
+// a antífona do Benedictus/Magnificat, as preces e a oração; mas a salmodia (salmos e antífonas) é a do dia de
+// semana, e no Ofício das Leituras também a primeira leitura. A Hora Média e as Completas são inteiras do dia
+// de semana. Exceção: nas Laudes e Vésperas, as memórias com antífonas próprias (lista abaixo) ficam com a
+// salmodia delas.
+const MEMORIAS_COM_SALMODIA_PROPRIA = new Set(['santaines', 'santaagueda', 'martiriobatista', 'saomartinho', 'santacecilia', 'santaluzia']);
+
+function comSalmodiaDoDia(partes: Parte[], dia: DiaLiturgico, h: Hora, op: Opcoes): Parte[] {
+  if (partes.length !== 1) return partes;
+  const t = temporal(dia, h, op).partes;
+  if (!t.length) return partes;
+  if (h === 'laudes' || h === 'vesperas') return [{ ...partes[0], trocarTrecho: { de: 'Salmodia', ate: 'Leitura breve', partes: t } }];
+  if (h === 'leituras') {
+    // a primeira leitura do dia de semana começa no título dela (sem o cabeçalho do arquivo de leituras)
+    const tp = t.map((x) => (x.desde === 'OL' ? { ...x, desde: 'Primeira leitura' } : x));
+    return [{ ...partes[0], trocarTrecho: { de: 'Salmodia', ate: 'Segunda leitura', partes: tp } }];
+  }
+  return partes;
+}
+
 // ------------------------------------------------------------------ próprio (solenidades, festas, memórias)
 function proprio(dia: DiaLiturgico, slug: string, h: Hora, op: Opcoes, primeiras: boolean): Parte[] | undefined {
   const suf = sufixo(h);
@@ -261,8 +284,11 @@ export function planoDaHora(dataIso: string, h: Hora, op: Opcoes): PlanoHora {
 
   let partes: Parte[] | undefined;
   let oracaoDe: Parte | undefined;
-  if (slug && (ehProprioForte || ehMemoria) && h !== 'completas' && h !== 'invitatorio') {
+  const horaMedia = h === 'terca' || h === 'sexta' || h === 'nona';
+  const memoriaComum = ehMemoria && (h === 'leituras' || !MEMORIAS_COM_SALMODIA_PROPRIA.has(slug!));
+  if (slug && (ehProprioForte || ehMemoria) && h !== 'completas' && h !== 'invitatorio' && !(ehMemoria && horaMedia)) {
     partes = proprio(dia, slug, h, op, false);
+    if (partes && memoriaComum) partes = comSalmodiaDoDia(partes, dia, h, op);
   }
   if (!partes) {
     const t = temporal(dia, h, op);
@@ -276,7 +302,12 @@ export function planoDaHora(dataIso: string, h: Hora, op: Opcoes): PlanoHora {
   if (h === 'laudes') {
     const ol = planoDaHora(dataIso, 'leituras', op).partes;
     const comLeituras = ol.filter((x) => x.desde === 'OL');
-    leiturasExtras = comLeituras.length ? comLeituras : ol.slice(-1).map((x) => ({ ...x, desde: 'Primeira leitura' }));
+    const troca = ol.length === 1 ? ol[0].trocarTrecho : undefined;
+    const primeiraDoDia = troca?.partes.find((x) => x.desde === 'Primeira leitura');
+    if (troca && primeiraDoDia) {
+      // memória: primeira leitura do dia de semana e segunda leitura do santo
+      leiturasExtras = [{ ...primeiraDoDia, ate: 'Segunda leitura' }, { arquivo: ol[0].arquivo, desde: 'Segunda leitura' }];
+    } else leiturasExtras = comLeituras.length ? comLeituras : ol.slice(-1).map((x) => ({ ...x, desde: 'Primeira leitura' }));
   }
 
   return {

@@ -34,6 +34,8 @@ export default function LiturgiaDiaria() {
   const dia = useMemo(() => diaLiturgico(data), [data]);
   const [cnbb, setCnbb] = useState<DiaCNBB | null | undefined>(undefined); // undefined = procurando
   const [missal, setMissal] = useState<string>('');
+  // memórias facultativas do dia com antífonas e orações no Missal: vão no fim, como opção (as leituras não mudam)
+  const [memorias, setMemorias] = useState<{ nome: string; html: string }[]>([]);
   const [baixar, setBaixar] = useState<string[]>([]); // datas que a página invisível vai buscar
   const [baixando, setBaixando] = useState(false);
   const dataAtual = useRef(data);
@@ -84,6 +86,11 @@ export default function LiturgiaDiaria() {
     const arq = missalDoDia(dia, existe);
     setMissal('');
     if (arq) montarArquivo(arq).then((m) => vivo && setMissal(m.corpo));
+    setMemorias([]);
+    const opcionais = dia.facultativas.filter((f) => f.slug && existe(`missal/proprio/proprio/${f.slug}`));
+    Promise.all(opcionais.map((f) => montarArquivo(`missal/proprio/proprio/${f.slug}`).then((m) => ({ nome: f.nome, html: m.corpo }))))
+      .then((l) => vivo && setMemorias(l))
+      .catch(() => {});
     return () => {
       vivo = false;
     };
@@ -104,10 +111,15 @@ export default function LiturgiaDiaria() {
         '<p class="c" style="margin-top:24px"><span class="lacuna">Não foi possível carregar as leituras deste dia (sem internet ou o site da CNBB não respondeu). Os dias já abertos ficam guardados no aparelho.</span></p>',
       );
     if (depois) partes.push(`<div class="missa" style="margin-top:1.6em">${depois}</div>`);
+    for (const m of memorias) {
+      partes.push(`<div class="faixa">Memória facultativa</div><p class="cel">${m.nome}</p>`);
+      partes.push('<p class="nota">Se for celebrada a memória, as antífonas e as orações são estas; as leituras continuam as do dia.</p>');
+      partes.push(`<div class="missa">${m.html}</div>`);
+    }
     if (cnbb) partes.push('<p class="fonte">Leituras: Liturgia Diária, Edições CNBB</p>');
     partes.push('</section>');
     return partes.join('');
-  }, [cnbb, missal, baixando]);
+  }, [cnbb, missal, memorias, baixando]);
 
   const mudarDia = (n: number) => {
     toque();

@@ -58,6 +58,21 @@ export function normalizar(html: string): string {
 
 const temSalmodia = (html: string) => /Salmodia|Salmo\s+\d|Ant\.\s*1/i.test(html);
 
+/** Posição do trecho [de, ate) num HTML, do começo da tag do título "de" até o começo da tag do título "ate" */
+function faixa(html: string, de: string, ate: string): [number, number] | null {
+  const a = html.indexOf(de);
+  if (a < 0) return null;
+  const ini = Math.max(0, html.lastIndexOf('<', a));
+  let b = html.indexOf(ate, a + de.length);
+  if (b < 0) return null;
+  const tag = html.lastIndexOf('<', b);
+  let fim = tag > ini && b - tag < 60 ? tag : b;
+  // numa hora remendada (salmodia de outro arquivo), o trecho acaba na emenda
+  const emenda = html.indexOf('<div class="emenda">', ini);
+  if (emenda > ini && emenda < fim) fim = emenda;
+  return [ini, fim];
+}
+
 async function lerParte(p: Parte): Promise<string | null> {
   const bruto = await ler(p.arquivo);
   if (bruto == null) return null;
@@ -65,6 +80,16 @@ async function lerParte(p: Parte): Promise<string | null> {
   if (p.seFaltarSalmodia && !temSalmodia(html)) {
     const base = await lerParte(p.seFaltarSalmodia);
     if (base) html = base + '<div class="emenda"></div>' + html;
+  }
+  if (p.trocarTrecho) {
+    // memória: o trecho (salmodia...) vem do dia de semana; se algo não for achado, fica o arquivo como está
+    const fontes = await Promise.all(p.trocarTrecho.partes.map(lerParte));
+    if (fontes.every((f) => f != null)) {
+      const origem = fontes.join('');
+      const fo = faixa(origem, p.trocarTrecho.de, p.trocarTrecho.ate);
+      const fd = faixa(html, p.trocarTrecho.de, p.trocarTrecho.ate);
+      if (fo && fd) html = html.slice(0, fd[0]) + origem.slice(fo[0], fo[1]) + html.slice(fd[1]);
+    }
   }
   return html;
 }
@@ -121,9 +146,11 @@ export async function montarHora(plano: PlanoHora, aj: Ajustes, extras: ExtrasHo
 
   // Laudes ampliada: acrescenta as leituras do Ofício das Leituras
   if (aj.laudesAmpliada && plano.hora === 'laudes' && plano.leiturasExtras) {
+    let primeira = true;
     for (const p of plano.leiturasExtras) {
       const h = await lerParte(p);
-      if (h) pedacos.push(`<section class="parte extra"><div class="faixa">Leituras do Ofício</div>${h}</section>`);
+      if (h) pedacos.push(`<section class="parte extra">${primeira ? '<div class="faixa">Leituras do Ofício</div>' : ''}${h}</section>`);
+      if (h) primeira = false;
     }
   }
 

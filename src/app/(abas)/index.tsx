@@ -19,6 +19,7 @@ import { Aviso, Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
 import { DeslizarParaArquivar } from '@/ui/Deslizar';
 import { dataParaHora, horaSugerida, quando } from '@/util/datas';
 import { LinhaEvento } from '@/ui/Agenda';
+import { AuraDourada } from '@/ui/Aura';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
 import { useFolgaAbas } from '@/ui/AbasAndroid';
 
@@ -147,6 +148,37 @@ export default function Hoje() {
           </Pressable>
         ) : null}
 
+        {/* conteúdo litúrgico ainda não baixado, ou versão nova: no alto e com a aura dourada até a pessoa baixar */}
+        {!pacote.manifest || haAtualizacao ? (
+          <AuraDourada style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.l, marginTop: Espaco.xs }}>
+            <Pressable
+              onPress={() => {
+                toque();
+                router.push('/conteudo');
+              }}>
+              <Vidro style={{ borderRadius: 24 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: Espaco.l }}>
+                  <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: Marca.ouro, alignItems: 'center', justifyContent: 'center' }}>
+                    <Icone nome="arrow.down" cor="#FFFFFF" tamanho={20} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: c.texto, fontSize: 17, fontWeight: '600' }}>
+                      {pacote.manifest ? 'Atualize o conteúdo litúrgico' : 'Baixe o conteúdo litúrgico'}
+                    </Text>
+                    <Text style={{ color: c.textoSuave, fontSize: 14, lineHeight: 19, marginTop: 3 }}>
+                      {pacote.manifest
+                        ? 'Saiu uma versão nova dos textos. Toque para baixar'
+                        : 'Necessário para a Liturgia das Horas e o Missal. Uma vez só; depois funciona sem internet'}
+                      {remoto ? ` (${(remoto.tamanho / 1e6).toFixed(0)} MB).` : '.'}
+                    </Text>
+                  </View>
+                  <Icone nome="chevron.right" cor={c.textoFraco} tamanho={15} />
+                </View>
+              </Vidro>
+            </Pressable>
+          </AuraDourada>
+        ) : null}
+
         {/* avisos fixados no topo */}
         {fixados.map((a) => (
           <DeslizarParaArquivar key={a.id} cor={c.escuro ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.18)'} simbolo="xmark" rotulo="Dispensar" onArquivar={() => dispensar(a)}>
@@ -215,16 +247,6 @@ export default function Hoje() {
           </Vidro>
         </Pressable>
 
-        {!pacote.manifest ? (
-          <Secao>
-            <Aviso icone="arrow.down.circle" texto="Para rezar a Liturgia das Horas e usar o Missal, baixe o conteúdo litúrgico (uma vez só; depois funciona sem internet)." />
-            <Linha titulo="Baixar conteúdo litúrgico" sub={remoto ? `${(remoto.tamanho / 1e6).toFixed(0)} MB` : undefined} icone="square.and.arrow.down" onPress={() => router.push('/conteudo')} ultimo />
-          </Secao>
-        ) : haAtualizacao ? (
-          <Secao>
-            <Linha titulo="Conteúdo litúrgico atualizado" sub="Toque para baixar a versão nova" icone="arrow.down.circle" onPress={() => router.push('/conteudo')} ultimo />
-          </Secao>
-        ) : null}
 
         {/* Rezar agora */}
         <Pressable
