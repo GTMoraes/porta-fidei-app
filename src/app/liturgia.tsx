@@ -112,8 +112,8 @@ export default function LiturgiaDiaria() {
       );
     if (depois) partes.push(`<div class="missa" style="margin-top:1.6em">${depois}</div>`);
     for (const m of memorias) {
-      partes.push(`<div class="faixa">Memória facultativa</div><p class="cel">${m.nome}</p>`);
-      partes.push('<p class="nota">Se for celebrada a memória, as antífonas e as orações são estas; as leituras continuam as do dia.</p>');
+      partes.push(`<hr/><div class="faixa">Memória facultativa</div><p class="mem-nome">${m.nome}</p>`);
+      partes.push('<p class="mem-nota">Se for celebrada a memória, as antífonas e as orações são estas. As leituras continuam as do dia.</p>');
       partes.push(`<div class="missa">${m.html}</div>`);
     }
     if (cnbb) partes.push('<p class="fonte">Leituras: Liturgia Diária, Edições CNBB</p>');
