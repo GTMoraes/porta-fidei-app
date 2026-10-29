@@ -7,6 +7,9 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 
 const [arquivo, versao, versionCode] = process.argv.slice(2);
+// runtime nativo deste APK: o app compara com o seu e, se o daqui for mais novo, oferece a atualização
+const config = JSON.parse(fs.readFileSync('app.json', 'utf8')).expo;
+const runtime = String(config.android?.runtimeVersion || config.runtimeVersion || '1');
 const base = (process.env.OTA_URL || 'https://portafidei.com.br/app').replace(/\/$/, '');
 const chave = process.env.OTA_CHAVE || '';
 if (!chave) {
@@ -46,7 +49,7 @@ for (let n = 0; n < partes; n++) {
 const r = await fetch(`${base}/api/apk/envio/${envio}/concluir`, {
   method: 'POST',
   headers: { 'X-OTA-Chave': chave, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ partes, sha256, versao, versionCode: Number(versionCode) }),
+  body: JSON.stringify({ partes, sha256, versao, versionCode: Number(versionCode), runtime }),
 });
 const t = await r.text();
 if (!r.ok) {
@@ -55,7 +58,7 @@ if (!r.ok) {
 }
 const j = JSON.parse(t);
 const mb = (j.bytes / 1048576).toFixed(1);
-console.log(`APK publicado: ${j.arquivo} (${mb} MB, sha256 ${sha256})`);
+console.log(`APK publicado: ${j.arquivo} (${mb} MB, runtime ${runtime}, sha256 ${sha256})`);
 if (process.env.GITHUB_STEP_SUMMARY)
   fs.appendFileSync(
     process.env.GITHUB_STEP_SUMMARY,
