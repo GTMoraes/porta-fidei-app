@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { File, Paths, UploadType } from 'expo-file-system';
 import * as Notifications from 'expo-notifications';
 import { useSyncExternalStore } from 'react';
+import { Platform } from 'react-native';
 
 import { cabecalhoApp } from '@/conteudo/remoto';
 
@@ -318,9 +319,18 @@ export async function registrarDispositivo(token: string, versao: string) {
   const r = await comTempo(`${SERVIDOR}/api/dispositivos`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...cabecalhoApp() },
-    body: JSON.stringify({ token, plataforma: 'ios', versao }),
+    body: JSON.stringify({ token, plataforma: Platform.OS === 'android' ? 'android' : 'ios', versao }),
   });
   if (!r.ok) throw new Error(`Erro ${r.status}`);
+}
+
+/** APK mais novo publicado (Android fora da Play Store); null se ainda não há nenhum */
+export type InfoApk = { versao: string; versionCode: number; runtime: string; bytes: number; pagina: string; arquivo: string };
+export async function infoApk(): Promise<InfoApk | null> {
+  const r = await comTempo(`${SERVIDOR}/api/android/atual`, { headers: cabecalhoApp() });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`Erro ${r.status}`);
+  return (await r.json()) as InfoApk;
 }
 
 /** Envia uma imagem (base64 JPEG/PNG) e devolve a URL pública */

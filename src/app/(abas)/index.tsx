@@ -6,6 +6,7 @@ import { AppState, Pressable, RefreshControl, ScrollView, Text, View } from 'rea
 import { semana } from '@/comunidade/html';
 import { diaAtual, diasFeitos, jornadasDeHoje, periodo, useFeitos } from '@/comunidade/jornadas';
 import { dispensado, dispensar, useArquivados, visivel } from '@/estado/arquivados';
+import { instalarApk, useApkNovo } from '@/estado/apkNovo';
 import { aplicarAtualizacao, buscarNova, useAtualizacaoPronta } from '@/estado/atualizacaoApp';
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
 import { infoRemota, type InfoRemota } from '@/conteudo/remoto';
@@ -107,6 +108,7 @@ export default function Hoje() {
   const fixadoTopo = ativos.filter((a) => a.fixado).sort((a, b) => b.criado.localeCompare(a.criado))[0];
   const fixados = fixadoTopo && visivel(arquivados, fixadoTopo) && !dispensado(arquivados, fixadoTopo) ? [fixadoTopo] : [];
   const atualizacaoPronta = useAtualizacaoPronta();
+  const apk = useApkNovo();
 
   return (
     <Fundo aba>
@@ -146,6 +148,35 @@ export default function Hoje() {
               </View>
             </Vidro>
           </Pressable>
+        ) : null}
+
+        {/* Android: versão nova do app que precisa de instalador (algo nativo, como as notificações) */}
+        {apk.info ? (
+          <AuraDourada style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.m }}>
+            <Pressable
+              disabled={apk.baixando}
+              onPress={() => {
+                toque();
+                instalarApk();
+              }}>
+              <Vidro tinta="rgba(129,50,52,0.6)" interativo style={{ borderRadius: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: Espaco.l }}>
+                  <Icone nome="arrow.down.app" cor="#fff" tamanho={22} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#fff', fontSize: 15.5, fontWeight: '600' }}>Atualize o app</Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13.5 }}>
+                      {apk.baixando
+                        ? `Baixando… ${Math.round(apk.progresso * 100)}%`
+                        : apk.erro
+                          ? 'Não deu certo. Toque para tentar de novo.'
+                          : 'Nova versão com notificações. Toque para instalar.'}
+                    </Text>
+                  </View>
+                  <Icone nome="chevron.right" cor="#fff" tamanho={14} />
+                </View>
+              </Vidro>
+            </Pressable>
+          </AuraDourada>
         ) : null}
 
         {/* conteúdo litúrgico ainda não baixado, ou versão nova: no alto e com a aura dourada até a pessoa baixar */}
