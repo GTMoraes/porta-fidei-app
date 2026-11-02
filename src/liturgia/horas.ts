@@ -22,8 +22,11 @@ export interface Parte {
   ate?: string; // texto que marca o fim (exclusivo)
   /** usado quando o arquivo próprio não traz a salmodia: entra antes dele, até "Leitura breve" */
   seFaltarSalmodia?: Parte;
-  /** troca o trecho [de, ate) deste arquivo pelo mesmo trecho das partes indicadas (ex.: memória com a salmodia do dia de semana) */
-  trocarTrecho?: { de: string; ate: string; partes: Parte[] };
+  /**
+   * troca o trecho [de, ate) deste arquivo pelo mesmo trecho das partes indicadas (ex.: memória com a salmodia do dia de semana).
+   * oracao: é a oração do santo entrando no ofício do dia de semana (se no pacote ela ainda é lacuna, fica a do dia)
+   */
+  trocarTrecho?: { de: string; ate: string; partes: Parte[]; oracao?: boolean };
   rotulo?: string;
 }
 
@@ -36,6 +39,8 @@ export interface PlanoHora {
   partes: Parte[];
   /** arquivo de onde se tira a oração do domingo para preencher lacunas */
   oracaoDe?: Parte;
+  /** trecho de outro arquivo para a lacuna que não é a oração do domingo (ex.: as preces das Laudes de 2/11), de "desde" até antes de "ate" */
+  lacunaDe?: Parte;
   primeirasVesperas?: boolean;
   /** leituras do Ofício acrescentadas às Laudes (ajuste "Laudes ampliada") */
   leiturasExtras?: Parte[];
@@ -331,8 +336,20 @@ export function planoDaHora(dataIso: string, h: Hora, op: Opcoes): PlanoHora {
     partes = t.partes;
     oracaoDe = t.oracaoDe;
     avisos.push(...t.avisos);
+    // memória sem Laudes e Vésperas próprias (ex.: Santa Teresa de Calcutá, que não tem texto aprovado em português):
+    // ofício do dia de semana com a oração do santo, tirada do Ofício das Leituras dele (IGLH 235-236)
+    if (ehMemoria && (h === 'laudes' || h === 'vesperas') && partes.length === 1) {
+      const ol = primeiro(op, `oficio/proprio/oficiodasleituras/${slug}_oc`, `oficio/proprio/oficiodasleituras/${slug}`);
+      if (ol) partes = [{ ...partes[0], trocarTrecho: { de: '>Oração<', ate: 'Conclusão', partes: [{ arquivo: ol }], oracao: true } }];
+    }
   }
   if (!partes.length) avisos.push('O texto desta hora ainda não está no pacote de conteúdo instalado.');
+
+  // 2/11: o arquivo das Laudes vem sem as preces (lacuna). São as do Ofício dos Fiéis Defuntos, como nas Vésperas do dia.
+  const lacunaDe =
+    h === 'laudes' && partes.length === 1 && partes[0].arquivo === 'oficio/proprio/horas/fieisdefuntos_laudes'
+      ? primeiro(op, 'oficio/outros/oficio_fieisdefuntos_laudes')
+      : undefined;
 
   let leiturasExtras: Parte[] | undefined;
   if (h === 'laudes') {
@@ -354,6 +371,7 @@ export function planoDaHora(dataIso: string, h: Hora, op: Opcoes): PlanoHora {
     diaCelebrado: dia,
     partes,
     oracaoDe,
+    lacunaDe: lacunaDe ? { arquivo: lacunaDe, desde: 'Preces', ate: '(intenções livres)' } : undefined,
     avisos,
   };
 }

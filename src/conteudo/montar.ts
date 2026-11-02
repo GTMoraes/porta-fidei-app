@@ -88,10 +88,40 @@ async function lerParte(p: Parte): Promise<string | null> {
       const origem = fontes.join('');
       const fo = faixa(origem, p.trocarTrecho.de, p.trocarTrecho.ate);
       const fd = faixa(html, p.trocarTrecho.de, p.trocarTrecho.ate);
-      if (fo && fd) html = html.slice(0, fd[0]) + origem.slice(fo[0], fo[1]) + html.slice(fd[1]);
+      if (fo && fd) {
+        let pedaco = origem.slice(fo[0], fo[1]);
+        if (p.trocarTrecho.oracao) {
+          // oração do santo no ofício do dia de semana. Se no pacote ela ainda é lacuna, fica a do dia.
+          // O trecho pode terminar abrindo o bloco do título seguinte (<p class="c"> antes de "Conclusão"): só fica
+          // se o destino também abre ali, senão sobraria um bloco aberto (ou um fechamento sem par).
+          const abre = /<(p|div)\b[^>]*>\s*$/;
+          const ao = pedaco.match(abre);
+          const ad = html.slice(fd[0], fd[1]).match(abre);
+          if (pedaco.includes('data-ph=')) pedaco = html.slice(fd[0], fd[1]);
+          else if (ao && !ad) pedaco = pedaco.slice(0, ao.index);
+          else if (!ao && ad) pedaco += ad[0];
+        }
+        html = html.slice(0, fd[0]) + pedaco + html.slice(fd[1]);
+      }
     }
   }
   return html;
+}
+
+/**
+ * Trecho de outro arquivo para uma lacuna (ex.: as preces das Laudes de 2/11, tiradas do Ofício dos Fiéis Defuntos):
+ * do bloco do título "desde" até antes do bloco de "ate", em blocos inteiros (o HTML entra fechado no meio do outro)
+ */
+async function trechoDaLacuna(p: Parte): Promise<string | null> {
+  const h = await ler(p.arquivo);
+  if (h == null || !p.desde || !p.ate) return null;
+  const a = h.indexOf(p.desde);
+  const b = a < 0 ? -1 : h.indexOf(p.ate, a);
+  if (a < 0 || b < 0) return null;
+  const ini = h.lastIndexOf('<div', a);
+  const fim = h.lastIndexOf('<div', b);
+  if (ini < 0 || fim <= ini) return null;
+  return normalizar(h.slice(ini, fim));
 }
 
 /** Tira a "Oração" de um arquivo (ex.: oração do domingo) como texto simples com quebras */
@@ -167,6 +197,10 @@ export async function montarHora(plano: PlanoHora, aj: Ajustes, extras: ExtrasHo
 
   // lacunas dos domingos do Tempo Comum
   if (corpo.includes('data-ph=')) {
+    if (plano.lacunaDe) {
+      const t = await trechoDaLacuna(plano.lacunaDe);
+      if (t) corpo = corpo.replace(/<span data-ph="o"><\/span>/g, t);
+    }
     let oracao: string | null = null;
     if (plano.oracaoDe) {
       const src = await ler(plano.oracaoDe.arquivo);
