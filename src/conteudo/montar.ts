@@ -172,7 +172,10 @@ export async function montarHora(plano: PlanoHora, aj: Ajustes, extras: ExtrasHo
       const src = await ler(plano.oracaoDe.arquivo);
       if (src) oracao = extrairOracao(src);
     }
-    corpo = corpo.replace(/<span data-ph="o"><\/span>/g, oracao ? `<span class="preenchido">${oracao}</span>` : '<span class="lacuna">Oração do domingo (em digitalização)</span>');
+    // sem arquivo de onde tirar a oração (não é um domingo do Tempo Comum): o trecho que falta no pacote não é
+    // necessariamente a oração (nas Laudes dos Fiéis Defuntos, por exemplo, são as preces)
+    const faltaO = plano.oracaoDe ? 'Oração do domingo (em digitalização)' : 'Trecho ainda não digitalizado';
+    corpo = corpo.replace(/<span data-ph="o"><\/span>/g, oracao ? `<span class="preenchido">${oracao}</span>` : `<span class="lacuna">${faltaO}</span>`);
     // antífona do Benedictus/Magnificat própria do domingo (ano A, B ou C), do pacote: dados/antifonas-domingo.json
     const dom = plano.diaCelebrado;
     const qual = plano.primeirasVesperas ? 'iv' : plano.hora === 'laudes' ? 'l' : 'iiv';

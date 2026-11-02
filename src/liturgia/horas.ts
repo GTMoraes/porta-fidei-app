@@ -59,10 +59,11 @@ function primeiro(op: Opcoes, ...cands: (string | undefined | false)[]): string 
   return undefined;
 }
 
-/** Celebra-se o dia seguinte já nas Vésperas de hoje? */
+/** Celebra-se o dia seguinte já nas Vésperas de hoje?
+ *  Só os domingos e as solenidades têm I Vésperas (Normas Universais sobre o Ano Litúrgico, 3 e 13). As festas,
+ *  mesmo as do Senhor, ficam no dia natural; a festa do Senhor que cai num domingo já entra pela regra do domingo. */
 function temPrimeirasVesperas(hoje: DiaLiturgico, amanha: DiaLiturgico): boolean {
-  const c = amanha.celebracao;
-  const amanhaForte = c.grau === 'S' || amanha.diaSemana === 0 || (c.grau === 'F' && amanha.rank <= 5);
+  const amanhaForte = amanha.celebracao.grau === 'S' || amanha.diaSemana === 0;
   if (!amanhaForte) return false;
   // Uma solenidade hoje mantém as suas II Vésperas, salvo se amanhã for de grau maior
   return amanha.rank < hoje.rank;
@@ -75,8 +76,19 @@ function slugProprio(dia: DiaLiturgico, op: Opcoes): string | undefined {
   return undefined;
 }
 
+// ------------------------------------------------------------------ Completas das solenidades (Instrução Geral, 88)
+// Nas solenidades rezam-se as Completas do domingo: depois das I Vésperas, as que seguem às I Vésperas do domingo;
+// depois das II Vésperas, as do domingo. Fora do domingo, com a oração "Visitai, Senhor, esta casa", que é o que
+// trazem os arquivos completas_solenidadeI e II de cada tempo (o Advento usa os do Tempo Comum: só muda um hino opcional).
+const PASTA_TEMPO: Partial<Record<DiaLiturgico['tempo'], string>> = { quaresma: 'quaresma', pascoa: 'pascoa', natal: 'natal' };
+function completasDeSolenidade(dia: DiaLiturgico, qual: 'I' | 'II', op: Opcoes): string | undefined {
+  const pasta = PASTA_TEMPO[dia.tempo];
+  return primeiro(op, pasta ? `oficio/${pasta}/horas/completas_solenidade${qual}` : undefined, `oficio/tempocomum/horas/completas_solenidade${qual}`);
+}
+
 // ------------------------------------------------------------------ temporal
-function temporal(dia: DiaLiturgico, h: Hora, op: Opcoes): { partes: Parte[]; oracaoDe?: Parte; avisos: string[] } {
+/** semSolenidade: Completas de um sábado que é solenidade mas cede as Vésperas ao domingo (ficam as do sábado) */
+function temporal(dia: DiaLiturgico, h: Hora, op: Opcoes, semSolenidade = false): { partes: Parte[]; oracaoDe?: Parte; avisos: string[] } {
   const avisos: string[] = [];
   const nd = DIAS[dia.diaSemana];
   const p = dia.semanaSalterio;
@@ -85,6 +97,10 @@ function temporal(dia: DiaLiturgico, h: Hora, op: Opcoes): { partes: Parte[]; or
 
   if (h === 'completas') {
     const cands: string[] = [];
+    // solenidade fora do domingo (as da Oitava da Páscoa e do Tríduo seguem as regras delas, abaixo)
+    const solenidade = !semSolenidade && dia.celebracao.grau === 'S' && dia.diaSemana !== 0 && dia.tempo !== 'triduo' && !(dia.tempo === 'pascoa' && dia.semana === 1);
+    const sol = solenidade ? completasDeSolenidade(dia, 'II', op) : undefined;
+    if (sol) return { partes: [{ arquivo: sol }], avisos };
     if (dia.tempo === 'triduo') {
       if (dia.celebracao.chave === 'ceiadosenhor') cands.push('oficio/quaresma/horas/completas_ceia');
       if (dia.celebracao.chave === 'sabadosanto') cands.push('oficio/quaresma/horas/completas_sabadosanto');
@@ -100,7 +116,6 @@ function temporal(dia: DiaLiturgico, h: Hora, op: Opcoes): { partes: Parte[]; or
       cands.push(`oficio/advento/horas/completas${nd}`);
     }
     if (dia.tempo === 'natal') cands.push(`oficio/natal/horas/completas_${dia.diaSemana === 0 ? 'domingoII' : 'aposepifania'}`);
-    if (dia.celebracao.grau === 'S' && dia.diaSemana !== 0 && dia.diaSemana !== 6) cands.push('oficio/tempocomum/horas/completas_solenidadeII');
     cands.push(`oficio/tempocomum/horas/completas_${nd}`);
     const a = primeiro(op, ...cands);
     return { partes: a ? [{ arquivo: a }] : [], avisos };
@@ -245,12 +260,20 @@ function proprio(dia: DiaLiturgico, slug: string, h: Hora, op: Opcoes, primeiras
     const a = primeiro(op, `oficio/proprio/horas/${slug}_Ivesperas`);
     return a ? [{ arquivo: a }] : undefined;
   }
+  // "_oc": textos do Comum das santas mulheres que se dedicaram às obras de caridade (Santa Dulce); têm preferência
   if (h === 'leituras') {
-    const a = primeiro(op, `oficio/proprio/horas/${slug}_leituras`, `oficio/proprio/oficiodasleituras/${slug}`);
+    const a = primeiro(op, `oficio/proprio/horas/${slug}_leituras`, `oficio/proprio/oficiodasleituras/${slug}_oc`, `oficio/proprio/oficiodasleituras/${slug}`);
     return a ? [{ arquivo: a }] : undefined;
   }
   if (h === 'completas' || h === 'invitatorio') return undefined;
-  const a = primeiro(op, dom ? `oficio/proprio/horas/${slug}_${suf}_domingo` : undefined, `oficio/proprio/horas/${slug}_${suf}`);
+  const a = primeiro(
+    op,
+    // as Vésperas do Sábado Santo estão no pacote com o nome "pascoa_Ivesperas" (o texto é o do Sábado Santo)
+    slug === 'sabadosanto' && h === 'vesperas' ? 'oficio/proprio/horas/pascoa_Ivesperas' : undefined,
+    dom ? `oficio/proprio/horas/${slug}_${suf}_domingo` : undefined,
+    `oficio/proprio/horas/${slug}_${suf}_oc`,
+    `oficio/proprio/horas/${slug}_${suf}`,
+  );
   return a ? [{ arquivo: a }] : undefined;
 }
 
@@ -268,19 +291,32 @@ export function planoDaHora(dataIso: string, h: Hora, op: Opcoes): PlanoHora {
       if (prop) {
         return { hora: h, titulo: 'I Vésperas', dia, diaCelebrado: amanha, partes: prop, primeirasVesperas: true, avisos };
       }
+      // 1º Domingo do Advento: as I Vésperas têm arquivo próprio (o sábado anterior ainda é do Tempo Comum)
+      const pastaAm = amanha.tempo === 'comum' ? 'tempocomum' : amanha.tempo;
+      const iv = amanha.diaSemana === 0 ? primeiro(op, `oficio/${pastaAm}/horas/${amanha.semana}domingo_Ivesperas`) : undefined;
+      if (iv) return { hora: h, titulo: 'I Vésperas', dia, diaCelebrado: amanha, partes: [{ arquivo: iv }], primeirasVesperas: true, avisos };
       // domingo comum: o arquivo de sábado do saltério já são as I Vésperas
       const t = temporal(dia, 'vesperas', op);
       return { hora: h, titulo: 'I Vésperas', dia, diaCelebrado: amanha, partes: t.partes, oracaoDe: t.oracaoDe, primeirasVesperas: true, avisos: t.avisos };
     }
-    if (amanha.celebracao.grau === 'S' && amanha.diaSemana !== 0) {
-      const a = primeiro(op, 'oficio/tempocomum/horas/completas_solenidadeI');
-      if (a) return { hora: h, titulo: info.nome, dia, diaCelebrado: amanha, partes: [{ arquivo: a }], avisos };
-    }
+    // Completas depois das I Vésperas: já são do dia seguinte (o nome que aparece é o dele, como nas Vésperas).
+    // Véspera de domingo: as Completas de sábado do tempo já são as "depois das I Vésperas".
+    // Véspera de solenidade em dia de semana: as de solenidade do tempo dela (na noite de Natal, as próprias).
+    const a =
+      amanha.diaSemana !== 0
+        ? primeiro(op, amanha.celebracao.chave === 'natal' ? 'oficio/natal/horas/completas_vespera_natal' : undefined) ??
+          completasDeSolenidade(amanha, 'I', op)
+        : undefined;
+    const t = a ? { partes: [{ arquivo: a }], avisos: [] as string[] } : temporal(dia, 'completas', op, true);
+    if (!t.partes.length) avisos.push('O texto desta hora ainda não está no pacote de conteúdo instalado.');
+    return { hora: h, titulo: info.nome, dia, diaCelebrado: amanha, partes: t.partes, avisos: [...avisos, ...t.avisos] };
   }
 
   const slug = slugProprio(dia, op);
-  const ehProprioForte = !!slug && ['S', 'F'].includes(dia.celebracao.grau);
-  const ehMemoria = !!slug && !ehProprioForte;
+  // memória = obrigatória (grau M) ou facultativa escolhida. Os outros dias com ofício próprio (solenidades, festas,
+  // Cinzas, Ramos, Tríduo, Divina Misericórdia) usam o próprio inteiro, inclusive na Hora Média.
+  const ehMemoria = !!slug && (dia.celebracao.grau === 'M' || (slug === op.memoriaEscolhida && slug !== dia.celebracao.slug));
+  const ehProprioForte = !!slug && !ehMemoria;
 
   let partes: Parte[] | undefined;
   let oracaoDe: Parte | undefined;

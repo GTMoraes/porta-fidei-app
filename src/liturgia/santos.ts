@@ -155,7 +155,7 @@ export const SANTOS: Record<string, Santo[]> = {
   '08-11': [s('Santa Clara, virgem', 'M', 'santaclara')],
   '08-12': [s('Santa Joana Francisca de Chantal, religiosa', 'm', 'santajoanadechantal')],
   '08-13': [
-    s('Santa Dulce dos Pobres, virgem', 'M', 'santadulce_oc', { brasil: true }),
+    s('Santa Dulce dos Pobres, virgem', 'M', 'santadulce', { brasil: true }),
     s('São Ponciano, papa, e Santo Hipólito, presbítero, mártires', 'm', 'saoponciano', V),
   ],
   '08-14': [s('São Maximiliano Maria Kolbe, presbítero e mártir', 'M', 'saomaximiliano', V)],
