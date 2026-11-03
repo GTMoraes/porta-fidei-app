@@ -4,7 +4,7 @@ import * as Updates from 'expo-updates';
 import { ScrollView, Text, View } from 'react-native';
 
 import { usePacote } from '@/conteudo/pacote';
-import { Espaco, Fontes, usePaleta } from '@/tema';
+import { Espaco, usePaleta } from '@/tema';
 import { Fundo, Linha, Secao } from '@/ui/base';
 
 function atualizacao() {
@@ -21,10 +21,14 @@ export default function Sobre() {
     <Fundo>
       <ScrollView contentInsetAdjustmentBehavior="automatic">
         <View style={{ alignItems: 'center', paddingVertical: Espaco.xl }}>
-          <Image source={require('@/assets/marca/logo-cor.png')} style={{ width: 120, height: 132 }} contentFit="contain" tintColor={c.escuro ? '#FFFFFF' : undefined} />
-          <Text style={{ color: c.textoFraco, fontSize: 13, letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 14 }}>Comunidade Católica</Text>
-          <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 30 }}>Porta Fidei</Text>
-          <Text style={{ color: c.textoFraco, marginTop: 6 }}>Versão {Constants.expoConfig?.version ?? ''}</Text>
+          {/* a logo oficial completa (brasão e nome), colorida ou branca no tema escuro */}
+          <Image
+            source={c.escuro ? require('@/comunidade/logo-vertical-branco.png') : require('@/comunidade/logo-vertical.png')}
+            style={{ width: 220, height: 177 }}
+            contentFit="contain"
+            accessibilityLabel="Comunidade Católica Porta Fidei"
+          />
+          <Text style={{ color: c.textoFraco, marginTop: 16 }}>Versão {Constants.expoConfig?.version ?? ''}</Text>
           {/* a atualização pelo ar em uso: é a data que ajuda a saber se o aparelho já tem as correções mais novas */}
           <Text style={{ color: c.textoFraco, fontSize: 13, marginTop: 2 }}>{atualizacao()}</Text>
         </View>

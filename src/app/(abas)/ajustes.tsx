@@ -115,7 +115,16 @@ export default function TelaAjustes() {
             mudar={(v) => mudarAjustes({ alinhamento: v as Ajustes['alinhamento'] })}
           />
           <Opcoes
-            titulo="Fonte"
+            titulo="Fonte dos títulos"
+            valor={aj.fonteTitulos}
+            opcoes={[
+              ['sem-serifa', 'Sem serifa'],
+              ['serifa', 'Com serifa'],
+            ]}
+            mudar={(v) => mudarAjustes({ fonteTitulos: v as Ajustes['fonteTitulos'] })}
+          />
+          <Opcoes
+            titulo="Fonte do texto"
             valor={aj.fonte}
             opcoes={[
               ['serifa', 'Com serifa'],

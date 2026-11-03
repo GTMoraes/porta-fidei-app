@@ -15,6 +15,7 @@ export const MATERIAL: Record<string, AndroidSymbol> = {
   'arrow.right': 'arrow_forward',
   'arrow.triangle.2.circlepath': 'autorenew',
   'arrow.up': 'arrow_upward',
+  'arrow.up.and.down.circle': 'swap_vertical_circle',
   'arrow.up.right': 'open_in_new',
   'arrow.uturn.backward': 'undo',
   'bell': 'notifications',

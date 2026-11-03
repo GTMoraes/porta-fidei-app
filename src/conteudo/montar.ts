@@ -273,6 +273,11 @@ export function paginaHtml(corpo: string, aj: Ajustes, cor: Paleta, op: OpcoesPa
     aj.fonte === 'serifa'
       ? `"Times New Roman", "New York", ui-serif, Georgia, serif`
       : `-apple-system, system-ui, "Helvetica Neue", sans-serif`;
+  // título no alto da página: a mesma escolha dos títulos do app (Ajustes › Fonte dos títulos), sempre em negrito
+  const familiaTitulo =
+    aj.fonteTitulos === 'serifa'
+      ? `"Baskerville", "Times New Roman", "New York", ui-serif, Georgia, serif`
+      : `-apple-system, system-ui, "Helvetica Neue", Roboto, sans-serif`;
   const horasEsquerda = op.tipo === 'horas' && aj.alinhamento === 'esquerda';
   const cab = op.titulo
     ? `<header><h1>${op.titulo}</h1>${op.subtitulo ? `<p>${op.subtitulo}</p>` : ''}</header>`
@@ -285,7 +290,7 @@ export function paginaHtml(corpo: string, aj: Ajustes, cor: Paleta, op: OpcoesPa
 html,body{margin:0;background:var(--bg);color:var(--tx);}
 body{font-family:${familia};font-size:${aj.tamanhoFonte}px;line-height:1.42;padding:${(op.topoExtra ?? 0) + 8}px 20px ${(op.rodapeExtra ?? 0) + 120}px;-webkit-text-size-adjust:100%;word-wrap:break-word;-webkit-hyphens:manual;}
 header{text-align:center;margin:4px 0 20px}
-header h1{font-size:1.25em;font-weight:600;margin:0;color:var(--dt);letter-spacing:.01em}
+header h1{font-family:${familiaTitulo};font-size:1.25em;font-weight:700;margin:0;color:var(--dt);letter-spacing:.01em}
 header p{margin:4px 0 0;font-size:.8em;color:var(--fr);line-height:1.3}
 .parte{text-align:left}
 .c{text-align:center}

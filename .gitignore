@@ -41,3 +41,16 @@ example
 # generated native folders
 /ios
 /android
+
+# Porta Fidei: o repositório é público. Nada disto entra nele:
+# pacote de conteúdo (textos da CNBB), chaves e arquivos do Firebase
+*.zip
+pf-conteudo*
+google-services.json
+*.keystore
+.env
+.env.*
+assinatura/
+# pastas de trabalho do Claude (workflows para mover à mão, versões antigas)
+PARA-A-PASTA-*/
+_subir/

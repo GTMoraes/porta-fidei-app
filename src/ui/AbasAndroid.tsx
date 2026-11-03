@@ -13,7 +13,7 @@ import { Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-nat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useNovidadesAgenda } from '@/estado/vistos';
-import { Marca, usePaleta } from '@/tema';
+import { Marca, comAlfa, usePaleta } from '@/tema';
 import { toque } from './base';
 
 // (o expo-blur já está nas builds de iPhone e Android desde 12/10: não precisou de APK nem build nova)
@@ -81,7 +81,7 @@ export function BarraAbasAndroid({ alvo }: { alvo: RefObject<View | null> }) {
   const apagado = c.textoFraco;
   const realce = c.escuro ? 'rgba(222,190,130,0.20)' : 'rgba(129,50,52,0.12)';
   // cor por cima do desfoque: translúcida com desfoque; quase opaca sem ele (Android 11 ou mais antigo)
-  const veu = c.escuro ? `rgba(16,22,44,${COM_DESFOQUE ? 0.62 : 0.96})` : `rgba(251,247,239,${COM_DESFOQUE ? 0.66 : 0.96})`;
+  const veu = comAlfa(c.folha, COM_DESFOQUE ? (c.escuro ? 0.62 : 0.66) : 0.96);
   const focada = p.state.routes[p.state.index]?.name;
 
   const tocar = (rota: string) => {

@@ -15,7 +15,7 @@ import { COR_HEX, NOME_GRAU, NOME_TEMPO, dataPorExtenso, diaLiturgico, hojeIso }
 import { HORAS } from '@/liturgia/horas';
 import { santosDoDia } from '@/liturgia/martirologio';
 import { atualizar, encerrado, useServidor } from '@/servidor/api';
-import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
+import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
 import { DeslizarParaArquivar } from '@/ui/Deslizar';
 import { dataParaHora, horaSugerida, quando } from '@/util/datas';
@@ -117,13 +117,14 @@ export default function Hoje() {
         scrollToOverflowEnabled
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={puxando} onRefresh={puxar} tintColor={c.destaque} colors={[c.destaque]} />}>
-        {/* Cabeçalho com o logo */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: Espaco.xl, paddingTop: Espaco.s }}>
-          <Image source={require('@/assets/marca/logo-cor.png')} style={{ width: 44, height: 48 }} contentFit="contain" tintColor={c.escuro ? '#FFFFFF' : undefined} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: c.textoFraco, fontSize: 12.5, letterSpacing: 0.8, textTransform: 'uppercase' }}>Comunidade Católica</Text>
-            <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 24 }}>Porta Fidei</Text>
-          </View>
+        {/* Cabeçalho: a logo oficial completa (brasão e nome), colorida ou branca no tema escuro */}
+        <View style={{ paddingHorizontal: Espaco.xl, paddingTop: Espaco.s }} accessible accessibilityRole="header" accessibilityLabel="Comunidade Católica Porta Fidei">
+          <Image
+            source={c.escuro ? require('@/comunidade/logo-horizontal-branco.png') : require('@/comunidade/logo-horizontal.png')}
+            style={{ width: 224, height: 64 }}
+            contentFit="contain"
+            contentPosition="left"
+          />
         </View>
         <Text style={{ color: c.textoSuave, paddingHorizontal: Espaco.xl, marginTop: Espaco.l, marginBottom: Espaco.s, fontSize: 15 }}>
           {dataPorExtenso(hoje)}
@@ -137,7 +138,7 @@ export default function Hoje() {
               aplicarAtualizacao();
             }}
             style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.m }}>
-            <Vidro tinta="rgba(188,140,68,0.45)" interativo style={{ borderRadius: 20 }}>
+            <Vidro tinta={c.ouroCheio} interativo style={{ borderRadius: 20 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: Espaco.l }}>
                 <Icone nome="arrow.down.app" cor="#fff" tamanho={22} />
                 <View style={{ flex: 1 }}>
@@ -159,7 +160,7 @@ export default function Hoje() {
                 toque();
                 instalarApk();
               }}>
-              <Vidro tinta="rgba(129,50,52,0.6)" interativo style={{ borderRadius: 20 }}>
+              <Vidro tinta={c.vinhoCheio} interativo style={{ borderRadius: 20 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: Espaco.l }}>
                   <Icone nome="arrow.down.app" cor="#fff" tamanho={22} />
                   <View style={{ flex: 1 }}>
@@ -231,7 +232,7 @@ export default function Hoje() {
                         <Icone nome="chevron.left" cor={c.textoFraco} tamanho={10} />
                         <Text style={{ color: c.textoFraco, fontSize: 11.5 }}>arraste para dispensar</Text>
                       </View>
-                      <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 20, marginTop: 4 }}>{a.titulo}</Text>
+                      <Text style={{ color: c.texto, ...fonteTitulo(20), marginTop: 4 }}>{a.titulo}</Text>
                       <Text style={{ color: c.textoSuave, fontSize: 14.5, lineHeight: 20, marginTop: 4 }} numberOfLines={3}>
                         {a.texto}
                       </Text>
@@ -258,7 +259,7 @@ export default function Hoje() {
                 <Text style={{ color: c.destaque, fontSize: 13, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase' }}>
                   {NOME_GRAU[cel.grau]} · {NOME_TEMPO[dia.tempo]}
                 </Text>
-                <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 25, lineHeight: 31, marginTop: 6 }}>{cel.nome}</Text>
+                <Text style={{ color: c.texto, ...fonteTitulo(25, 31), marginTop: 6 }}>{cel.nome}</Text>
                 {cel.nome !== dia.feria ? <Text style={{ color: c.textoSuave, fontSize: 14.5, marginTop: 6 }}>{dia.feria}</Text> : null}
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
                   <Etiqueta texto={`Cor: ${cel.cor}`} cor={COR_HEX[cel.cor]} />
@@ -286,12 +287,12 @@ export default function Hoje() {
             router.push({ pathname: '/hora', params: { h: sugerida.id, data: dataParaHora(sugerida.id, agora) } });
           }}
           style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.l }}>
-          <Vidro tinta="rgba(129,50,52,0.55)" style={{ borderRadius: 24 }} interativo>
+          <Vidro tinta={c.vinhoCheio} style={{ borderRadius: 24 }} interativo>
             <View style={{ flexDirection: 'row', alignItems: 'center', padding: Espaco.l, gap: 14 }}>
               <Icone nome="flame" cor="#fff" tamanho={26} />
               <View style={{ flex: 1 }}>
                 <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase' }}>Rezar agora</Text>
-                <Text style={{ color: '#fff', fontFamily: Fontes.titulo, fontSize: 23 }}>{sugerida.nome}</Text>
+                <Text style={{ color: '#fff', ...fonteTitulo(23) }}>{sugerida.nome}</Text>
               </View>
               <Icone nome="chevron.right" cor="#fff" tamanho={16} />
             </View>
@@ -407,7 +408,7 @@ export default function Hoje() {
 function Etiqueta({ texto, cor }: { texto: string; cor?: string }) {
   const c = usePaleta();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 20, backgroundColor: c.escuro ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 20, backgroundColor: c.preenchimento }}>
       {cor ? <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: cor, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.2)' }} /> : null}
       <Text style={{ color: c.textoSuave, fontSize: 12.5 }}>{texto}</Text>
     </View>

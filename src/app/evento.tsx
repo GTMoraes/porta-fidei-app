@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Share, Text, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 
 import { useServidor } from '@/servidor/api';
-import { Espaco, Fontes, usePaleta } from '@/tema';
+import { Espaco, fonteTitulo, usePaleta } from '@/tema';
 import { COR_CANCELADO, COR_REAGENDADO, Etiqueta, textoReagendado } from '@/ui/Agenda';
 import { Aviso, Botao, Fundo, Icone, Linha, Secao, Vidro } from '@/ui/base';
 import { BotoesLink, ImagemInteira, PlayerVideo, TextoComLinks } from '@/ui/Midia';
@@ -45,7 +45,7 @@ export default function TelaEvento() {
             {e.imagem ? <ImagemInteira uri={e.imagem} /> : null}
             <View style={{ padding: Espaco.xl }}>
               <Text style={{ color: c.destaque, fontSize: 13, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase' }}>{e.tipo === 'missa' ? 'Santa Missa' : 'Evento da Comunidade'}</Text>
-              <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 27, marginTop: 6, textDecorationLine: e.situacao === 'cancelado' ? 'line-through' : 'none' }}>{e.titulo}</Text>
+              <Text style={{ color: c.texto, ...fonteTitulo(27), marginTop: 6, textDecorationLine: e.situacao === 'cancelado' ? 'line-through' : 'none' }}>{e.titulo}</Text>
               {e.situacao ? (
                 <View style={{ marginTop: 12, gap: 8 }}>
                   <Etiqueta situacao={e.situacao} />

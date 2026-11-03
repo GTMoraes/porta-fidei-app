@@ -4,7 +4,7 @@
 
 import { Linking, Pressable, Text, View } from 'react-native';
 
-import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
+import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
 import { Botao, Icone, toque, Vidro } from '@/ui/base';
 import { BENFEITOR_URL, DOAR_URL } from './sobre';
 
@@ -18,7 +18,7 @@ export function CardContribuir() {
         <View style={{ padding: Espaco.l, gap: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Icone nome="heart.fill" cor={Marca.ouro} tamanho={18} />
-            <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 22 }}>Sustente esta obra</Text>
+            <Text style={{ color: c.texto, ...fonteTitulo(22) }}>Sustente esta obra</Text>
           </View>
           <Text style={{ color: c.textoSuave, fontSize: 15, lineHeight: 21 }}>
             A Casa Porta Fidei e todas as ações da Comunidade se mantêm com doações. Contribua uma vez ou torne-se Benfeitor, doando todos os meses.

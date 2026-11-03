@@ -6,7 +6,7 @@ import Animated, { LinearTransition } from 'react-native-reanimated';
 import { arquivado, arquivar, remover, removido, useArquivados, visivel } from '@/estado/arquivados';
 import { eventosDaAgenda, marcarVisto, useNovidadesAgenda } from '@/estado/vistos';
 import { atualizar, encerrado, useServidor, type Aviso as AvisoT, type Evento } from '@/servidor/api';
-import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
+import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base';
 import { DeslizarComAcoes, DeslizarParaArquivar } from '@/ui/Deslizar';
 import { dataLonga, diaEHora } from '@/util/datas';
@@ -237,7 +237,7 @@ function CartaoAviso({ a, onArquivar }: { a: AvisoT; onArquivar: () => void }) {
               <Icone nome="archivebox" cor={c.textoFraco} tamanho={17} />
             </Pressable>
           </View>
-          <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 21, marginTop: 4 }}>{a.titulo}</Text>
+          <Text style={{ color: c.texto, ...fonteTitulo(21), marginTop: 4 }}>{a.titulo}</Text>
           <Text style={{ color: c.textoSuave, fontSize: 15, lineHeight: 21, marginTop: 6 }} numberOfLines={4}>
             {a.texto}
           </Text>

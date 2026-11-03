@@ -6,7 +6,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { MESES } from '@/liturgia/calendario';
 import { useServidor, type Evento } from '@/servidor/api';
-import { Espaco, Fontes, Marca, usePaleta } from '@/tema';
+import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
 import { Icone, toque, Vidro } from './base';
 import { dataCurta, hora, quando } from '@/util/datas';
 
@@ -144,7 +144,7 @@ export function CalendarioAgenda({ eventos }: { eventos: Evento[] }) {
               setAberto((a) => !a);
             }}
             style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: aberto ? 0 : 6 }}>
-            <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 20, textTransform: 'capitalize' }}>{aberto ? `${MESES[mes - 1]} ${ano}` : 'Calendário'}</Text>
+            <Text style={{ color: c.texto, ...fonteTitulo(20), textTransform: 'capitalize' }}>{aberto ? `${MESES[mes - 1]} ${ano}` : 'Calendário'}</Text>
             <Icone nome={aberto ? 'chevron.up' : 'chevron.down'} cor={c.textoFraco} tamanho={12} />
           </Pressable>
           {aberto ? (

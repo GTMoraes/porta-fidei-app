@@ -16,7 +16,7 @@ import { PilulaAtualizado } from '@/ui/PilulaAtualizado';
 import { reagendarLembretes } from '@/estado/lembretes';
 import { registrarPush } from '@/estado/push';
 import { atualizar, carregarCache, carregarToken } from '@/servidor/api';
-import { Fontes, usePaleta } from '@/tema';
+import { fonteTitulo, usePaleta } from '@/tema';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -95,7 +95,7 @@ export default function Raiz() {
           headerTransparent: !ANDROID,
           headerStyle: ANDROID ? { backgroundColor: c.fundo[0] } : undefined,
           headerTintColor: c.destaque,
-          headerTitleStyle: { fontFamily: Fontes.titulo, color: c.texto, fontSize: 19 },
+          headerTitleStyle: { ...fonteTitulo(19), color: c.texto },
           headerBackButtonDisplayMode: 'minimal',
           headerShadowVisible: false,
           contentStyle: { backgroundColor: c.fundo[0] },

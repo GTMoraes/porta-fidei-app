@@ -85,7 +85,7 @@ export function PilulaAtualizado() {
             paddingVertical: 6,
             paddingHorizontal: 12,
             borderRadius: 16,
-            backgroundColor: c.escuro ? 'rgba(40,48,80,0.92)' : 'rgba(255,252,246,0.95)',
+            backgroundColor: c.folha,
             borderWidth: 0.5,
             borderColor: c.borda,
             shadowColor: '#000',

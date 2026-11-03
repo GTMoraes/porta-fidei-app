@@ -4,7 +4,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
 import { COR_HEX, MESES, NOME_GRAU, NOME_TEMPO, diaLiturgico, hojeIso } from '@/liturgia/calendario';
-import { Espaco, Fontes, usePaleta } from '@/tema';
+import { Espaco, fonteTitulo, usePaleta } from '@/tema';
 import { Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
 
 const SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
@@ -56,7 +56,7 @@ export default function Calendario() {
               <Pressable onPress={() => mudarMes(-1)} hitSlop={10} style={{ padding: 8 }}>
                 <Icone nome="chevron.left" tamanho={17} />
               </Pressable>
-              <Text style={{ flex: 1, textAlign: 'center', color: c.texto, fontFamily: Fontes.titulo, fontSize: 22, textTransform: 'capitalize' }}>
+              <Text style={{ flex: 1, textAlign: 'center', color: c.texto, ...fonteTitulo(22), textTransform: 'capitalize' }}>
                 {MESES[mes - 1]} {ano}
               </Text>
               <Pressable onPress={() => mudarMes(1)} hitSlop={10} style={{ padding: 8 }}>

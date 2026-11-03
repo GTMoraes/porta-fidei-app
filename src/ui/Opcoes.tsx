@@ -57,7 +57,7 @@ export function FolhaOpcoes() {
     // deixa a folha sair antes de abrir outra tela ou outro app
     setTimeout(o.onPress, 180);
   };
-  const fundo = c.escuro ? '#1A2140' : '#FFFBF4';
+  const fundo = c.folha;
   return (
     <Modal visible={!!pedido} transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={fechar}>
       <Pressable onPress={fechar} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.38)', justifyContent: 'flex-end' }}>

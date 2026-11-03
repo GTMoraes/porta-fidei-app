@@ -293,7 +293,7 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
             <BotaoBarra icone="magnifyingglass" onPress={() => (buscando ? fecharBusca() : setBuscando(true))} ativo={buscando} />
             <BotaoBarra icone="textformat.size" onPress={() => setPainelFonte((v) => !v)} ativo={painelFonte} />
             {aj.velocidadeRolagem > 0 ? (
-              <BotaoBarra icone={rolando ? 'pause.fill' : 'arrow.down.to.line.compact'} onPress={alternarRolagem} ativo={rolando} />
+              <BotaoBarra icone={rolando ? 'pause.fill' : 'arrow.up.and.down.circle'} onPress={alternarRolagem} ativo={rolando} />
             ) : null}
             {aj.voz ? <BotaoBarra icone={falando ? 'stop.fill' : 'speaker.wave.2.fill'} onPress={alternarVoz} ativo={falando} /> : null}
             {aj.timerSilencio && permitirSilencio ? (

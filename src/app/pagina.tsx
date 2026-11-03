@@ -5,7 +5,7 @@ import { ScrollView, Text, View } from 'react-native';
 
 import { RodapeContribuir } from '@/comunidade/Contribuir';
 import { PAGINAS } from '@/comunidade/sobre';
-import { Espaco, Fontes, usePaleta } from '@/tema';
+import { Espaco, Fontes, fonteTitulo, usePaleta } from '@/tema';
 import { Aviso, Botao, Fundo, Linha, Secao } from '@/ui/base';
 import { abrirLink } from '@/ui/Midia';
 import { abrirDoacao } from '@/comunidade/Contribuir';
@@ -31,7 +31,7 @@ export default function TelaPagina() {
       <ScrollView contentInsetAdjustmentBehavior="automatic">
         <View style={{ paddingHorizontal: Espaco.xl, paddingTop: Espaco.s, paddingBottom: Espaco.l }}>
           {p.sobre ? <Text style={{ color: c.destaque, fontSize: 13, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase' }}>{p.sobre}</Text> : null}
-          <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 30, marginTop: 4 }}>{p.titulo}</Text>
+          <Text style={{ color: c.texto, ...fonteTitulo(30), marginTop: 4 }}>{p.titulo}</Text>
         </View>
         {p.blocos.map((b, i) => {
           switch (b.tipo) {
@@ -56,7 +56,7 @@ export default function TelaPagina() {
             case 'citacao':
               return (
                 <View key={i} style={{ marginHorizontal: Espaco.xl, marginBottom: Espaco.xl, borderLeftWidth: 2, borderLeftColor: c.destaque, paddingLeft: Espaco.l }}>
-                  <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 18, lineHeight: 26, fontStyle: 'italic' }}>“{b.texto}”</Text>
+                  <Text style={{ color: c.texto, fontFamily: Fontes.citacao, fontSize: 18, lineHeight: 26, fontStyle: 'italic' }}>“{b.texto}”</Text>
                   {b.autor ? <Text style={{ color: c.textoFraco, fontSize: 13.5, marginTop: 6 }}>{b.autor}</Text> : null}
                 </View>
               );

@@ -21,7 +21,7 @@ export const CampoTexto = forwardRef<TextInput, TextInputProps>(function CampoTe
               justifyContent: 'flex-end',
               paddingHorizontal: 14,
               paddingVertical: 6,
-              backgroundColor: c.escuro ? 'rgba(30,30,34,0.97)' : 'rgba(246,244,240,0.98)',
+              backgroundColor: c.folha,
               borderTopWidth: 0.5,
               borderTopColor: c.separador,
             }}>

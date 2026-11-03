@@ -7,13 +7,26 @@ import { Keyboard, Platform, Pressable, StyleSheet, Switch, Text, View, type Sty
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { lerAjustes } from '@/estado/ajustes';
-import { Espaco, Fontes, Marca, Raio, usePaleta } from '@/tema';
+import { Espaco, Marca, Raio, fonteTitulo, usePaleta } from '@/tema';
 
 import { MATERIAL } from './icones-android';
 
 const VIDRO = Platform.OS === 'ios' && isLiquidGlassAvailable();
 const ANDROID = Platform.OS === 'android';
 const CHEIOS_ANDROID: Record<string, string> = { 'star.fill': '\u2605\uFE0E', 'heart.fill': '\u2665\uFE0E' };
+
+// Símbolos que só existem a partir do iOS 17: nos iPhones que param no iOS 16 (8, 8 Plus e X) eles não aparecem.
+// Lá entra o equivalente que já existe no 16; do 17 em diante, nada muda.
+const VERSAO_IOS = Platform.OS === 'ios' ? parseInt(String(Platform.Version), 10) || 0 : 0;
+const SO_NO_IOS_17: Record<string, string> = {
+  'sun.horizon': 'sun.max',
+  'sun.horizon.fill': 'sun.max.fill',
+  'book.pages': 'book',
+  'photo.badge.plus': 'photo',
+};
+export function simbolo(nome: SFSymbol): SFSymbol {
+  return VERSAO_IOS > 0 && VERSAO_IOS < 17 ? ((SO_NO_IOS_17[nome] as SFSymbol | undefined) ?? nome) : nome;
+}
 
 export function toque() {
   if (lerAjustes().feedbackTatil) Haptics.selectionAsync().catch(() => {});
@@ -105,7 +118,7 @@ export function Icone({ nome, cor, tamanho = 20 }: { nome: SFSymbol; cor?: strin
     );
   return (
     <SymbolView
-      name={Platform.OS === 'android' ? { ios: nome, android: MATERIAL[nome] } : nome}
+      name={Platform.OS === 'android' ? { ios: nome, android: MATERIAL[nome] } : simbolo(nome)}
       tintColor={cor ?? c.destaque}
       size={tamanho}
       weight="medium"
@@ -119,7 +132,7 @@ export function TituloTela({ titulo, sobre }: { titulo: string; sobre?: string }
   return (
     <View style={{ paddingHorizontal: Espaco.xl, paddingTop: Espaco.s, paddingBottom: Espaco.m }}>
       {sobre ? <Text style={{ color: c.textoFraco, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase' }}>{sobre}</Text> : null}
-      <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 34, marginTop: 2 }}>{titulo}</Text>
+      <Text style={{ color: c.texto, ...fonteTitulo(34), marginTop: 2 }}>{titulo}</Text>
     </View>
   );
 }
@@ -230,7 +243,7 @@ export function Botao({
         onPress();
       }}
       style={({ pressed }) => ({ opacity: desativado ? 0.4 : pressed ? 0.7 : 1 })}>
-      <Vidro interativo tinta={tipo === 'principal' ? 'rgba(188,140,68,0.55)' : undefined} style={{ borderRadius: 26 }}>
+      <Vidro interativo tinta={tipo === 'principal' ? c.ouroCheio : undefined} style={{ borderRadius: 26 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, paddingHorizontal: 20 }}>
           {icone ? <Icone nome={icone} cor={tipo === 'principal' ? '#fff' : cor} tamanho={17} /> : null}
           <Text style={{ color: tipo === 'principal' ? '#fff' : cor, fontSize: 16, fontWeight: '600' }}>{titulo}</Text>

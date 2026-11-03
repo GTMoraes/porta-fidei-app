@@ -28,7 +28,7 @@ export default function Comunidade() {
 
         <Secao titulo="Quem somos">
           <View style={{ padding: Espaco.l, gap: 10 }}>
-            <Text style={{ color: c.destaque, fontFamily: Fontes.titulo, fontSize: 18, lineHeight: 25, fontStyle: 'italic' }}>“{CARISMA}”</Text>
+            <Text style={{ color: c.destaque, fontFamily: Fontes.citacao, fontSize: 18, lineHeight: 25, fontStyle: 'italic' }}>“{CARISMA}”</Text>
             <Text style={{ color: c.textoSuave, fontSize: 15, lineHeight: 21 }}>{QUEM_SOMOS}</Text>
           </View>
           <Linha titulo="Nossa história" sub="De um grupo de estudo, em 2012, a Comunidade" icone="clock.arrow.circlepath" onPress={() => abrir('historia')} ultimo />

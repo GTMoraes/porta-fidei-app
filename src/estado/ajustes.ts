@@ -27,7 +27,8 @@ export interface Ajustes {
   tamanhoFonte: number; // px no leitor
   tema: 'sistema' | 'claro' | 'escuro' | 'sepia';
   alinhamento: 'centro' | 'esquerda';
-  fonte: 'serifa' | 'sem-serifa';
+  fonte: 'serifa' | 'sem-serifa'; // texto do leitor
+  fonteTitulos: 'serifa' | 'sem-serifa'; // títulos do app (sempre em negrito)
   invitatorio: '94' | '99' | '66' | '23';
   antifonaNasEstrofes: boolean;
   pularInstrucoes: boolean; // Proposta de oração: instruções no fim (padrão: no começo, como no PDF)
@@ -54,6 +55,8 @@ export const PADRAO: Ajustes = {
   tema: 'sistema',
   alinhamento: 'centro',
   fonte: 'serifa',
+  // sem serifa por padrão por enquanto, para todos os testadores verem a mudança e opinarem
+  fonteTitulos: 'sem-serifa',
   invitatorio: '94',
   antifonaNasEstrofes: true,
   pularInstrucoes: false,

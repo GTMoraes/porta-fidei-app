@@ -11,6 +11,7 @@ import { Platform, View } from 'react-native';
 import { useNovidadesAgenda } from '@/estado/vistos';
 import { Marca, usePaleta } from '@/tema';
 import { AlvoDesfoque, BarraAbasAndroid, PonteAbas } from '@/ui/AbasAndroid';
+import { simbolo } from '@/ui/base';
 
 // Antes do iOS 26 não existe o vidro líquido: a barra das abas ficava transparente sobre o conteúdo
 // (o iOS a deixa assim quando acha que a tela está no fim da rolagem). Nesses aparelhos ela ganha
@@ -82,7 +83,7 @@ function AbasDoIphone() {
     <NativeTabs tintColor={tint} minimizeBehavior="onScrollDown" {...antigo}>
       <NativeTabs.Trigger unstable_nativeProps={nativo} name="index">
         <NativeTabs.Trigger.Label>Hoje</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'sun.horizon', selected: 'sun.horizon.fill' }} md="wb_twilight" />
+        <NativeTabs.Trigger.Icon sf={{ default: simbolo('sun.horizon'), selected: simbolo('sun.horizon.fill') }} md="wb_twilight" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger unstable_nativeProps={nativo} name="orar">
         <NativeTabs.Trigger.Label>Rezar</NativeTabs.Trigger.Label>

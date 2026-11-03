@@ -9,7 +9,7 @@ import { santosDoDia } from '@/liturgia/martirologio';
 import { HORAS } from '@/liturgia/horas';
 import { lerDiaCNBB, resumoLeituras } from '@/liturgia/cnbb';
 import { missalDoDia } from '@/liturgia/missal';
-import { Espaco, Fontes, usePaleta } from '@/tema';
+import { Espaco, fonteTitulo, usePaleta } from '@/tema';
 import { Fundo, Linha, Secao, toque, Vidro } from '@/ui/base';
 
 // espaço que não quebra: "Saltério I" nunca fica com o "I" sozinho na linha de baixo
@@ -57,7 +57,7 @@ export default function Dia() {
               <View style={{ width: 6, backgroundColor: COR_HEX[cel.cor] }} />
               <View style={{ flex: 1, padding: Espaco.l }}>
                 <Text style={{ color: c.textoFraco, fontSize: 14 }}>{dataPorExtenso(data)}</Text>
-                <Text style={{ color: c.texto, fontFamily: Fontes.titulo, fontSize: 25, lineHeight: 31, marginTop: 6 }}>{cel.nome}</Text>
+                <Text style={{ color: c.texto, ...fonteTitulo(25, 31), marginTop: 6 }}>{cel.nome}</Text>
                 <Text style={{ color: c.textoSuave, fontSize: 14.5, marginTop: 6 }}>
                   {[nb(NOME_GRAU[cel.grau]), nb(NOME_TEMPO[dia.tempo]), dia.semana ? nb(`${dia.semana}ª semana`) : '', nb(`Saltério ${['', 'I', 'II', 'III', 'IV'][dia.semanaSalterio]}`)]
                     .filter(Boolean)
