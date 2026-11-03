@@ -23,11 +23,12 @@ export default function Agenda() {
   const router = useRouter();
   const srv = useServidor();
   const [aba, setAba] = useState<'agenda' | 'avisos'>('agenda');
-  // links do app (botão "Ver avisos" etc.) escolhem a seção
-  const { aba: abaPedida } = useLocalSearchParams<{ aba?: string }>();
+  // links do app (botão "Ver avisos", "Ver todos" da Hoje etc.) escolhem a seção; `t` muda a cada toque,
+  // para valer de novo mesmo quando a seção pedida é a mesma da última vez
+  const { aba: abaPedida, t } = useLocalSearchParams<{ aba?: string; t?: string }>();
   useEffect(() => {
     if (abaPedida === 'agenda' || abaPedida === 'avisos') setAba(abaPedida);
-  }, [abaPedida]);
+  }, [abaPedida, t]);
   const [puxando, setPuxando] = useState(false);
   const puxar = async () => {
     setPuxando(true);
@@ -84,7 +85,7 @@ export default function Agenda() {
         scrollToOverflowEnabled
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={puxando} onRefresh={puxar} tintColor={c.destaque} colors={[c.destaque]} />}>
-        <TituloTela titulo="Agenda" sobre="Missas, eventos e avisos" />
+        <TituloTela titulo="Agenda" sub="Missas, eventos e avisos" />
 
         <View style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.l }}>
           <Vidro style={{ borderRadius: 22, flexDirection: 'row', padding: 4 }}>

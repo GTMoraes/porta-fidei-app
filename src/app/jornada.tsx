@@ -45,7 +45,7 @@ export default function TelaJornada() {
     const partes: string[] = [];
     if (j.arquivo) {
       if (doPacote == null) return null;
-      partes.push(doPacote || '<p class="c"><span class="lacuna">Este texto está no conteúdo litúrgico. Baixe-o em Ajustes › Conteúdo litúrgico.</span></p>');
+      partes.push(doPacote || '<p class="c"><span class="lacuna">Este texto está no conteúdo litúrgico. Baixe-o em Ajustes › Conteúdo e Comunidade › Conteúdo litúrgico.</span></p>');
     }
     if (j.oracao) {
       const o = srv.comunidade?.oracoes.find((x) => x.slug === j.oracao || x.id === j.oracao);

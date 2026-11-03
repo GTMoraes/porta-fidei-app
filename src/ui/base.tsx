@@ -127,27 +127,67 @@ export function Icone({ nome, cor, tamanho = 20 }: { nome: SFSymbol; cor?: strin
   );
 }
 
-export function TituloTela({ titulo, sobre }: { titulo: string; sobre?: string }) {
+/** Título grande das abas. O cabeçalho começa um pouco abaixo da barra de status (pedido do design);
+ *  `sub`: uma linha de explicação embaixo do título (ex.: Agenda). */
+export function TituloTela({ titulo, sub }: { titulo: string; sub?: string }) {
   const c = usePaleta();
   return (
-    <View style={{ paddingHorizontal: Espaco.xl, paddingTop: Espaco.s, paddingBottom: Espaco.m }}>
-      {sobre ? <Text style={{ color: c.textoFraco, fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase' }}>{sobre}</Text> : null}
-      <Text style={{ color: c.texto, ...fonteTitulo(34), marginTop: 2 }}>{titulo}</Text>
+    <View style={{ paddingHorizontal: Espaco.xl, paddingTop: Espaco.xl, paddingBottom: Espaco.m }}>
+      <Text style={{ color: c.texto, ...fonteTitulo(34) }}>{titulo}</Text>
+      {sub ? <Text style={{ color: c.textoSuave, fontSize: 15, marginTop: 2 }}>{sub}</Text> : null}
     </View>
   );
 }
 
-export function Secao({ titulo, children, acao }: { titulo?: string; children: ReactNode; acao?: ReactNode }) {
+/** Título no alto das telas que abrem por cima das abas (páginas de seção, da Comunidade) */
+export function TituloPagina({ titulo, sobre }: { titulo: string; sobre?: string }) {
   const c = usePaleta();
   return (
-    <View style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.xl }}>
+    <View style={{ paddingHorizontal: Espaco.xl, paddingTop: Espaco.s, paddingBottom: Espaco.l }}>
+      {sobre ? <Text style={{ color: c.destaque, fontSize: 13, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase' }}>{sobre}</Text> : null}
+      <Text style={{ color: c.texto, ...fonteTitulo(30), marginTop: sobre ? 4 : 0 }}>{titulo}</Text>
+    </View>
+  );
+}
+
+/**
+ * Grupo com título. `grande`: título forte, em negrito (as seções da Hoje, que precisam de hierarquia);
+ * sem ele, o rótulo pequeno em maiúsculas dos grupos de lista. `solto`: sem o cartão em volta (o conteúdo
+ * desenha os próprios cartões).
+ */
+export function Secao({ titulo, children, acao, grande, solto }: { titulo?: string; children: ReactNode; acao?: ReactNode; grande?: boolean; solto?: boolean }) {
+  const c = usePaleta();
+  return (
+    <View style={{ marginHorizontal: Espaco.l, marginBottom: grande ? Espaco.xxl : Espaco.xl }}>
       {titulo ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Espaco.s, marginHorizontal: Espaco.s }}>
-          <Text style={{ color: c.textoSuave, fontSize: 13, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase' }}>{titulo}</Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: grande ? 'flex-end' : 'center',
+            justifyContent: 'space-between',
+            marginBottom: grande ? Espaco.m : Espaco.s,
+            marginHorizontal: Espaco.s,
+          }}>
+          {grande ? (
+            <Text style={{ color: c.texto, ...fonteTitulo(22), flex: 1 }} accessibilityRole="header">
+              {titulo}
+            </Text>
+          ) : (
+            <Text style={{ color: c.textoSuave, fontSize: 13, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase' }}>{titulo}</Text>
+          )}
           {acao}
         </View>
       ) : null}
-      <Vidro>{children}</Vidro>
+      {solto ? children : <Vidro>{children}</Vidro>}
+    </View>
+  );
+}
+
+/** Ícone branco num quadrado colorido (as linhas que abrem as seções do Rezar, dos Ajustes e da Comunidade) */
+export function IconeQuadrado({ nome, fundo, tamanho = 30 }: { nome: SFSymbol; fundo: string; tamanho?: number }) {
+  return (
+    <View style={{ width: tamanho, height: tamanho, borderRadius: Math.round(tamanho * 0.27), backgroundColor: fundo, alignItems: 'center', justifyContent: 'center' }}>
+      <Icone nome={nome} cor="#FFFFFF" tamanho={Math.round(tamanho * 0.56)} />
     </View>
   );
 }
@@ -157,6 +197,7 @@ export function Linha({
   sub,
   icone,
   corIcone,
+  quadrado,
   direita,
   onPress,
   ultimo,
@@ -166,6 +207,8 @@ export function Linha({
   sub?: string;
   icone?: SFSymbol;
   corIcone?: string;
+  /** cor do quadrado atrás do ícone (ícone branco); sem ela, o ícone vai solto na cor do tema */
+  quadrado?: string;
   direita?: ReactNode;
   onPress?: () => void;
   ultimo?: boolean;
@@ -176,7 +219,7 @@ export function Linha({
     <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: Espaco.l, gap: Espaco.m }}>
       {icone ? (
         <View style={{ width: 30, alignItems: 'center' }}>
-          <Icone nome={icone} cor={corIcone} />
+          {quadrado ? <IconeQuadrado nome={icone} fundo={quadrado} /> : <Icone nome={icone} cor={corIcone} />}
         </View>
       ) : null}
       <View style={{ flex: 1 }}>

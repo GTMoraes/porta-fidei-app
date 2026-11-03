@@ -40,5 +40,21 @@ export const semAcento = (t: string) =>
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase();
 
-/** Onde o item está, para mostrar embaixo do título (ex.: "Rezar › Orações › Nossa Senhora") */
-export const ondeEsta = (e: Entrada) => e.caminhos.map((c) => `Rezar › ${c}`).join('  ·  ');
+// a página do Rezar onde fica cada catálogo (Rezar › seção › catálogo)
+const SECAO_DO_CATALOGO: Record<string, string> = {
+  Orações: 'Orações e rituais',
+  Confissão: 'Orações e rituais',
+  'Santo Rosário': 'Orações e rituais',
+  'Rituais e bênçãos': 'Orações e rituais',
+  'Comuns e ofícios votivos': 'Consulta',
+  Missal: 'Missa',
+};
+
+/** Onde o item está, para mostrar embaixo do título (ex.: "Rezar › Orações e rituais › Orações › Nossa Senhora") */
+export const ondeEsta = (e: Entrada) =>
+  e.caminhos
+    .map((c) => {
+      const secao = SECAO_DO_CATALOGO[c.split(' › ')[0]];
+      return secao ? `Rezar › ${secao} › ${c}` : `Rezar › ${c}`;
+    })
+    .join('  ·  ');

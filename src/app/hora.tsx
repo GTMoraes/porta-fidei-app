@@ -11,7 +11,9 @@ import { planoDaHora, type Hora } from '@/liturgia/horas';
 import { antifonaInvitatorio, type DadosInvitatorio } from '@/liturgia/invitatorio';
 import { usePaleta } from '@/tema';
 import { Icone, toque, Vidro } from '@/ui/base';
+import { SeletorDataLiturgica } from '@/ui/CalendarioLiturgico';
 import { Leitor } from '@/ui/Leitor';
+import { mostrarOpcoes } from '@/ui/Opcoes';
 import { dataCurta, dataParaHora } from '@/util/datas';
 
 export default function TelaHora() {
@@ -23,6 +25,7 @@ export default function TelaHora() {
   const c = usePaleta();
   const [data, setData] = useState(p.data || dataParaHora(p.h));
   const [memoria, setMemoria] = useState<string | undefined>();
+  const [escolhendoDia, setEscolhendoDia] = useState(false); // calendário aberto (tocar na data)
   const [corpo, setCorpo] = useState<string | null>(null);
   const [dadosInv, setDadosInv] = useState<DadosInvitatorio | null | undefined>(undefined);
   const ehInvitatorio = p.h === 'invitatorio';
@@ -63,7 +66,7 @@ export default function TelaHora() {
     let vivo = true;
     setCorpo(null);
     if (!pacote.manifest) {
-      setCorpo('<p class="c"><span class="lacuna">O conteúdo litúrgico ainda não foi instalado. Vá em Ajustes › Conteúdo litúrgico.</span></p>');
+      setCorpo('<p class="c"><span class="lacuna">O conteúdo litúrgico ainda não foi instalado. Vá em Ajustes › Conteúdo e Comunidade › Conteúdo litúrgico.</span></p>');
       return;
     }
     if (ehInvitatorio && dadosInv === undefined) return; // espera as antífonas
@@ -89,19 +92,35 @@ export default function TelaHora() {
     setMemoria(undefined);
     setData((d) => somaDias(d, n));
   };
+  const irParaDia = (d: string) => {
+    setEscolhendoDia(false);
+    setMemoria(undefined);
+    setData(d);
+  };
 
   const topo = (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: 6 }}>
       <Vidro style={{ borderRadius: 22 }} interativo>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Pressable onPress={() => mudarDia(-1)} hitSlop={8} style={{ padding: 12 }}>
             <Icone nome="chevron.left" tamanho={16} />
           </Pressable>
-          <Pressable style={{ flex: 1 }} onPress={() => setData(hojeIso())}>
-            <Text style={{ color: c.texto, textAlign: 'center', fontSize: 14, fontWeight: '600' }} numberOfLines={1}>
-              {dataCurta(new Date(data + 'T12:00:00'))}
-              {data === hojeIso() ? ' · hoje' : ''}
-            </Text>
+          {/* tocar na data abre o calendário litúrgico para escolher o dia */}
+          <Pressable
+            style={{ flex: 1 }}
+            accessibilityRole="button"
+            accessibilityHint="Abre o calendário para escolher o dia"
+            onPress={() => {
+              toque();
+              setEscolhendoDia(true);
+            }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
+              <Text style={{ color: c.texto, fontSize: 14, fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
+                {dataCurta(new Date(data + 'T12:00:00'))}
+                {data === hojeIso() ? ' · hoje' : ''}
+              </Text>
+              <Icone nome="chevron.down" cor={c.textoFraco} tamanho={10} />
+            </View>
             <Text style={{ color: c.textoFraco, textAlign: 'center', fontSize: 12 }} numberOfLines={1}>
               {plano.diaCelebrado.celebracao.nome}
             </Text>
@@ -157,20 +176,23 @@ export default function TelaHora() {
   ) : undefined;
 
   return (
-    <Leitor
-      tipo="horas"
-      rodape={rodape}
-      alturaTopo={comChips ? 120 : 64}
-      corpo={corpo}
-      titulo={plano.titulo}
-      subtitulo={plano.diaCelebrado.celebracao.nome}
-      permitirSilencio={p.h === 'laudes' || p.h === 'vesperas'}
-      topo={topo}
-    />
+    <>
+      <Leitor
+        tipo="horas"
+        rodape={rodape}
+        alturaTopo={comChips ? 98 : 64}
+        corpo={corpo}
+        titulo={plano.titulo}
+        subtitulo={plano.diaCelebrado.celebracao.nome}
+        permitirSilencio={p.h === 'laudes' || p.h === 'vesperas'}
+        topo={topo}
+      />
+      <SeletorDataLiturgica visivel={escolhendoDia} data={data} aoEscolher={irParaDia} aoFechar={() => setEscolhendoDia(false)} />
+    </>
   );
 }
 
-/** "Memória facultativa: Féria ▾" que abre a lista de opções do dia */
+/** "Memória facultativa: não celebrar ▾": uma linha discreta embaixo da data; o toque abre as opções do dia */
 function SeletorMemoria({
   opcoes,
   escolhida,
@@ -185,7 +207,6 @@ function SeletorMemoria({
   tentarPulsar: (n: number) => boolean;
 }) {
   const c = usePaleta();
-  const [aberto, setAberto] = useState(false);
   const brilho = useSharedValue(0);
   useEffect(() => {
     if (!pulso || !tentarPulsar(pulso)) return;
@@ -197,48 +218,31 @@ function SeletorMemoria({
   const estiloBrilho = useAnimatedStyle(() => ({ opacity: brilho.value }));
   const atual = opcoes.find((o) => o.slug === escolhida);
   const nomeCurto = (n: string) => n.split(',')[0];
-  const linha = (slug: string | undefined, titulo: string, sub?: string) => {
-    const ativo = escolhida === slug;
-    return (
-      <Pressable
-        key={slug ?? 'feria'}
-        onPress={() => {
-          toque();
-          aoEscolher(slug);
-          setAberto(false);
-        }}
-        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14, opacity: pressed ? 0.6 : 1 })}>
-        <View style={{ width: 24 }}>{ativo ? <Icone nome="checkmark" tamanho={15} /> : null}</View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: c.texto, fontSize: 15, fontWeight: ativo ? '600' : '400' }}>{titulo}</Text>
-          {sub ? <Text style={{ color: c.textoFraco, fontSize: 12 }}>{sub}</Text> : null}
-        </View>
-      </Pressable>
-    );
+  const abrir = () => {
+    toque();
+    const marca = (ativo: boolean) => (ativo ? '✓ ' : '');
+    mostrarOpcoes('Memória facultativa', [
+      { rotulo: `${marca(!atual)}Não celebrar (féria)`, onPress: () => aoEscolher(undefined) },
+      ...opcoes.map((o) => ({ rotulo: `${marca(o.slug === escolhida)}${o.nome}`, onPress: () => aoEscolher(o.slug) })),
+    ]);
   };
   return (
-    <Vidro style={{ borderRadius: 20 }} interativo>
-      <Animated.View pointerEvents="none" style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 20, borderWidth: 1.5, borderColor: c.destaque }, estiloBrilho]} />
-      <Pressable
-        onPress={() => {
-          toque();
-          setAberto((a) => !a);
-        }}
-        style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14 }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: c.textoFraco, fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase' }}>Memória facultativa</Text>
-          <Text style={{ color: atual ? c.destaque : c.texto, fontSize: 14, fontWeight: '600' }} numberOfLines={1}>
-            {atual ? nomeCurto(atual.nome) : 'Não celebrar (féria)'}
-          </Text>
-        </View>
-        <Icone nome={aberto ? 'chevron.up' : 'chevron.down'} tamanho={14} />
+    <View style={{ alignItems: 'center' }}>
+      <Pressable onPress={abrir} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Memória facultativa: ${atual ? atual.nome : 'não celebrar'}`} style={{ maxWidth: '100%' }}>
+        <Vidro style={{ borderRadius: 15 }} interativo>
+          <Animated.View
+            pointerEvents="none"
+            style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 15, borderWidth: 1.2, borderColor: c.destaque }, estiloBrilho]}
+          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 6, paddingHorizontal: 12 }}>
+            <Text style={{ color: c.textoFraco, fontSize: 12.5, flexShrink: 1 }} numberOfLines={1}>
+              Memória facultativa:{' '}
+              <Text style={{ color: atual ? c.destaque : c.textoSuave, fontWeight: '600' }}>{atual ? nomeCurto(atual.nome) : 'não celebrar'}</Text>
+            </Text>
+            <Icone nome="chevron.down" cor={c.textoFraco} tamanho={10} />
+          </View>
+        </Vidro>
       </Pressable>
-      {aberto ? (
-        <View style={{ borderTopWidth: 0.5, borderTopColor: c.separador, paddingBottom: 4 }}>
-          {linha(undefined, 'Não celebrar (féria)', 'Textos do dia da semana')}
-          {opcoes.map((o) => linha(o.slug, nomeCurto(o.nome), o.nome.includes(',') ? o.nome.split(',').slice(1).join(',').trim() : undefined))}
-        </View>
-      ) : null}
-    </Vidro>
+    </View>
   );
 }

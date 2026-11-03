@@ -1,7 +1,8 @@
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
+import type { SFSymbol } from 'expo-symbols';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { AppState, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { semana } from '@/comunidade/html';
 import { diaAtual, diasFeitos, jornadasDeHoje, periodo, useFeitos } from '@/comunidade/jornadas';
@@ -16,9 +17,9 @@ import { HORAS } from '@/liturgia/horas';
 import { santosDoDia } from '@/liturgia/martirologio';
 import { atualizar, encerrado, useServidor } from '@/servidor/api';
 import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
-import { Aviso, Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
+import { Aviso, Fundo, Icone, IconeQuadrado, Linha, Secao, toque, Vidro } from '@/ui/base';
 import { DeslizarParaArquivar } from '@/ui/Deslizar';
-import { dataParaHora, horaSugerida, quando } from '@/util/datas';
+import { dataParaHora, horaSugerida } from '@/util/datas';
 import { LinhaEvento } from '@/ui/Agenda';
 import { AuraDourada } from '@/ui/Aura';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
@@ -70,11 +71,12 @@ export default function Hoje() {
     }, []),
   );
 
-  // Ajuste "Iniciar com menu aberto": abre a aba Orar ao iniciar
+  // Ajuste "Iniciar com menu aberto": abre o menu das horas (Rezar › Liturgia das Horas) ao iniciar
   useEffect(() => {
     if (!jaAbriuMenu.current && lerAjustes().iniciarMenuAberto) {
       jaAbriuMenu.current = true;
       router.navigate('/orar');
+      router.push({ pathname: '/secao', params: { id: 'horas' } });
     }
   }, [router]);
 
@@ -110,6 +112,25 @@ export default function Hoje() {
   const atualizacaoPronta = useAtualizacaoPronta();
   const apk = useApkNovo();
 
+  // "Para hoje": atalhos pequenos, embaixo de tudo
+  const atalhos: { titulo: string; icone: SFSymbol; abrir: () => void }[] = [
+    { titulo: 'Liturgia Diária', icone: 'book', abrir: () => router.push('/liturgia') },
+    ...(santoArquivo
+      ? [
+          {
+            titulo: 'Santo do dia',
+            icone: 'sparkles' as SFSymbol,
+            abrir: () =>
+              router.push({ pathname: '/texto', params: { arquivo: santoArquivo, titulo: cel.nome, imagem: fotoSanto ? `santos/${cel.slug}` : '', mart: hoje } }),
+          },
+        ]
+      : []),
+    ...(santosDoDia(hoje).length
+      ? [{ titulo: 'Outros santos', icone: 'person.3' as SFSymbol, abrir: () => router.push({ pathname: '/martirologio', params: { data: hoje } }) }]
+      : []),
+    { titulo: 'Calendário', icone: 'calendar', abrir: () => router.push('/calendario') },
+  ];
+
   return (
     <Fundo aba>
       <ScrollView
@@ -118,7 +139,7 @@ export default function Hoje() {
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={puxando} onRefresh={puxar} tintColor={c.destaque} colors={[c.destaque]} />}>
         {/* Cabeçalho: a logo oficial completa (brasão e nome), colorida ou branca no tema escuro */}
-        <View style={{ paddingHorizontal: Espaco.xl, paddingTop: Espaco.s }} accessible accessibilityRole="header" accessibilityLabel="Comunidade Católica Porta Fidei">
+        <View style={{ paddingHorizontal: Espaco.xl, paddingTop: Espaco.xl }} accessible accessibilityRole="header" accessibilityLabel="Comunidade Católica Porta Fidei">
           <Image
             source={c.escuro ? require('@/comunidade/logo-horizontal-branco.png') : require('@/comunidade/logo-horizontal.png')}
             style={{ width: 224, height: 64 }}
@@ -250,7 +271,7 @@ export default function Hoje() {
             toque();
             router.push({ pathname: '/dia', params: { data: hoje } });
           }}
-          style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.xl }}>
+          style={{ marginHorizontal: Espaco.l, marginBottom: proposta || jornadas.length ? Espaco.xxl : Espaco.xl }}>
           <Vidro style={{ borderRadius: 28 }}>
             {pintura ? <Image source={{ uri: pintura }} style={{ height: 190 }} contentFit="cover" transition={250} /> : null}
             <View style={{ flexDirection: 'row' }}>
@@ -280,57 +301,30 @@ export default function Hoje() {
         </Pressable>
 
 
-        {/* Rezar agora */}
-        <Pressable
-          onPress={() => {
-            toque();
-            router.push({ pathname: '/hora', params: { h: sugerida.id, data: dataParaHora(sugerida.id, agora) } });
-          }}
-          style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.l }}>
-          <Vidro tinta={c.vinhoCheio} style={{ borderRadius: 24 }} interativo>
-            <View style={{ flexDirection: 'row', alignItems: 'center', padding: Espaco.l, gap: 14 }}>
-              <Icone nome="flame" cor="#fff" tamanho={26} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase' }}>Rezar agora</Text>
-                <Text style={{ color: '#fff', ...fonteTitulo(23) }}>{sugerida.nome}</Text>
-              </View>
-              <Icone nome="chevron.right" cor="#fff" tamanho={16} />
-            </View>
-          </Vidro>
-        </Pressable>
-
-        {/* Grade das horas */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: Espaco.l - 5, marginBottom: Espaco.xl }}>
-          {HORAS.map((h) => (
-            <View key={h.id} style={{ width: '50%', padding: 5 }}>
+        {/* Oração Pessoal: a proposta de oração pessoal da semana e as jornadas de hoje */}
+        {proposta || jornadas.length ? (
+          <Secao grande titulo="Oração Pessoal">
+            {proposta ? (
               <Pressable
                 onPress={() => {
                   toque();
-                  router.push({ pathname: '/hora', params: { h: h.id, data: dataParaHora(h.id) } });
-                }}>
-                <Vidro interativo style={{ borderRadius: 18 }}>
-                  <View style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
-                    <Text style={{ color: c.texto, fontSize: 16.5, fontWeight: '600' }}>{h.curto}</Text>
-                    <Text style={{ color: c.textoFraco, fontSize: 12.5, marginTop: 2 }}>{h.quando}</Text>
+                  router.push({ pathname: '/proposta', params: { id: proposta.id } });
+                }}
+                style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: Espaco.l }}>
+                  <IconeQuadrado nome="doc.richtext" fundo={Marca.vinho} tamanho={44} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: c.destaque, fontSize: 12, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase' }}>Proposta da semana</Text>
+                    <Text style={{ color: c.texto, ...fonteTitulo(19, 24), marginTop: 2 }} numberOfLines={2}>
+                      {proposta.titulo}
+                    </Text>
+                    <Text style={{ color: c.textoFraco, fontSize: 13.5, marginTop: 2 }}>{semana(proposta)}</Text>
                   </View>
-                </Vidro>
+                  <Icone nome="chevron.right" cor={c.textoFraco} tamanho={14} />
+                </View>
               </Pressable>
-            </View>
-          ))}
-        </View>
-
-        {proposta || jornadas.length ? (
-          <Secao titulo="Oração da Comunidade">
-            {proposta ? (
-              <Linha
-                titulo={proposta.titulo}
-                sub={`Proposta de oração da semana · ${semana(proposta)}`}
-                icone="doc.richtext"
-                corIcone={Marca.vinho}
-                onPress={() => router.push({ pathname: '/proposta', params: { id: proposta.id } })}
-                ultimo={!jornadas.length}
-              />
             ) : null}
+            {proposta && jornadas.length ? <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: c.separador, marginLeft: Espaco.l }} /> : null}
             {jornadas.map((j, i) => {
               const n = diaAtual(j, hoje)!;
               const p = periodo(j, hoje)!;
@@ -350,33 +344,36 @@ export default function Hoje() {
           </Secao>
         ) : null}
 
-        <Secao titulo="Para hoje">
-          <Linha titulo="Liturgia Diária" sub="Leituras e orações da Missa" icone="book" onPress={() => router.push('/liturgia')} />
-          {santoArquivo ? (
-            <Linha
-              titulo="Santo do dia"
-              sub={cel.nome}
-              icone="sparkles"
-              onPress={() => router.push({ pathname: '/texto', params: { arquivo: santoArquivo, titulo: cel.nome, imagem: fotoSanto ? `santos/${cel.slug}` : '', mart: hoje } })}
-            />
-          ) : null}
-          {santosDoDia(hoje).length ? (
-            <Linha titulo="Outros santos de hoje" sub="Martirológio Romano" icone="person.3" onPress={() => router.push({ pathname: '/martirologio', params: { data: hoje } })} />
-          ) : null}
-          <Linha titulo="Calendário litúrgico" sub="Tempos, festas e cores" icone="calendar" onPress={() => router.push('/calendario')} ultimo />
-        </Secao>
+        {/* Rezar agora */}
+        <Pressable
+          onPress={() => {
+            toque();
+            router.push({ pathname: '/hora', params: { h: sugerida.id, data: dataParaHora(sugerida.id, agora) } });
+          }}
+          style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.xxl }}>
+          <Vidro tinta={c.vinhoCheio} style={{ borderRadius: 24 }} interativo>
+            <View style={{ flexDirection: 'row', alignItems: 'center', padding: Espaco.l, gap: 14 }}>
+              <Icone nome="flame" cor="#fff" tamanho={26} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase' }}>Rezar agora</Text>
+                <Text style={{ color: '#fff', ...fonteTitulo(23) }}>{sugerida.nome}</Text>
+              </View>
+              <Icone nome="chevron.right" cor="#fff" tamanho={16} />
+            </View>
+          </Vidro>
+        </Pressable>
 
+        {/* Próximas missas e eventos: a data em destaque, como uma folhinha */}
         <Secao
+          grande
           titulo="Próximas missas e eventos"
           acao={
-            <Pressable onPress={() => router.navigate('/agenda')}>
-              <Text style={{ color: c.destaque, fontSize: 14 }}>Ver tudo</Text>
+            <Pressable onPress={() => router.navigate({ pathname: '/agenda', params: { aba: 'agenda', t: String(Date.now()) } })} hitSlop={8}>
+              <Text style={{ color: c.destaque, fontSize: 15 }}>Ver tudo</Text>
             </Pressable>
           }>
           {proximos.length ? (
-            proximos.map((e, i) => (
-              <LinhaEvento key={e.id} e={e} comData ultimo={i === proximos.length - 1} />
-            ))
+            proximos.map((e, i) => <LinhaEvento key={e.id} e={e} comData ultimo={i === proximos.length - 1} />)
           ) : (
             <Aviso
               icone={srv.erro ? 'wifi.slash' : 'calendar.badge.clock'}
@@ -385,20 +382,76 @@ export default function Hoje() {
           )}
         </Secao>
 
+        {/* Avisos: cada um no seu cartão, com a faixa dourada */}
         {avisos.length ? (
-          <Secao titulo="Avisos">
-            {avisos.map((a, i) => (
-              <Linha
-                key={a.id}
-                titulo={a.titulo}
-                sub={a.texto.length > 90 ? a.texto.slice(0, 90) + '…' : a.texto}
-                icone={a.fixado ? 'pin.fill' : 'megaphone'}
-                onPress={() => router.push({ pathname: '/aviso', params: { id: a.id } })}
-                ultimo={i === avisos.length - 1}
-              />
-            ))}
+          <Secao
+            grande
+            solto
+            titulo="Avisos"
+            acao={
+              <Pressable onPress={() => router.navigate({ pathname: '/agenda', params: { aba: 'avisos', t: String(Date.now()) } })} hitSlop={8}>
+                <Text style={{ color: c.destaque, fontSize: 15 }}>Ver todos</Text>
+              </Pressable>
+            }>
+            <View style={{ gap: Espaco.s }}>
+              {avisos.map((a) => (
+                <Pressable
+                  key={a.id}
+                  onPress={() => {
+                    toque();
+                    router.push({ pathname: '/aviso', params: { id: a.id } });
+                  }}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+                  <Vidro style={{ borderRadius: 18 }}>
+                    <View style={{ flexDirection: 'row' }}>
+                      <View style={{ width: 4, backgroundColor: Marca.ouro }} />
+                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingLeft: 14, paddingRight: Espaco.l }}>
+                        <View style={{ flex: 1 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            {a.fixado ? <Icone nome="pin.fill" cor={c.destaque} tamanho={12} /> : null}
+                            <Text style={{ color: c.texto, fontSize: 16.5, fontWeight: '600', flex: 1 }} numberOfLines={2}>
+                              {a.titulo}
+                            </Text>
+                          </View>
+                          <Text style={{ color: c.textoSuave, fontSize: 14, lineHeight: 19, marginTop: 3 }} numberOfLines={2}>
+                            {a.texto}
+                          </Text>
+                        </View>
+                        <Icone nome="chevron.right" cor={c.textoFraco} tamanho={14} />
+                      </View>
+                    </View>
+                  </Vidro>
+                </Pressable>
+              ))}
+            </View>
           </Secao>
         ) : null}
+
+        {/* Para hoje: atalhos menores */}
+        <Secao grande solto titulo="Para hoje">
+          <View style={{ flexDirection: 'row', gap: Espaco.s }}>
+            {atalhos.map((a) => (
+              <Pressable
+                key={a.titulo}
+                accessibilityRole="button"
+                accessibilityLabel={a.titulo}
+                onPress={() => {
+                  toque();
+                  a.abrir();
+                }}
+                style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.6 : 1 })}>
+                <Vidro interativo style={{ borderRadius: 16 }}>
+                  <View style={{ alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 76, paddingVertical: 10, paddingHorizontal: 4 }}>
+                    <Icone nome={a.icone} tamanho={21} />
+                    <Text style={{ color: c.texto, fontSize: 12.5, fontWeight: '500', textAlign: 'center', lineHeight: 15 }} numberOfLines={2}>
+                      {a.titulo}
+                    </Text>
+                  </View>
+                </Vidro>
+              </Pressable>
+            ))}
+          </View>
+        </Secao>
         <View style={{ height: 40 + folga }} />
       </ScrollView>
     </Fundo>

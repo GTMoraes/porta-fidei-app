@@ -1,4 +1,5 @@
-// Conteúdo da aba Comunidade (quem somos, Casa Porta Fidei, obras, ministérios, contatos).
+// Conteúdo da aba Comunidade (quem somos, Casa Porta Fidei, obras, comissões, contatos). Na aba, cada seção
+// é uma linha que abre a página dela (rota /pagina).
 // PROVISÓRIO: montado a partir do blog antigo (comunidadeportafidei.wordpress.com) e do relatório de 2020.
 // O que está marcado com "a confirmar" precisa ser conferido com a Comunidade.
 
@@ -11,6 +12,7 @@ export type Bloco =
   | { tipo: 'lista'; itens: { titulo: string; sub?: string; icone?: string }[] }
   | { tipo: 'citacao'; texto: string; autor?: string }
   | { tipo: 'links'; itens: { titulo: string; sub?: string; url: string; icone?: string }[] }
+  | { tipo: 'paginas'; itens: { titulo: string; sub?: string; id: string; icone?: string }[] } // abre outra página daqui
   | { tipo: 'aviso'; texto: string };
 
 export interface Pagina {
@@ -25,7 +27,43 @@ export const CARISMA = 'Defender a Verdade, guardar a fé para a salvação das 
 export const QUEM_SOMOS =
   'Associação privada de fiéis na Arquidiocese de Olinda e Recife, a Comunidade Católica Porta Fidei é uma Comunidade de Aliança e de Vida. Seu nome vem da Carta Apostólica Porta Fidei, do Papa Bento XVI, que convocou o Ano da Fé, aberto em 2012: o mesmo ano em que tudo começou.';
 
+export const REDES = [
+  { titulo: 'Instagram', sub: '@comunidadeportafidei', url: 'https://www.instagram.com/comunidadeportafidei/', icone: 'camera' },
+  { titulo: 'YouTube', sub: 'Comunidade Católica Porta Fidei', url: 'https://www.youtube.com/channel/UCY5bF5s1Y-JuQy0s-8JWkzw', icone: 'play.rectangle' },
+  { titulo: 'Facebook', sub: 'comunidadeportafidei', url: 'https://www.facebook.com/comunidadeportafidei', icone: 'person.2' },
+  { titulo: 'Site', sub: 'portafidei.com.br', url: 'https://portafidei.com.br', icone: 'globe' },
+];
+
 export const PAGINAS: Record<string, Pagina> = {
+  quemsomos: {
+    id: 'quemsomos',
+    titulo: 'Quem somos',
+    sobre: 'Comunidade Católica Porta Fidei',
+    blocos: [
+      { tipo: 'citacao', texto: CARISMA, autor: 'Carisma da Comunidade' },
+      { tipo: 'texto', texto: QUEM_SOMOS },
+      { tipo: 'paginas', itens: [{ titulo: 'Nossa história', sub: 'De um grupo de estudo, em 2012, a Comunidade', id: 'historia', icone: 'clock.arrow.circlepath' }] },
+    ],
+  },
+  obras: {
+    id: 'obras',
+    titulo: 'Obras e ações',
+    blocos: [
+      {
+        tipo: 'paginas',
+        itens: [
+          { titulo: 'Cuscuz Solidário', sub: 'Com as pessoas em situação de rua', id: 'cuscuz', icone: 'takeoutbag.and.cup.and.straw' },
+          { titulo: 'Happy Day', sub: 'Um dia diferente para crianças carentes', id: 'happyday', icone: 'sun.max' },
+          { titulo: 'Quarentena Solidária', sub: '2020 · cerca de 4 toneladas de doações', id: 'quarentena', icone: 'shippingbox' },
+        ],
+      },
+    ],
+  },
+  redes: {
+    id: 'redes',
+    titulo: 'Redes e contato',
+    blocos: [{ tipo: 'links', itens: REDES }],
+  },
   historia: {
     id: 'historia',
     titulo: 'Nossa história',
@@ -108,17 +146,18 @@ export const PAGINAS: Record<string, Pagina> = {
       { tipo: 'citacao', texto: 'Mais do que dar, eu recebi: a maior graça é sair da prisão de nós mesmos para ir ao encontro do próximo.', autor: 'Luis Felipe Portela, voluntário' },
     ],
   },
-  ministerios: {
-    id: 'ministerios',
-    titulo: 'Ministérios',
+  // a Comunidade chama de Comissões (antes estava "Ministérios"; o id antigo continua abrindo esta página)
+  comissoes: {
+    id: 'comissoes',
+    titulo: 'Comissões',
     sobre: 'A Comunidade em serviço',
     blocos: [
-      { tipo: 'aviso', texto: 'Em breve: cada ministério com a sua página, fotos e contatos.' },
+      { tipo: 'aviso', texto: 'Em breve: cada comissão com a sua página, fotos e contatos.' },
       {
         tipo: 'lista',
         itens: [
-          { titulo: 'Ministério de Obras', sub: 'Obras sociais, como a Casa do Pão, e ações em cidades vizinhas.', icone: 'hammer' },
-          { titulo: 'Ministério de Música', sub: 'Músicas autorais da Comunidade. Em breve, os álbuns e prévias para ouvir aqui.', icone: 'music.note' },
+          { titulo: 'Comissão de Obras', sub: 'Obras sociais, como a Casa do Pão, e ações em cidades vizinhas.', icone: 'hammer' },
+          { titulo: 'Comissão de Música', sub: 'Músicas autorais da Comunidade. Em breve, os álbuns e prévias para ouvir aqui.', icone: 'music.note' },
         ],
       },
     ],
@@ -134,10 +173,3 @@ export const PAGINAS: Record<string, Pagina> = {
     ],
   },
 };
-
-export const REDES = [
-  { titulo: 'Instagram', sub: '@comunidadeportafidei', url: 'https://www.instagram.com/comunidadeportafidei/', icone: 'camera' },
-  { titulo: 'YouTube', sub: 'Comunidade Católica Porta Fidei', url: 'https://www.youtube.com/channel/UCY5bF5s1Y-JuQy0s-8JWkzw', icone: 'play.rectangle' },
-  { titulo: 'Facebook', sub: 'comunidadeportafidei', url: 'https://www.facebook.com/comunidadeportafidei', icone: 'person.2' },
-  { titulo: 'Site', sub: 'portafidei.com.br', url: 'https://portafidei.com.br', icone: 'globe' },
-];

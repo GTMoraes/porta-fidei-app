@@ -14,6 +14,7 @@ import { DIAS_ADIANTE, faltando, guardarDiaCNBB, jsBaixar, lerDiaCNBB, limparAnt
 import { missalDoDia } from '@/liturgia/missal';
 import { usePaleta } from '@/tema';
 import { Icone, toque, Vidro } from '@/ui/base';
+import { SeletorDataLiturgica } from '@/ui/CalendarioLiturgico';
 import { Leitor } from '@/ui/Leitor';
 import { dataCurta } from '@/util/datas';
 
@@ -31,6 +32,7 @@ export default function LiturgiaDiaria() {
   const c = usePaleta();
   const hoje = hojeIso();
   const [data, setData] = useState(p.data || hoje);
+  const [escolhendoDia, setEscolhendoDia] = useState(false); // calendário aberto (tocar na data)
   const dia = useMemo(() => diaLiturgico(data), [data]);
   const [cnbb, setCnbb] = useState<DiaCNBB | null | undefined>(undefined); // undefined = procurando
   const [missal, setMissal] = useState<string>('');
@@ -138,11 +140,22 @@ export default function LiturgiaDiaria() {
         <Pressable onPress={() => mudarDia(-1)} hitSlop={8} style={{ padding: 12 }}>
           <Icone nome="chevron.left" tamanho={16} />
         </Pressable>
-        <Pressable style={{ flex: 1 }} onPress={() => setData(hoje)}>
-          <Text style={{ color: c.texto, textAlign: 'center', fontSize: 14, fontWeight: '600' }} numberOfLines={1}>
-            {dataCurta(new Date(data + 'T12:00:00'))}
-            {data === hoje ? ' · hoje' : ''}
-          </Text>
+        {/* tocar na data abre o calendário litúrgico para escolher o dia */}
+        <Pressable
+          style={{ flex: 1 }}
+          accessibilityRole="button"
+          accessibilityHint="Abre o calendário para escolher o dia"
+          onPress={() => {
+            toque();
+            setEscolhendoDia(true);
+          }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
+            <Text style={{ color: c.texto, fontSize: 14, fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
+              {dataCurta(new Date(data + 'T12:00:00'))}
+              {data === hoje ? ' · hoje' : ''}
+            </Text>
+            <Icone nome="chevron.down" cor={c.textoFraco} tamanho={10} />
+          </View>
           <Text style={{ color: c.textoFraco, textAlign: 'center', fontSize: 12 }} numberOfLines={1}>
             {dia.celebracao.nome}
           </Text>
@@ -166,6 +179,15 @@ export default function LiturgiaDiaria() {
   return (
     <View style={{ flex: 1 }}>
       <Leitor corpo={corpo} titulo="Liturgia Diária" topo={topo} acoes={acoes} iconeAcoes="text.book.closed" tituloAcoes="Missal" />
+      <SeletorDataLiturgica
+        visivel={escolhendoDia}
+        data={data}
+        aoEscolher={(d) => {
+          setEscolhendoDia(false);
+          setData(d);
+        }}
+        aoFechar={() => setEscolhendoDia(false)}
+      />
       {baixando && baixar.length ? (
         <View style={{ width: 1, height: 1, opacity: 0, position: 'absolute' }} pointerEvents="none">
           <WebView

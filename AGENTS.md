@@ -48,7 +48,7 @@ Docs: https://docs.expo.dev/eas/index.md
 - A chave do conteúdo (`extra.chaveConteudo`) não vai no manifest público: o app guarda a da build na primeira abertura (`src/conteudo/remoto.ts`).
 - **Textos litúrgicos nunca entram neste repositório** (ele é público). O app lê os textos do pacote `pf-conteudo.zip`, instalado no aparelho a partir do CDN privado; aqui fica só a lógica (calendário, qual texto vale em cada dia). Orações próprias da Comunidade moram no servidor, não no código.
 - **Chaves nunca no código:** `OTA_CHAVE`, `PF_CHAVE_CONTEUDO` e as de assinatura da Apple ficam só nos Secrets do GitHub e no `.env` do servidor.
-- O Gabriel sobe as mudanças pelo upload web do GitHub, a partir de uma pasta `_subir/<versão>/` só com os arquivos alterados.
+- O Gabriel sobe as mudanças por git, no clone `porta-fidei-app\repo\` do laptop (desde a 0.6.3): o Claude grava ali os arquivos, conferidos por hash, e ele roda `git add -A`, `git commit -m "<versão>"` e `git push`. Workflows: a ponte não grava em `.github\`; vão em `PARA-A-PASTA-.github-workflows\` (ignorada pelo git) e ele move. Até a 0.6.2 era pelo upload do site, com as pastas `_subir/<versão>/`.
 
 ## Porta Fidei: Android
 
@@ -70,3 +70,7 @@ Docs: https://docs.expo.dev/eas/index.md
 - Ícones: o app vai até o iOS 16.4, e os iPhone 8 e X param no iOS 16. SF Symbol que só existe a partir do iOS 17 precisa de um par em `SO_NO_IOS_17` (`src/ui/base.tsx`), senão aparece vazio nesses aparelhos.
 - Logo completa da Comunidade (PNGs da Comunicação): `src/comunidade/logo-horizontal*.png` e `logo-vertical*.png` (versão branca no tema escuro). Ficam em `src/` para irem pelo ar; em `assets/` disparariam build.
 - Pendente para a próxima build: tela de abertura do modo escuro com o brasão branco (`app.json` › `expo-splash-screen` › `dark.image`).
+- Cabeçalho das abas (`TituloTela`): só o título grande, começando um pouco abaixo da barra de status; explicação, quando precisa (Agenda), vai embaixo (`sub`), nunca acima.
+- Hoje, nesta ordem: dia litúrgico, Oração Pessoal (proposta da semana e jornadas), Rezar agora, Próximas missas e eventos (data em destaque, `LinhaEvento comData`), Avisos (cartões com a faixa dourada), Para hoje (atalhos pequenos). Os títulos dessas seções são fortes (`<Secao grande>`). Os botões de cada Hora saíram da Hoje: ficam em Rezar › Liturgia das Horas.
+- Rezar, Ajustes e Comunidade: na aba, uma linha por seção (título, descrição e ícone num quadrado colorido, `Linha quadrado` com as cores de `Quadrado` em `src/tema.ts`); o toque abre a página da seção. Rezar e Ajustes: rota `/secao`, conteúdo em `src/secoes/`. Comunidade: rota `/pagina`, conteúdo em `src/comunidade/sobre.ts`. No Rezar, busca, favoritos e recentes continuam soltos no alto. A Comunidade chama de "Comissões" (não "Ministérios").
+- Telas que andam de dia em dia (Liturgia das Horas, Liturgia Diária): tocar na data abre o calendário litúrgico do mês (`SeletorDataLiturgica`, `src/ui/CalendarioLiturgico.tsx`, a mesma grade da tela Calendário litúrgico). A memória facultativa é uma linha discreta embaixo da data, que abre as opções do dia.

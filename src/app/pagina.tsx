@@ -1,19 +1,22 @@
-// Página da aba Comunidade (história, Casa Porta Fidei, obras, ministérios, Benfeitor), montada a partir de blocos.
+// Página da aba Comunidade (quem somos, história, Casa Porta Fidei, obras, comissões, Benfeitor, redes),
+// montada a partir de blocos.
 
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
 import { RodapeContribuir } from '@/comunidade/Contribuir';
 import { PAGINAS } from '@/comunidade/sobre';
-import { Espaco, Fontes, fonteTitulo, usePaleta } from '@/tema';
-import { Aviso, Botao, Fundo, Linha, Secao } from '@/ui/base';
+import { Espaco, Fontes, usePaleta } from '@/tema';
+import { Aviso, Botao, Fundo, Linha, Secao, TituloPagina } from '@/ui/base';
 import { abrirLink } from '@/ui/Midia';
 import { abrirDoacao } from '@/comunidade/Contribuir';
 
 export default function TelaPagina() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const c = usePaleta();
-  const p = PAGINAS[id ?? ''];
+  const router = useRouter();
+  // "ministerios" era o nome antigo das Comissões
+  const p = PAGINAS[id === 'ministerios' ? 'comissoes' : (id ?? '')];
   if (!p)
     return (
       <Fundo>
@@ -29,10 +32,7 @@ export default function TelaPagina() {
     <Fundo>
       <Stack.Screen options={{ title: '' }} />
       <ScrollView contentInsetAdjustmentBehavior="automatic">
-        <View style={{ paddingHorizontal: Espaco.xl, paddingTop: Espaco.s, paddingBottom: Espaco.l }}>
-          {p.sobre ? <Text style={{ color: c.destaque, fontSize: 13, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase' }}>{p.sobre}</Text> : null}
-          <Text style={{ color: c.texto, ...fonteTitulo(30), marginTop: 4 }}>{p.titulo}</Text>
-        </View>
+        <TituloPagina titulo={p.titulo} sobre={p.sobre} />
         {p.blocos.map((b, i) => {
           switch (b.tipo) {
             case 'texto':
@@ -73,6 +73,21 @@ export default function TelaPagina() {
                 <Secao key={i}>
                   {b.itens.map((it, k) => (
                     <Linha key={k} titulo={it.titulo} sub={it.sub} icone={it.icone as any} onPress={() => abrirLink(it.url)} ultimo={k === b.itens.length - 1} />
+                  ))}
+                </Secao>
+              );
+            case 'paginas':
+              return (
+                <Secao key={i}>
+                  {b.itens.map((it, k) => (
+                    <Linha
+                      key={k}
+                      titulo={it.titulo}
+                      sub={it.sub}
+                      icone={it.icone as any}
+                      onPress={() => router.push({ pathname: '/pagina', params: { id: it.id } })}
+                      ultimo={k === b.itens.length - 1}
+                    />
                   ))}
                 </Secao>
               );

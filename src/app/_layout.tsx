@@ -117,6 +117,7 @@ export default function Raiz() {
         <Stack.Screen name="agenda-dia" options={{ title: '' }} />
         <Stack.Screen name="exame" options={{ title: '' }} />
         <Stack.Screen name="pagina" options={{ title: '' }} />
+        <Stack.Screen name="secao" options={{ title: '' }} />
         <Stack.Screen name="indice" options={{ title: 'Índice de A a Z' }} />
         <Stack.Screen name="sugestao" options={{ title: 'Enviar sugestão', presentation: 'modal' }} />
         <Stack.Screen name="sugestoes" options={{ title: 'Sugestões recebidas' }} />

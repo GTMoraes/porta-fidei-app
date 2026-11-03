@@ -136,5 +136,15 @@ export function comAlfa(hex: string, alfa: number): string {
   return `rgba(${n(0)},${n(2)},${n(4)},${alfa})`;
 }
 
+/** Quadrados coloridos dos ícones das seções (Rezar, Ajustes, Comunidade): iguais nos três temas, como nos
+ *  Ajustes do iPhone. O azul é mais claro que o da marca para não sumir no cartão do tema escuro. */
+export const Quadrado = {
+  vinho: Marca.vinho,
+  ouro: Marca.ouro,
+  azul: '#3A5BA0',
+  verde: '#2E7D4F',
+  cinza: '#8E8E93',
+};
+
 export const Espaco = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32 };
 export const Raio = { s: 12, m: 20, l: 28 };

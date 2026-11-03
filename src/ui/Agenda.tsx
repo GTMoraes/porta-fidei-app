@@ -8,7 +8,7 @@ import { MESES } from '@/liturgia/calendario';
 import { useServidor, type Evento } from '@/servidor/api';
 import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
 import { Icone, toque, Vidro } from './base';
-import { dataCurta, hora, quando } from '@/util/datas';
+import { dataCurta, hora } from '@/util/datas';
 
 export const NOME_TIPO: Record<string, string> = {
   missa: 'Missa',
@@ -42,14 +42,52 @@ export function textoReagendado(e: Evento, eventos: Evento[]) {
   return `Reagendado para ${dataCurta(d)} às ${hora(d)}`;
 }
 
-/** Linha de um evento nas listas. `comData`: mostra o dia (lista da tela Hoje) em vez de só a hora. */
+const MES_SIGLA = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+const DIA_SEMANA_CURTO = ['dom.', 'seg.', 'ter.', 'qua.', 'qui.', 'sex.', 'sáb.'];
+
+/** Quando, para a linha com a data em destaque (o dia e o mês já estão no quadrado ao lado):
+ *  "Hoje · 20h às 22h", "qua. · 19h30", "18h · até qui. 12 de nov." */
+function quandoCurto(e: Evento): string {
+  const i = new Date(e.inicio);
+  const f = e.fim ? new Date(e.fim) : null;
+  const hoje = new Date();
+  const amanha = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+  const dia = i.toDateString() === hoje.toDateString() ? 'Hoje' : i.toDateString() === amanha.toDateString() ? 'Amanhã' : DIA_SEMANA_CURTO[i.getDay()];
+  if (f && f.toDateString() !== i.toDateString()) {
+    // vários dias: se já começou, o que importa é até quando vai
+    return i.getTime() <= Date.now() ? `Até ${dataCurta(f)}` : `${dia} · ${hora(i)} · até ${dataCurta(f)}`;
+  }
+  return `${dia} · ${hora(i)}${f ? ` às ${hora(f)}` : ''}`;
+}
+
+/** Dia e mês em destaque, como a folhinha do calendário */
+function Folhinha({ d, apagada }: { d: Date; apagada?: boolean }) {
+  const c = usePaleta();
+  return (
+    <View
+      style={{
+        width: 46,
+        height: 50,
+        borderRadius: 11,
+        backgroundColor: c.preenchimento,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: apagada ? 0.6 : 1,
+      }}>
+      <Text style={{ color: c.rubrica, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 }}>{MES_SIGLA[d.getMonth()]}</Text>
+      <Text style={{ color: c.texto, fontSize: 21, fontWeight: '700', lineHeight: 25, fontVariant: ['tabular-nums'] }}>{d.getDate()}</Text>
+    </View>
+  );
+}
+
+/** Linha de um evento nas listas. `comData`: a data em destaque à esquerda (lista da tela Hoje), em vez do ícone e só a hora. */
 export function LinhaEvento({ e, ultimo, comData }: { e: Evento; ultimo?: boolean; comData?: boolean }) {
   const c = usePaleta();
   const router = useRouter();
   const srv = useServidor();
   const cancelado = e.situacao === 'cancelado';
   const reag = e.situacao === 'reagendado';
-  const base = comData ? quando(e.inicio, e.fim) : `${hora(new Date(e.inicio))}${e.fim ? ` às ${hora(new Date(e.fim))}` : ''} · ${NOME_TIPO[e.tipo] ?? ''}`;
+  const base = comData ? quandoCurto(e) : `${hora(new Date(e.inicio))}${e.fim ? ` às ${hora(new Date(e.fim))}` : ''} · ${NOME_TIPO[e.tipo] ?? ''}`;
   const sub = reag ? textoReagendado(e, srv.eventos) : `${base}${e.local ? ` · ${e.local}` : ''}`;
   return (
     <View>
@@ -59,19 +97,37 @@ export function LinhaEvento({ e, ultimo, comData }: { e: Evento; ultimo?: boolea
           router.push({ pathname: '/evento', params: { id: e.id } });
         }}
         style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: Espaco.l, gap: Espaco.m, opacity: cancelado || reag ? 0.75 : 1 }}>
-          <View style={{ width: 30, alignItems: 'center' }}>
-            <Icone nome={iconeEvento(e) as any} cor={e.tipo === 'missa' && !cancelado && !reag ? Marca.vinho : undefined} />
-          </View>
-          <View style={{ flex: 1, gap: 3 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: comData ? 12 : 13,
+            paddingHorizontal: comData ? Espaco.m : Espaco.l,
+            gap: Espaco.m,
+            opacity: cancelado || reag ? 0.75 : 1,
+          }}>
+          {comData ? (
+            <Folhinha d={new Date(e.inicio)} apagada={cancelado || reag} />
+          ) : (
+            <View style={{ width: 30, alignItems: 'center' }}>
+              <Icone nome={iconeEvento(e) as any} cor={e.tipo === 'missa' && !cancelado && !reag ? Marca.vinho : undefined} />
+            </View>
+          )}
+          <View style={{ flex: 1, gap: comData ? 2 : 3 }}>
             {cancelado || reag ? <Etiqueta situacao={e.situacao!} /> : null}
-            <Text style={{ color: c.texto, fontSize: 17, textDecorationLine: cancelado ? 'line-through' : 'none' }}>{e.titulo}</Text>
-            <Text style={{ color: reag ? COR_REAGENDADO : c.textoFraco, fontSize: 13.5 }}>{sub}</Text>
+            <Text
+              style={{ color: c.texto, fontSize: comData ? 16.5 : 17, fontWeight: comData ? '600' : '400', textDecorationLine: cancelado ? 'line-through' : 'none' }}
+              numberOfLines={comData ? 2 : undefined}>
+              {e.titulo}
+            </Text>
+            <Text style={{ color: reag ? COR_REAGENDADO : c.textoFraco, fontSize: 13.5 }} numberOfLines={comData ? 2 : undefined}>
+              {sub}
+            </Text>
           </View>
           <Icone nome="chevron.right" cor={c.textoFraco} tamanho={14} />
         </View>
       </Pressable>
-      {!ultimo ? <View style={{ height: 0.5, backgroundColor: c.separador, marginLeft: 58 }} /> : null}
+      {!ultimo ? <View style={{ height: 0.5, backgroundColor: c.separador, marginLeft: comData ? Espaco.m + 46 + Espaco.m : 58 }} /> : null}
     </View>
   );
 }

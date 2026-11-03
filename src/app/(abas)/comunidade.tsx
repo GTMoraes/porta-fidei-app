@@ -1,60 +1,49 @@
-// Aba Comunidade: quem somos, história, Casa Porta Fidei, obras, ministérios, contatos
-// e, sempre no topo, o convite a sustentar a obra (doação única ou Benfeitor).
+// Aba Comunidade: o convite a sustentar a obra (doação única ou Benfeitor) sempre no topo e, embaixo,
+// uma linha por seção (quem somos, Casa Porta Fidei, obras, comissões, Benfeitor, redes). O toque abre a
+// página da seção (rota /pagina, conteúdo em src/comunidade/sobre.ts).
 
 import { useRouter } from 'expo-router';
-import { ScrollView, Text, View } from 'react-native';
+import type { SFSymbol } from 'expo-symbols';
+import { ScrollView, View } from 'react-native';
 
 import { CardContribuir, RodapeContribuir } from '@/comunidade/Contribuir';
-import { CARISMA, QUEM_SOMOS, REDES } from '@/comunidade/sobre';
-import { Espaco, Fontes, usePaleta } from '@/tema';
+import { Quadrado } from '@/tema';
 import { Fundo, Linha, Secao, TituloTela } from '@/ui/base';
-import { abrirLink } from '@/ui/Midia';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
 import { useFolgaAbas } from '@/ui/AbasAndroid';
+
+const SECOES: { id: string; titulo: string; sub: string; icone: SFSymbol; cor: string }[] = [
+  { id: 'quemsomos', titulo: 'Quem somos', sub: 'O carisma e a nossa história', icone: 'door.left.hand.open', cor: Quadrado.vinho },
+  { id: 'casa', titulo: 'Casa Porta Fidei', sub: 'Serviços gratuitos e onde fica', icone: 'house', cor: Quadrado.azul },
+  { id: 'obras', titulo: 'Obras e ações', sub: 'Cuscuz Solidário, Happy Day e mais', icone: 'hands.sparkles', cor: Quadrado.ouro },
+  { id: 'comissoes', titulo: 'Comissões', sub: 'Obras, Música e outras', icone: 'person.3', cor: Quadrado.verde },
+  { id: 'benfeitor', titulo: 'Ser Benfeitor', sub: 'Quem sustenta a obra todo mês', icone: 'heart', cor: Quadrado.vinho },
+  { id: 'redes', titulo: 'Redes e contato', sub: 'Instagram, YouTube, Facebook e site', icone: 'globe', cor: Quadrado.cinza },
+];
 
 export default function Comunidade() {
   const folga = useFolgaAbas();
   const lista = useSubirAoTopo();
   const router = useRouter();
-  const c = usePaleta();
-  const abrir = (id: string) => router.push({ pathname: '/pagina', params: { id } });
 
   return (
     <Fundo aba>
       <ScrollView ref={lista} scrollToOverflowEnabled contentInsetAdjustmentBehavior="automatic">
-        <TituloTela titulo="Comunidade" sobre="Comunidade Católica Porta Fidei" />
+        <TituloTela titulo="Comunidade" />
 
         <CardContribuir />
 
-        <Secao titulo="Quem somos">
-          <View style={{ padding: Espaco.l, gap: 10 }}>
-            <Text style={{ color: c.destaque, fontFamily: Fontes.citacao, fontSize: 18, lineHeight: 25, fontStyle: 'italic' }}>“{CARISMA}”</Text>
-            <Text style={{ color: c.textoSuave, fontSize: 15, lineHeight: 21 }}>{QUEM_SOMOS}</Text>
-          </View>
-          <Linha titulo="Nossa história" sub="De um grupo de estudo, em 2012, a Comunidade" icone="clock.arrow.circlepath" onPress={() => abrir('historia')} ultimo />
-        </Secao>
-
-        <Secao titulo="Casa Porta Fidei">
-          <Linha titulo="A Casa e os serviços gratuitos" sub="Atendimento médico, psicológico, aulas e mais" icone="house" onPress={() => abrir('casa')} ultimo />
-        </Secao>
-
-        <Secao titulo="Obras e ações">
-          <Linha titulo="Cuscuz Solidário" sub="Com as pessoas em situação de rua" icone="takeoutbag.and.cup.and.straw" onPress={() => abrir('cuscuz')} />
-          <Linha titulo="Happy Day" sub="Um dia diferente para crianças carentes" icone="sun.max" onPress={() => abrir('happyday')} />
-          <Linha titulo="Quarentena Solidária" sub="2020 · cerca de 4 toneladas de doações" icone="shippingbox" onPress={() => abrir('quarentena')} ultimo />
-        </Secao>
-
-        <Secao titulo="Ministérios">
-          <Linha titulo="Ministérios da Comunidade" sub="Obras, Música e outros" icone="person.3" onPress={() => abrir('ministerios')} ultimo />
-        </Secao>
-
-        <Secao titulo="Ser Benfeitor">
-          <Linha titulo="O que é ser Benfeitor" sub="Quem contribui todos os meses com a obra" icone="heart.circle" onPress={() => abrir('benfeitor')} ultimo />
-        </Secao>
-
-        <Secao titulo="Redes e contato">
-          {REDES.map((r, i) => (
-            <Linha key={r.url} titulo={r.titulo} sub={r.sub} icone={r.icone as any} onPress={() => abrirLink(r.url)} ultimo={i === REDES.length - 1} />
+        <Secao>
+          {SECOES.map((s, i) => (
+            <Linha
+              key={s.id}
+              titulo={s.titulo}
+              sub={s.sub}
+              icone={s.icone}
+              quadrado={s.cor}
+              onPress={() => router.push({ pathname: '/pagina', params: { id: s.id } })}
+              ultimo={i === SECOES.length - 1}
+            />
           ))}
         </Secao>
 
