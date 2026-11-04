@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppState, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { mudarDataRezar, useDataRezar } from '@/estado/dataRezar';
-import { useSalvos, type ItemSalvo } from '@/estado/favoritos';
+import { abrirSalvo, useSalvos } from '@/estado/favoritos';
 import { dataPorExtenso } from '@/liturgia/calendario';
 import { ProprioDoDia, SECOES_REZAR, mostrarLeituras } from '@/secoes/rezar';
 import { Espaco, usePaleta } from '@/tema';
@@ -26,7 +26,6 @@ export default function Orar() {
   const salvos = useSalvos();
   const r = useDataRezar();
   const [escolhendo, setEscolhendo] = useState(false);
-  const abrirSalvo = (i: ItemSalvo) => router.push({ pathname: '/texto', params: { arquivo: i.arquivo, titulo: i.titulo, desde: i.desde ?? '', ate: i.ate ?? '' } });
 
   // vindo de outra tela já num dia (ex.: tocar num dia do Calendário litúrgico): `t` muda a cada pedido
   const pedido = useLocalSearchParams<{ data?: string; t?: string }>();

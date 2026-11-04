@@ -129,7 +129,7 @@ export default function Hoje() {
     ...(santosDoDia(hoje).length
       ? [{ titulo: 'Outros santos', icone: 'person.3' as SFSymbol, abrir: () => router.push({ pathname: '/martirologio', params: { data: hoje } }) }]
       : []),
-    { titulo: 'Calendário', icone: 'calendar', abrir: () => router.push('/calendario') },
+    { titulo: 'Calendário Litúrgico', icone: 'calendar', abrir: () => router.push('/calendario') },
   ];
 
   return (
@@ -327,7 +327,13 @@ export default function Hoje() {
             <View style={{ flexDirection: 'row', alignItems: 'center', padding: Espaco.l, gap: 14 }}>
               <Icone nome="flame" cor="#fff" tamanho={26} />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase' }}>Rezar agora</Text>
+                <Text
+                  style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase' }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}>
+                  Liturgia das Horas · Rezar agora
+                </Text>
                 <Text style={{ color: '#fff', ...fonteTitulo(23) }}>{sugerida.nome}</Text>
               </View>
               <Icone nome="chevron.right" cor="#fff" tamanho={16} />

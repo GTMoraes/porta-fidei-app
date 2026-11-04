@@ -18,7 +18,7 @@ export default function Calendario() {
   const { data } = useLocalSearchParams<{ data?: string }>();
   const hoje = hojeIso();
   const inicial = data && /^\d{4}-\d{2}-\d{2}$/.test(data) ? data : hoje;
-  const { ano, mes, mudarMes } = useMes(inicial);
+  const { ano, mes, mudarMes, irParaMes } = useMes(inicial);
   const [sel, setSel] = useState(inicial);
 
   const dias = useMemo(() => diasDoMes(ano, mes), [ano, mes]);
@@ -34,6 +34,7 @@ export default function Calendario() {
               ano={ano}
               mes={mes}
               mudarMes={mudarMes}
+              irParaMes={irParaMes}
               selecionado={sel}
               aoTocar={(d) => {
                 toque();

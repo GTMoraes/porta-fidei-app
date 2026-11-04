@@ -5,8 +5,10 @@
 // Atrás do cartão, o ícone de arquivar cresce conforme o cartão anda.
 //
 // DeslizarComAcoes: os botões ficam por baixo da linha e vão aparecendo conforme ela desliza (como no Mail).
+//
+// DeslizarMes: arrastar para o lado troca o mês dos calendários (Agenda e litúrgico).
 
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
@@ -43,8 +45,10 @@ export function DeslizarParaArquivar({
     });
   };
 
+  // só o deslize para a esquerda arquiva; para a direita o gesto desiste (na Agenda, volta para Missas e eventos)
   const pan = Gesture.Pan()
-    .activeOffsetX([-14, 14])
+    .activeOffsetX([-14, 10000])
+    .failOffsetX([-10000, 14])
     .failOffsetY([-12, 12])
     .onUpdate((e) => {
       x.value = Math.min(0, e.translationX);
@@ -182,5 +186,72 @@ export function DeslizarComAcoes({ acoes, onTocar, children }: { acoes: AcaoLinh
         </Animated.View>
       </GestureDetector>
     </View>
+  );
+}
+
+/**
+ * Área de um calendário que troca de mês com o dedo: arrastar para a esquerda mostra o mês seguinte; para a
+ * direita, o anterior. O conteúdo acompanha o dedo e o mês novo entra pelo lado certo. `chave` muda sempre que
+ * o mês muda (também pelas setas), e é ela que dispara a entrada. Na borda (`podeVoltar`/`podeAvancar` falsos)
+ * o arrasto só resiste.
+ */
+export function DeslizarMes({
+  chave,
+  mudar,
+  podeVoltar = true,
+  podeAvancar = true,
+  children,
+}: {
+  chave: number;
+  mudar: (n: 1 | -1) => void;
+  podeVoltar?: boolean;
+  podeAvancar?: boolean;
+  children: ReactNode;
+}) {
+  const x = useSharedValue(0);
+  const largura = useSharedValue(320);
+  const anterior = useRef(chave);
+
+  useEffect(() => {
+    const d = chave - anterior.current;
+    anterior.current = chave;
+    if (!d) return;
+    x.value = Math.sign(d) * largura.value * 0.35;
+    x.value = withSpring(0, MOLA);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave]);
+
+  const pan = Gesture.Pan()
+    .activeOffsetX([-14, 14])
+    .failOffsetY([-12, 12])
+    .onUpdate((e) => {
+      const t = e.translationX;
+      x.value = (t > 0 && !podeVoltar) || (t < 0 && !podeAvancar) ? t * 0.2 : t;
+    })
+    .onEnd((e) => {
+      const n = e.translationX < 0 ? 1 : -1;
+      const pode = n === 1 ? podeAvancar : podeVoltar;
+      const longe = Math.abs(e.translationX) > largura.value * 0.22;
+      const rapido = Math.abs(e.velocityX) > 500 && (n === 1 ? e.velocityX < 0 : e.velocityX > 0);
+      if (pode && (longe || rapido)) {
+        x.value = withTiming(-n * largura.value * 0.6, { duration: 120 }, (ok) => {
+          if (ok) scheduleOnRN(mudar, n);
+        });
+      } else {
+        x.value = withSpring(0, MOLA);
+      }
+    });
+
+  const estilo = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.value }],
+    opacity: interpolate(Math.abs(x.value), [0, largura.value * 0.6], [1, 0.15], Extrapolation.CLAMP),
+  }));
+
+  return (
+    <GestureDetector gesture={pan}>
+      <Animated.View onLayout={(e) => (largura.value = e.nativeEvent.layout.width)} style={estilo}>
+        {children}
+      </Animated.View>
+    </GestureDetector>
   );
 }

@@ -9,7 +9,7 @@ import { buscarNosTextos, buscarParecidos, comNumeracaoHebraica, existe, registr
 import { abrirItem, disponivel } from '@/conteudo/abrir';
 import { ondeEsta, todasAsEntradas } from '@/conteudo/indice';
 import { lerDado, usePacote } from '@/conteudo/pacote';
-import { useSalvos, type ItemSalvo } from '@/estado/favoritos';
+import { abrirSalvo, useSalvos } from '@/estado/favoritos';
 import { SANTOS } from '@/liturgia/santos';
 import { useServidor } from '@/servidor/api';
 import { Espaco, usePaleta } from '@/tema';
@@ -33,7 +33,6 @@ export default function Buscar() {
   // antes de digitar: os abertos recentemente, como um histórico (saíram do alto do Rezar)
   const salvos = useSalvos();
   const recentes = salvos.recentes.slice(0, 8);
-  const abrirSalvo = (i: ItemSalvo) => router.push({ pathname: '/texto', params: { arquivo: i.arquivo, titulo: i.titulo, desde: i.desde ?? '', ate: i.ate ?? '' } });
   const [salmos, setSalmos] = useState<{ arquivo: string; ref: string; tema: string }[]>([]);
   const [varrendo, setVarrendo] = useState<{ feito: number; total: number } | null>(null);
   const [achados, setAchados] = useState<Achado[] | null>(null);

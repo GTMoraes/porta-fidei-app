@@ -1,6 +1,9 @@
-// Favoritos (estrela no texto) e abertos recentemente, só neste aparelho. Aparecem no topo do Rezar.
+// Favoritos (estrela no texto) e abertos recentemente, só neste aparelho. Os favoritos ficam no Rezar; os
+// recentes, na tela de busca. Além dos textos do pacote, guardam as orações, propostas e jornadas da
+// Comunidade (arquivo "@oracao:<id>", "@proposta:<id>", "@jornada:<id>"), que abrem pelas telas delas.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import { useSyncExternalStore } from 'react';
 
 export interface ItemSalvo {
@@ -64,4 +67,17 @@ export function limparRecentes() {
   estado = { ...estado, recentes: [] };
   salvar();
   emitir();
+}
+
+/** Item de favorito/recente para uma oração, proposta ou jornada da Comunidade */
+export const itemComunidade = (tipo: 'oracao' | 'proposta' | 'jornada', id: string, titulo: string): ItemSalvo => ({ arquivo: `@${tipo}:${id}`, titulo });
+
+/** Abre um favorito ou recente: textos do pacote no leitor; o que é da Comunidade, na tela dela */
+export function abrirSalvo(i: ItemSalvo) {
+  const m = /^@(oracao|proposta|jornada):(.+)$/.exec(i.arquivo);
+  if (m) {
+    router.push({ pathname: `/${m[1]}` as '/oracao', params: { id: m[2] } });
+    return;
+  }
+  router.push({ pathname: '/texto', params: { arquivo: i.arquivo, titulo: i.titulo, desde: i.desde ?? '', ate: i.ate ?? '' } });
 }

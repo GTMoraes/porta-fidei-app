@@ -9,6 +9,7 @@ import { Pressable, Text, View } from 'react-native';
 import { oracaoHtml, textoParaHtml } from '@/comunidade/html';
 import { dataDoDia, diaAtual, diasFeitos, marcar, periodo, useFeitos } from '@/comunidade/jornadas';
 import { montarArquivo } from '@/conteudo/montar';
+import { alternarFavorito, ehFavorito, itemComunidade, registrarRecente, useSalvos } from '@/estado/favoritos';
 import { usePacote } from '@/conteudo/pacote';
 import { hojeIso } from '@/liturgia/calendario';
 import { useServidor } from '@/servidor/api';
@@ -32,6 +33,13 @@ export default function TelaJornada() {
   const [dia, setDia] = useState(atual ?? 1);
   const feitos = useFeitos();
   const [doPacote, setDoPacote] = useState<string | null>(null);
+  // favorito e recentes (abre sempre no dia de hoje da jornada)
+  const salvos = useSalvos();
+  const item = j ? itemComunidade('jornada', j.id, j.titulo) : null;
+  useEffect(() => {
+    if (item) registrarRecente(item);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [j?.id]);
 
   useEffect(() => {
     if (atual) setDia(atual);
@@ -120,5 +128,14 @@ export default function TelaJornada() {
       </View>
     ) : undefined;
 
-  return <Leitor corpo={corpo} titulo={j.titulo} subtitulo={j.descricao ?? undefined} topo={topo} rodape={rodape} />;
+  return (
+    <Leitor
+      corpo={corpo}
+      titulo={j.titulo}
+      subtitulo={j.descricao ?? undefined}
+      topo={topo}
+      rodape={rodape}
+      favorito={item ? { ativo: ehFavorito(salvos, item), alternar: () => alternarFavorito(item) } : undefined}
+    />
+  );
 }

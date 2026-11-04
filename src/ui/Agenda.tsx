@@ -8,6 +8,7 @@ import { MESES } from '@/liturgia/calendario';
 import { useServidor, type Evento } from '@/servidor/api';
 import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
 import { Icone, toque, Vidro } from './base';
+import { DeslizarMes } from './Deslizar';
 import { Folhinha, MES_SIGLA } from './Folhinha';
 import { dataCurta, hora } from '@/util/datas';
 
@@ -198,45 +199,48 @@ export function CalendarioAgenda({ eventos }: { eventos: Evento[] }) {
                 </Text>
               ))}
             </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
-              {dias.map((d, i) => {
-                const info = d ? porDia.get(d) : undefined;
-                const passado = d ? d < hoje : false;
-                return (
-                  <View key={i} style={{ width: `${100 / 7}%`, height: 44, padding: 2 }}>
-                    {d ? (
-                      <Pressable
-                        disabled={!info}
-                        onPress={() => {
-                          toque();
-                          router.push({ pathname: '/agenda-dia', params: { data: d } });
-                        }}
-                        style={({ pressed }) => ({
-                          flex: 1,
-                          borderRadius: 12,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderWidth: d === hoje ? 1.2 : 0,
-                          borderColor: c.destaque,
-                          backgroundColor: pressed ? (c.escuro ? 'rgba(222,190,130,0.25)' : 'rgba(188,140,68,0.2)') : 'transparent',
-                        })}>
-                        <Text style={{ color: passado ? c.textoFraco : c.texto, fontSize: 16, fontWeight: info && !passado ? '600' : '400' }}>{Number(d.slice(8))}</Text>
-                        <View
-                          style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: 3,
-                            marginTop: 3,
-                            backgroundColor: corPonto(info, passado),
-                            opacity: info && !info.ativos ? 0.6 : 1,
+            {/* arrastar para o lado troca o mês (até onde há eventos) */}
+            <DeslizarMes chave={atual} mudar={(n) => mudarMes(n)} podeVoltar={atual > minimo} podeAvancar={atual < maximo}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
+                {dias.map((d, i) => {
+                  const info = d ? porDia.get(d) : undefined;
+                  const passado = d ? d < hoje : false;
+                  return (
+                    <View key={i} style={{ width: `${100 / 7}%`, height: 44, padding: 2 }}>
+                      {d ? (
+                        <Pressable
+                          disabled={!info}
+                          onPress={() => {
+                            toque();
+                            router.push({ pathname: '/agenda-dia', params: { data: d } });
                           }}
-                        />
-                      </Pressable>
-                    ) : null}
-                  </View>
-                );
-              })}
-            </View>
+                          style={({ pressed }) => ({
+                            flex: 1,
+                            borderRadius: 12,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderWidth: d === hoje ? 1.2 : 0,
+                            borderColor: c.destaque,
+                            backgroundColor: pressed ? (c.escuro ? 'rgba(222,190,130,0.25)' : 'rgba(188,140,68,0.2)') : 'transparent',
+                          })}>
+                          <Text style={{ color: passado ? c.textoFraco : c.texto, fontSize: 16, fontWeight: info && !passado ? '600' : '400' }}>{Number(d.slice(8))}</Text>
+                          <View
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: 3,
+                              marginTop: 3,
+                              backgroundColor: corPonto(info, passado),
+                              opacity: info && !info.ativos ? 0.6 : 1,
+                            }}
+                          />
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  );
+                })}
+              </View>
+            </DeslizarMes>
           </>
         ) : null}
       </Vidro>

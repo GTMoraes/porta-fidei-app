@@ -7,6 +7,7 @@ import { Pressable, Text } from 'react-native';
 import { propostaHtml, semana } from '@/comunidade/html';
 import { lerPrevia } from '@/comunidade/previa';
 import { useAjustes } from '@/estado/ajustes';
+import { alternarFavorito, ehFavorito, itemComunidade, registrarRecente, useSalvos } from '@/estado/favoritos';
 import { urlPdfProposta, useServidor } from '@/servidor/api';
 import { usePaleta } from '@/tema';
 import { Icone, toque } from '@/ui/base';
@@ -28,6 +29,13 @@ export default function TelaProposta() {
     [p, aj.pularInstrucoes],
   );
   const anteriores = (com?.propostas ?? []).filter((x) => x.id !== p?.id);
+  // favorito e recentes: a proposta publicada que está na tela (prévia e rascunho, não)
+  const salvos = useSalvos();
+  const item = p && p.publicada && !lerPrevia(id) ? itemComunidade('proposta', p.id, p.titulo) : null;
+  useEffect(() => {
+    if (item) registrarRecente(item);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item?.arquivo]);
   const nav = useNavigation();
 
   // "PDF original": a proposta com a arte da Comissão, como foi enviada
@@ -59,6 +67,7 @@ export default function TelaProposta() {
       titulo={p?.titulo ?? 'Proposta de oração'}
       subtitulo={p ? `Proposta de oração${p.inicio ? ` · ${semana(p)}` : ''}${p.publicada ? '' : ' · rascunho'}` : undefined}
       extra={extra}
+      favorito={item ? { ativo: ehFavorito(salvos, item), alternar: () => alternarFavorito(item) } : undefined}
     />
   );
 }

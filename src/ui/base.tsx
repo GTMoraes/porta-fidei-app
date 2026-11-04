@@ -10,10 +10,12 @@ import { lerAjustes } from '@/estado/ajustes';
 import { Espaco, Marca, Raio, fonteTitulo, usePaleta } from '@/tema';
 
 import { MATERIAL } from './icones-android';
+import { PESO_CHEIO } from './simbolosCheios';
 
 const VIDRO = Platform.OS === 'ios' && isLiquidGlassAvailable();
 const ANDROID = Platform.OS === 'android';
-const CHEIOS_ANDROID: Record<string, string> = { 'star.fill': '\u2605\uFE0E', 'heart.fill': '\u2665\uFE0E' };
+// no Android, estes desenham com a fonte cheia do Material Symbols (a de sempre só tem o desenho vazado)
+const CHEIOS_ANDROID = new Set(['star.fill', 'heart.fill']);
 
 // Símbolos que só existem a partir do iOS 17: nos iPhones que param no iOS 16 (8, 8 Plus e X) eles não aparecem.
 // Lá entra o equivalente que já existe no 16; do 17 em diante, nada muda.
@@ -107,21 +109,14 @@ export function Vidro({
 
 export function Icone({ nome, cor, tamanho = 20 }: { nome: SFSymbol; cor?: string; tamanho?: number }) {
   const c = usePaleta();
-  // a fonte do Material Symbols do Android só tem o desenho vazado: onde o cheio indica um estado
-  // (estrela de favorito marcada), vai o caractere cheio
-  const cheio = ANDROID ? CHEIOS_ANDROID[nome] : undefined;
-  if (cheio)
-    return (
-      <View style={{ width: tamanho, height: tamanho, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: cor ?? c.destaque, fontSize: tamanho * 1.05, lineHeight: tamanho * 1.25, includeFontPadding: false, textAlign: 'center' }}>{cheio}</Text>
-      </View>
-    );
+  // Android: onde o cheio indica um estado (estrela de favorito marcada), a versão cheia da mesma fonte
+  const cheio = ANDROID && CHEIOS_ANDROID.has(nome) && PESO_CHEIO;
   return (
     <SymbolView
       name={Platform.OS === 'android' ? { ios: nome, android: MATERIAL[nome] } : simbolo(nome)}
       tintColor={cor ?? c.destaque}
       size={tamanho}
-      weight="medium"
+      weight={cheio ? { ios: 'medium', android: PESO_CHEIO! } : 'medium'}
       fallback={<Text style={{ color: cor ?? c.destaque, fontSize: tamanho * 0.8 }}>•</Text>}
     />
   );
