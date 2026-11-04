@@ -324,15 +324,16 @@ export default function Hoje() {
           }}
           style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.xxl }}>
           <Vidro tinta={c.vinhoCheio} style={{ borderRadius: 24 }} interativo>
-            <View style={{ flexDirection: 'row', alignItems: 'center', padding: Espaco.l, gap: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', padding: Espaco.l, gap: 12 }}>
               <Icone nome="flame" cor="#fff" tamanho={26} />
               <View style={{ flex: 1 }}>
+                {/* mesmo estilo de "PROPOSTA DA SEMANA" e "FÉRIA · TEMPO COMUM" (seminegrito, 12) */}
                 <Text
-                  style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, letterSpacing: 0.6, textTransform: 'uppercase' }}
+                  style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase' }}
                   numberOfLines={1}
                   adjustsFontSizeToFit
-                  minimumFontScale={0.8}>
-                  Liturgia das Horas · Rezar agora
+                  minimumFontScale={0.85}>
+                  Rezar agora · Liturgia das Horas
                 </Text>
                 <Text style={{ color: '#fff', ...fonteTitulo(23) }}>{sugerida.nome}</Text>
               </View>
