@@ -1,6 +1,7 @@
-// Lista das jornadas de oração: as de hoje, as próximas e as sem data.
+// Lista das jornadas de oração: as de hoje, as próximas e as sem data. `data` (vindo do Rezar com outro dia
+// escolhido na folhinha): a lista é a daquele dia.
 
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import { diaAtual, diasFeitos, periodo, temTexto, useFeitos } from '@/comunidade/jornadas';
@@ -16,7 +17,9 @@ export default function Jornadas() {
   const srv = useServidor();
   const router = useRouter();
   const feitos = useFeitos();
-  const hoje = hojeIso();
+  const { data } = useLocalSearchParams<{ data?: string }>();
+  const ehHoje = !data || data === hojeIso();
+  const hoje = ehHoje ? hojeIso() : data; // o dia de referência da lista
   const todas = srv.comunidade?.jornadas ?? [];
   const agora = todas.filter((j) => diaAtual(j, hoje) != null);
   const proximas = todas
@@ -36,7 +39,7 @@ export default function Jornadas() {
         titulo={j.titulo}
         sub={sub}
         icone={ICONE[j.tipo] ?? 'sparkles'}
-        onPress={() => router.push({ pathname: '/jornada', params: { id: j.id } })}
+        onPress={() => router.push({ pathname: '/jornada', params: ehHoje ? { id: j.id } : { id: j.id, data: hoje } })}
         ultimo={i === lista.length - 1}
       />
     );
@@ -45,7 +48,7 @@ export default function Jornadas() {
   return (
     <Fundo>
       <ScrollView contentInsetAdjustmentBehavior="automatic">
-        {agora.length ? <Secao titulo="Acontecendo agora">{agora.map(linha)}</Secao> : null}
+        {agora.length ? <Secao titulo={ehHoje ? 'Acontecendo agora' : `Em ${dt(hoje)}`}>{agora.map(linha)}</Secao> : null}
         <Secao titulo="Próximas">{proximas.length ? proximas.map(linha) : <Aviso texto="Nenhuma jornada agendada." />}</Secao>
         {semData.length ? <Secao titulo="Sem data marcada">{semData.map(linha)}</Secao> : null}
         <Secao>

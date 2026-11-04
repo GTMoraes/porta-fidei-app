@@ -9,7 +9,7 @@ import { atualizar, encerrado, useServidor, type Aviso as AvisoT, type Evento } 
 import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
 import { Aviso, Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base';
 import { DeslizarComAcoes, DeslizarParaArquivar } from '@/ui/Deslizar';
-import { dataLonga, diaEHora } from '@/util/datas';
+import { dataHoraCurta, dataLonga } from '@/util/datas';
 import { CalendarioAgenda, LinhaEvento } from '@/ui/Agenda';
 import { CapaVideo, ImagemInteira } from '@/ui/Midia';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
@@ -194,8 +194,8 @@ export default function Agenda() {
                               titulo={a.titulo}
                               sub={
                                 fim
-                                  ? `Encerrado em ${diaEHora(new Date(a.venceEm!))} · deslize para remover`
-                                  : `${dataLonga(new Date(a.criado))} · deslize para voltar ou remover`
+                                  ? `Encerrado em ${dataHoraCurta(new Date(a.venceEm!))} · deslize para remover`
+                                  : `${dataHoraCurta(new Date(a.criado))} · deslize para voltar ou remover`
                               }
                               seta
                               ultimo={i === guardados.length - 1}
@@ -226,7 +226,8 @@ function CartaoAviso({ a, onArquivar }: { a: AvisoT; onArquivar: () => void }) {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             {a.fixado ? <Icone nome="pin.fill" tamanho={13} /> : null}
             <Text style={{ color: c.textoFraco, fontSize: 12.5, flex: 1 }}>
-              {dataLonga(new Date(a.criado))}
+              {dataHoraCurta(new Date(a.criado))}
+              {a.venceEm ? ` → ${dataHoraCurta(new Date(a.venceEm))}` : ''}
               {a.atualizado && Date.parse(a.atualizado) - Date.parse(a.criado) > 60_000 ? ' · corrigido' : ''}
             </Text>
             <Pressable

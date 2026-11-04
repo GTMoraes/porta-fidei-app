@@ -12,7 +12,8 @@ import { aplicarAtualizacao, buscarNova, useAtualizacaoPronta } from '@/estado/a
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
 import { infoRemota, type InfoRemota } from '@/conteudo/remoto';
 import { lerAjustes } from '@/estado/ajustes';
-import { COR_HEX, NOME_GRAU, NOME_TEMPO, dataPorExtenso, diaLiturgico, hojeIso } from '@/liturgia/calendario';
+import { resetarDataRezar } from '@/estado/dataRezar';
+import { dataPorExtenso, diaLiturgico, hojeIso } from '@/liturgia/calendario';
 import { HORAS } from '@/liturgia/horas';
 import { santosDoDia } from '@/liturgia/martirologio';
 import { atualizar, encerrado, useServidor } from '@/servidor/api';
@@ -22,10 +23,9 @@ import { DeslizarParaArquivar } from '@/ui/Deslizar';
 import { dataParaHora, horaSugerida } from '@/util/datas';
 import { LinhaEvento } from '@/ui/Agenda';
 import { AuraDourada } from '@/ui/Aura';
+import { CartaoDoDia } from '@/ui/CartaoDoDia';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
 import { useFolgaAbas } from '@/ui/AbasAndroid';
-
-const ROMANO = ['', 'I', 'II', 'III', 'IV'];
 
 export default function Hoje() {
   const folga = useFolgaAbas();
@@ -68,6 +68,8 @@ export default function Hoje() {
     useCallback(() => {
       setHoje(hojeIso());
       setAgora(new Date());
+      // voltar para a Hoje volta o Rezar para hoje (a folhinha do Rezar escolhe outro dia)
+      resetarDataRezar();
     }, []),
   );
 
@@ -90,7 +92,6 @@ export default function Hoje() {
   const dia = useMemo(() => diaLiturgico(hoje), [hoje]);
   const cel = dia.celebracao;
   const sugerida = HORAS.find((h) => h.id === horaSugerida(agora))!;
-  const pintura = cel.slug ? imagemUri(`paints/${cel.slug}`) : undefined;
   const santoArquivo = cel.slug && existe(`santos/${cel.slug}`) ? `santos/${cel.slug}` : undefined;
   const fotoSanto = cel.slug ? imagemUri(`santos/${cel.slug}`) : undefined;
 
@@ -265,41 +266,12 @@ export default function Hoje() {
           </DeslizarParaArquivar>
         ))}
 
-        {/* Celebração do dia */}
-        <Pressable
-          onPress={() => {
-            toque();
-            router.push({ pathname: '/dia', params: { data: hoje } });
-          }}
-          style={{ marginHorizontal: Espaco.l, marginBottom: proposta || jornadas.length ? Espaco.xxl : Espaco.xl }}>
-          <Vidro style={{ borderRadius: 28 }}>
-            {pintura ? <Image source={{ uri: pintura }} style={{ height: 190 }} contentFit="cover" transition={250} /> : null}
-            <View style={{ flexDirection: 'row' }}>
-              <View style={{ width: 6, backgroundColor: COR_HEX[cel.cor], opacity: cel.cor === 'branco' ? 1 : 0.9 }} />
-              <View style={{ flex: 1, padding: Espaco.l, paddingLeft: Espaco.l }}>
-                <Text style={{ color: c.destaque, fontSize: 13, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase' }}>
-                  {NOME_GRAU[cel.grau]} · {NOME_TEMPO[dia.tempo]}
-                </Text>
-                <Text style={{ color: c.texto, ...fonteTitulo(25, 31), marginTop: 6 }}>{cel.nome}</Text>
-                {cel.nome !== dia.feria ? <Text style={{ color: c.textoSuave, fontSize: 14.5, marginTop: 6 }}>{dia.feria}</Text> : null}
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                  <Etiqueta texto={`Cor: ${cel.cor}`} cor={COR_HEX[cel.cor]} />
-                  <Etiqueta texto={`Saltério: semana ${ROMANO[dia.semanaSalterio]}`} />
-                  <Etiqueta texto={`Ano ${dia.anoDominical} · ${dia.anoFerial === 'I' ? 'ímpar' : 'par'}`} />
-                </View>
-                {dia.facultativas.length ? (
-                  <Text style={{ color: c.textoFraco, fontSize: 13.5, marginTop: 10 }}>
-                    Memória facultativa: {dia.facultativas.map((f) => f.nome).join('; ')}
-                  </Text>
-                ) : null}
-                {dia.comemoracao ? (
-                  <Text style={{ color: c.textoFraco, fontSize: 13.5, marginTop: 10 }}>Comemoração: {dia.comemoracao.nome}</Text>
-                ) : null}
-              </View>
-            </View>
-          </Vidro>
-        </Pressable>
-
+        {/* Celebração do dia: o toque leva ao Rezar (que tem o card do dia, os próprios do dia e tudo o mais) */}
+        <CartaoDoDia
+          data={hoje}
+          onPress={() => router.navigate('/orar')}
+          style={{ marginBottom: proposta || jornadas.length ? Espaco.xxl : Espaco.xl }}
+        />
 
         {/* Oração Pessoal: a proposta de oração pessoal da semana e as jornadas de hoje */}
         {proposta || jornadas.length ? (
@@ -455,15 +427,5 @@ export default function Hoje() {
         <View style={{ height: 40 + folga }} />
       </ScrollView>
     </Fundo>
-  );
-}
-
-function Etiqueta({ texto, cor }: { texto: string; cor?: string }) {
-  const c = usePaleta();
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 20, backgroundColor: c.preenchimento }}>
-      {cor ? <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: cor, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.2)' }} /> : null}
-      <Text style={{ color: c.textoSuave, fontSize: 12.5 }}>{texto}</Text>
-    </View>
   );
 }

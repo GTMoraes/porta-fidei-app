@@ -6,7 +6,7 @@ import { atualizar, encerrado, encerrarAvisos, useServidor } from '@/servidor/ap
 import { Espaco, fonteTitulo, usePaleta } from '@/tema';
 import { Aviso as Caixa, Botao, Fundo, Icone, Secao, Vidro } from '@/ui/base';
 import { BotoesLink, ImagemInteira, PlayerVideo, TextoComLinks } from '@/ui/Midia';
-import { dataLonga, diaEHora } from '@/util/datas';
+import { dataHoraCurta, diaEHora } from '@/util/datas';
 import { ehLinkDoApp } from '@/util/destinos';
 import { APARELHO } from '@/util/plataforma';
 
@@ -74,11 +74,14 @@ export default function TelaAviso() {
           <Vidro style={{ borderRadius: 28 }}>
             {a.imagem ? <ImagemInteira uri={a.imagem} /> : null}
             <View style={{ padding: Espaco.xl }}>
+              {/* "28/10 | 15h30 → 12/11 | 23h59": publicado e, se tiver validade, até quando vale */}
               <Text style={{ color: c.textoFraco, fontSize: 13 }}>
-                {dataLonga(new Date(a.criado))}
-                {a.atualizado && Date.parse(a.atualizado) - Date.parse(a.criado) > 60_000 ? ` · corrigido em ${dataLonga(new Date(a.atualizado))}` : ''}
-                {a.venceEm && !fim ? ` · vale até ${diaEHora(new Date(a.venceEm))}` : ''}
+                {dataHoraCurta(new Date(a.criado))}
+                {a.venceEm && !fim ? ` → ${dataHoraCurta(new Date(a.venceEm))}` : ''}
               </Text>
+              {a.atualizado && Date.parse(a.atualizado) - Date.parse(a.criado) > 60_000 ? (
+                <Text style={{ color: c.textoFraco, fontSize: 13, marginTop: 2 }}>Corrigido em {dataHoraCurta(new Date(a.atualizado))}</Text>
+              ) : null}
               <Text style={{ color: c.texto, ...fonteTitulo(27), marginTop: 6 }}>{a.titulo}</Text>
               <TextoComLinks texto={a.texto} style={{ color: c.texto, fontSize: 16.5, lineHeight: 24, marginTop: 14 }} />
             </View>

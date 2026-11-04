@@ -463,3 +463,13 @@ export const COR_HEX: Record<CorLiturgica, string> = {
   rosa: '#D8789A',
   preto: '#222222',
 };
+
+/** Nome da cor para mostrar (concorda com "cor": "cor branca", "Cor: vermelha") */
+export const NOME_COR: Record<CorLiturgica, string> = {
+  verde: 'verde',
+  roxo: 'roxa',
+  branco: 'branca',
+  vermelho: 'vermelha',
+  rosa: 'rosa',
+  preto: 'preta',
+};

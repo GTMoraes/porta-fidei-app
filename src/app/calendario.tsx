@@ -1,19 +1,25 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
-import { MESES, NOME_GRAU, NOME_TEMPO, diaLiturgico, hojeIso } from '@/liturgia/calendario';
-import { Espaco } from '@/tema';
-import { Fundo, Linha, Secao, toque, Vidro } from '@/ui/base';
+import { abrirRezarNoDia } from '@/estado/dataRezar';
+import { NOME_COR, NOME_GRAU, NOME_TEMPO, diaLiturgico, hojeIso, type GrauDia } from '@/liturgia/calendario';
+import { Espaco, Marca, comAlfa, usePaleta, type Paleta } from '@/tema';
+import { Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
 import { MesLiturgico, diasDoMes, useMes, type DiaDoMes } from '@/ui/CalendarioLiturgico';
+import { Folhinha, SEMANA_SIGLA } from '@/ui/Folhinha';
 
+// Tocar num dia (o selecionado ou uma solenidade ou festa da lista) abre o Rezar naquele dia, com o card do
+// dia, os Próprios do dia e as Horas daquela data. `data` (opcional): o dia em que o calendário abre.
 export default function Calendario() {
   const router = useRouter();
   usePacote(); // redesenha quando o conteúdo litúrgico termina de carregar (biografias dos santos)
+  const { data } = useLocalSearchParams<{ data?: string }>();
   const hoje = hojeIso();
-  const { ano, mes, mudarMes } = useMes(hoje);
-  const [sel, setSel] = useState(hoje);
+  const inicial = data && /^\d{4}-\d{2}-\d{2}$/.test(data) ? data : hoje;
+  const { ano, mes, mudarMes } = useMes(inicial);
+  const [sel, setSel] = useState(inicial);
 
   const dias = useMemo(() => diasDoMes(ano, mes), [ano, mes]);
   const dSel = diaLiturgico(sel);
@@ -40,12 +46,12 @@ export default function Calendario() {
         <Secao titulo="Dia selecionado">
           <Linha
             titulo={dSel.celebracao.nome}
-            sub={`${NOME_GRAU[dSel.celebracao.grau]} · ${NOME_TEMPO[dSel.tempo]} · cor ${dSel.celebracao.cor}`}
-            onPress={() => router.push({ pathname: '/dia', params: { data: sel } })}
+            sub={`${NOME_GRAU[dSel.celebracao.grau]} · ${NOME_TEMPO[dSel.tempo]} · ${NOME_COR[dSel.celebracao.cor]}`}
+            onPress={() => abrirRezarNoDia(sel)}
             ultimo={!dSel.facultativas.length}
           />
           {dSel.facultativas.map((f, i) => {
-            // com a biografia no pacote, abre direto (como na tela do dia)
+            // com a biografia no pacote, abre direto
             const santo = f.slug && existe(`santos/${f.slug}`) ? `santos/${f.slug}` : null;
             return (
               <Linha
@@ -62,18 +68,52 @@ export default function Calendario() {
         {destaques.length ? (
           <Secao titulo="Solenidades e festas do mês">
             {destaques.map((x, i) => (
-              <Linha
-                key={x.iso}
-                titulo={x.dia.celebracao.nome}
-                sub={`${Number(x.iso.slice(8))} de ${MESES[mes - 1]} · ${NOME_GRAU[x.dia.celebracao.grau]}`}
-                onPress={() => router.push({ pathname: '/dia', params: { data: x.iso } })}
-                ultimo={i === destaques.length - 1}
-              />
+              <LinhaFesta key={x.iso} x={x} ultimo={i === destaques.length - 1} />
             ))}
           </Secao>
         ) : null}
         <View style={{ height: 40 }} />
       </ScrollView>
     </Fundo>
+  );
+}
+
+/** Solenidade dourada, Festa vinho (no escuro, um vinho mais claro, para ler bem no azul-noite) */
+function corDoGrau(c: Paleta, g: GrauDia) {
+  return g === 'S' ? c.destaque : c.escuro ? '#E39A9C' : Marca.vinho;
+}
+
+/** Linha da lista do mês: a folhinha com o dia da semana e o dia (o mês já está no alto) e só o grau embaixo */
+function LinhaFesta({ x, ultimo }: { x: DiaDoMes; ultimo?: boolean }) {
+  const c = usePaleta();
+  const g = x.dia.celebracao.grau;
+  const cor = corDoGrau(c, g);
+  const d = new Date(x.iso + 'T12:00:00');
+  return (
+    <View>
+      <Pressable
+        onPress={() => {
+          toque();
+          abrirRezarNoDia(x.iso);
+        }}
+        style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: Espaco.m, gap: Espaco.m }}>
+          <Folhinha
+            topo={SEMANA_SIGLA[d.getDay()]}
+            dia={d.getDate()}
+            corTopo={cor}
+            fundo={comAlfa(g === 'S' ? Marca.ouro : Marca.vinho, c.escuro ? 0.3 : 0.14)}
+            largura={44}
+            altura={48}
+          />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ color: c.texto, fontSize: 16.5, fontWeight: '600' }}>{x.dia.celebracao.nome}</Text>
+            <Text style={{ color: cor, fontSize: 13.5, fontWeight: '600' }}>{NOME_GRAU[g]}</Text>
+          </View>
+          <Icone nome="chevron.right" cor={c.textoFraco} tamanho={14} />
+        </View>
+      </Pressable>
+      {!ultimo ? <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: c.separador, marginLeft: Espaco.m + 44 + Espaco.m }} /> : null}
+    </View>
   );
 }

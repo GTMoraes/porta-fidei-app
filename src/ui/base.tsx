@@ -128,24 +128,30 @@ export function Icone({ nome, cor, tamanho = 20 }: { nome: SFSymbol; cor?: strin
 }
 
 /** Título grande das abas. O cabeçalho começa um pouco abaixo da barra de status (pedido do design);
- *  `sub`: uma linha de explicação embaixo do título (ex.: Agenda). */
-export function TituloTela({ titulo, sub }: { titulo: string; sub?: string }) {
+ *  `sub`: uma linha de explicação embaixo do título (ex.: Agenda); `direita`: um controle ao lado do título
+ *  (ex.: a folhinha com a data do Rezar). */
+export function TituloTela({ titulo, sub, direita }: { titulo: string; sub?: string; direita?: ReactNode }) {
   const c = usePaleta();
   return (
-    <View style={{ paddingHorizontal: Espaco.xl, paddingTop: Espaco.xl, paddingBottom: Espaco.m }}>
-      <Text style={{ color: c.texto, ...fonteTitulo(34) }}>{titulo}</Text>
-      {sub ? <Text style={{ color: c.textoSuave, fontSize: 15, marginTop: 2 }}>{sub}</Text> : null}
+    <View style={{ paddingHorizontal: Espaco.xl, paddingTop: Espaco.xl, paddingBottom: Espaco.m, flexDirection: 'row', alignItems: 'center', gap: Espaco.m }}>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: c.texto, ...fonteTitulo(34) }}>{titulo}</Text>
+        {sub ? <Text style={{ color: c.textoSuave, fontSize: 15, marginTop: 2 }}>{sub}</Text> : null}
+      </View>
+      {direita}
     </View>
   );
 }
 
-/** Título no alto das telas que abrem por cima das abas (páginas de seção, da Comunidade) */
-export function TituloPagina({ titulo, sobre }: { titulo: string; sobre?: string }) {
+/** Título no alto das telas que abrem por cima das abas (páginas de seção, da Comunidade);
+ *  `sub`: uma linha embaixo (ex.: o dia escolhido no Rezar) */
+export function TituloPagina({ titulo, sobre, sub }: { titulo: string; sobre?: string; sub?: string }) {
   const c = usePaleta();
   return (
     <View style={{ paddingHorizontal: Espaco.xl, paddingTop: Espaco.s, paddingBottom: Espaco.l }}>
       {sobre ? <Text style={{ color: c.destaque, fontSize: 13, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase' }}>{sobre}</Text> : null}
       <Text style={{ color: c.texto, ...fonteTitulo(30), marginTop: sobre ? 4 : 0 }}>{titulo}</Text>
+      {sub ? <Text style={{ color: c.textoSuave, fontSize: 15, marginTop: 4 }}>{sub}</Text> : null}
     </View>
   );
 }

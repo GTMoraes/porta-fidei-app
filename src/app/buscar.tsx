@@ -9,6 +9,7 @@ import { buscarNosTextos, buscarParecidos, comNumeracaoHebraica, existe, registr
 import { abrirItem, disponivel } from '@/conteudo/abrir';
 import { ondeEsta, todasAsEntradas } from '@/conteudo/indice';
 import { lerDado, usePacote } from '@/conteudo/pacote';
+import { useSalvos, type ItemSalvo } from '@/estado/favoritos';
 import { SANTOS } from '@/liturgia/santos';
 import { useServidor } from '@/servidor/api';
 import { Espaco, usePaleta } from '@/tema';
@@ -29,6 +30,10 @@ export default function Buscar() {
   const srv = useServidor();
   const pacote = usePacote();
   const [termo, setTermo] = useState('');
+  // antes de digitar: os abertos recentemente, como um histórico (saíram do alto do Rezar)
+  const salvos = useSalvos();
+  const recentes = salvos.recentes.slice(0, 8);
+  const abrirSalvo = (i: ItemSalvo) => router.push({ pathname: '/texto', params: { arquivo: i.arquivo, titulo: i.titulo, desde: i.desde ?? '', ate: i.ate ?? '' } });
   const [salmos, setSalmos] = useState<{ arquivo: string; ref: string; tema: string }[]>([]);
   const [varrendo, setVarrendo] = useState<{ feito: number; total: number } | null>(null);
   const [achados, setAchados] = useState<Achado[] | null>(null);
@@ -148,9 +153,18 @@ export default function Buscar() {
         </View>
 
         {q.length < 2 ? (
-          <Secao>
-            <Aviso icone="magnifyingglass" texto="Procure pelo nome de uma oração, salmo, santo ou ritual, ou por uma palavra que esteja dentro do texto. Acentos e maiúsculas não importam." />
-          </Secao>
+          <>
+            {recentes.length ? (
+              <Secao titulo="Abertos recentemente">
+                {recentes.map((f, i) => (
+                  <Linha key={f.arquivo + (f.desde ?? '')} titulo={f.titulo} icone="clock.arrow.circlepath" onPress={() => abrirSalvo(f)} ultimo={i === recentes.length - 1} />
+                ))}
+              </Secao>
+            ) : null}
+            <Secao>
+              <Aviso icone="magnifyingglass" texto="Procure pelo nome de uma oração, salmo, santo ou ritual, ou por uma palavra que esteja dentro do texto. Acentos e maiúsculas não importam." />
+            </Secao>
+          </>
         ) : (
           <>
             {porTitulo.map((g) => (

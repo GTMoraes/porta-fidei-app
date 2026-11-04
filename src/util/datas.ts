@@ -22,6 +22,48 @@ export function quando(inicioIso: string, fimIso?: string | null) {
   return `${base} até ${dataCurta(f)}`;
 }
 
+const DIA_SIMPLES = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+const maiuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+// "às 20h", mas "à 1h" (e "das"/"da")
+const as = (d: Date) => `${d.getHours() === 1 ? 'à' : 'às'} ${hora(d)}`;
+const das = (d: Date) => `${d.getHours() === 1 ? 'da' : 'das'} ${hora(d)}`;
+
+/** "quarta, 28 de outubro" (com o ano só quando não é o atual) */
+function diaDoEvento(d: Date) {
+  const ano = d.getFullYear() !== new Date().getFullYear() ? ` de ${d.getFullYear()}` : '';
+  return `${DIA_SIMPLES[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]}${ano}`;
+}
+
+/**
+ * Quando de um evento, em duas linhas (tela do evento e texto de compartilhar):
+ * vários dias: ["Quarta, 28 de outubro, às 18h", "até quinta, 12 de novembro"];
+ * um dia: ["Quarta, 4 de novembro", "das 20h às 22h"] (sem hora de fim: "às 20h").
+ * O fim só leva a hora quando ela diz algo (não leva em 23h59 nem em 0h, que é o fim do dia anterior).
+ */
+export function quandoEvento(inicioIso: string, fimIso?: string | null): [string, string] {
+  const i = new Date(inicioIso);
+  let f = fimIso ? new Date(fimIso) : null;
+  let horaFim = true;
+  if (f && f.getHours() === 0 && f.getMinutes() === 0 && f.getTime() > i.getTime()) {
+    f = new Date(f.getTime() - 60_000); // 0h: termina no fim do dia anterior
+    horaFim = false;
+  }
+  if (f && f.toDateString() !== i.toDateString()) {
+    if (f.getHours() === 23 && f.getMinutes() >= 59) horaFim = false;
+    return [`${maiuscula(diaDoEvento(i))}, ${as(i)}`, `até ${diaDoEvento(f)}${horaFim ? `, ${as(f)}` : ''}`];
+  }
+  if (f && !horaFim) return [maiuscula(diaDoEvento(i)), `${das(i)} à meia-noite`]; // terminava às 0h do dia seguinte
+  return [maiuscula(diaDoEvento(i)), f ? `${das(i)} ${as(f)}` : as(i)];
+}
+
+/** "28/10 | 15h30" (com o ano, "28/10/2025", só quando não é o atual): datas dos avisos */
+export function dataHoraCurta(d: Date) {
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const ano = d.getFullYear() !== new Date().getFullYear() ? `/${d.getFullYear()}` : '';
+  return `${dd}/${mm}${ano} | ${hora(d)}`;
+}
+
 export const isoLocal = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 

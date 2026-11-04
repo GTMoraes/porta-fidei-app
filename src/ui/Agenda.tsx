@@ -8,6 +8,7 @@ import { MESES } from '@/liturgia/calendario';
 import { useServidor, type Evento } from '@/servidor/api';
 import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
 import { Icone, toque, Vidro } from './base';
+import { Folhinha, MES_SIGLA } from './Folhinha';
 import { dataCurta, hora } from '@/util/datas';
 
 export const NOME_TIPO: Record<string, string> = {
@@ -42,7 +43,6 @@ export function textoReagendado(e: Evento, eventos: Evento[]) {
   return `Reagendado para ${dataCurta(d)} às ${hora(d)}`;
 }
 
-const MES_SIGLA = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 const DIA_SEMANA_CURTO = ['dom.', 'seg.', 'ter.', 'qua.', 'qui.', 'sex.', 'sáb.'];
 
 /** Quando, para a linha com a data em destaque (o dia e o mês já estão no quadrado ao lado):
@@ -58,26 +58,6 @@ function quandoCurto(e: Evento): string {
     return i.getTime() <= Date.now() ? `Até ${dataCurta(f)}` : `${dia} · ${hora(i)} · até ${dataCurta(f)}`;
   }
   return `${dia} · ${hora(i)}${f ? ` às ${hora(f)}` : ''}`;
-}
-
-/** Dia e mês em destaque, como a folhinha do calendário */
-function Folhinha({ d, apagada }: { d: Date; apagada?: boolean }) {
-  const c = usePaleta();
-  return (
-    <View
-      style={{
-        width: 46,
-        height: 50,
-        borderRadius: 11,
-        backgroundColor: c.preenchimento,
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: apagada ? 0.6 : 1,
-      }}>
-      <Text style={{ color: c.rubrica, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 }}>{MES_SIGLA[d.getMonth()]}</Text>
-      <Text style={{ color: c.texto, fontSize: 21, fontWeight: '700', lineHeight: 25, fontVariant: ['tabular-nums'] }}>{d.getDate()}</Text>
-    </View>
-  );
 }
 
 /** Linha de um evento nas listas. `comData`: a data em destaque à esquerda (lista da tela Hoje), em vez do ícone e só a hora. */
@@ -107,7 +87,7 @@ export function LinhaEvento({ e, ultimo, comData }: { e: Evento; ultimo?: boolea
             opacity: cancelado || reag ? 0.75 : 1,
           }}>
           {comData ? (
-            <Folhinha d={new Date(e.inicio)} apagada={cancelado || reag} />
+            <Folhinha topo={MES_SIGLA[new Date(e.inicio).getMonth()]} dia={new Date(e.inicio).getDate()} apagada={cancelado || reag} />
           ) : (
             <View style={{ width: 30, alignItems: 'center' }}>
               <Icone nome={iconeEvento(e) as any} cor={e.tipo === 'missa' && !cancelado && !reag ? Marca.vinho : undefined} />

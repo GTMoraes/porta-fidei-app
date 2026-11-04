@@ -1,5 +1,6 @@
 // Jornada de oração: novena, Quaresma de São Miguel ou Cerco de Jericó. Mostra o texto do dia,
-// permite ver os outros dias e marcar "Rezei hoje" (só no aparelho).
+// permite ver os outros dias e marcar "Rezei hoje" (só no aparelho). `data` (vindo do Rezar com outro dia
+// escolhido): abre no dia da jornada que cai naquela data.
 
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -19,14 +20,15 @@ import { dataCurta } from '@/util/datas';
 const dt = (iso: string) => dataCurta(new Date(iso + 'T12:00:00'));
 
 export default function TelaJornada() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, data } = useLocalSearchParams<{ id: string; data?: string }>();
   const srv = useServidor();
   const c = usePaleta();
   usePacote();
   const hoje = hojeIso();
+  const ref = data && /^\d{4}-\d{2}-\d{2}$/.test(data) ? data : hoje; // o dia de referência (hoje, ou o escolhido no Rezar)
   const j = srv.comunidade?.jornadas.find((x) => x.id === id || x.slug === id);
-  const p = j ? periodo(j, hoje) : null;
-  const atual = j ? diaAtual(j, hoje) : null;
+  const p = j ? periodo(j, ref) : null;
+  const atual = j ? diaAtual(j, ref) : null;
   const [dia, setDia] = useState(atual ?? 1);
   const feitos = useFeitos();
   const [doPacote, setDoPacote] = useState<string | null>(null);
@@ -87,7 +89,7 @@ export default function TelaJornada() {
         <Pressable style={{ flex: 1 }} onPress={() => atual && setDia(atual)}>
           <Text style={{ color: c.texto, textAlign: 'center', fontSize: 14, fontWeight: '600' }} numberOfLines={1}>
             Dia {dia} de {j.dias}
-            {atual === dia ? ' · hoje' : dataDia ? ` · ${dt(dataDia)}` : ''}
+            {dataDia === hoje ? ' · hoje' : dataDia ? ` · ${dt(dataDia)}` : ''}
           </Text>
           <Text style={{ color: c.textoFraco, textAlign: 'center', fontSize: 12 }} numberOfLines={1}>
             {subt}
@@ -112,7 +114,7 @@ export default function TelaJornada() {
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 16, opacity: pressed ? 0.5 : 1 })}>
           <Icone nome={feito ? 'checkmark.circle.fill' : 'circle'} cor={c.destaque} tamanho={20} />
           <Text style={{ color: c.destaque, fontSize: 16, fontWeight: feito ? '600' : '400' }}>
-            {feito ? (atual === dia ? 'Rezei hoje' : 'Rezado') : atual === dia ? 'Marcar: rezei hoje' : 'Marcar como rezado'}
+            {feito ? (dataDia === hoje ? 'Rezei hoje' : 'Rezado') : dataDia === hoje ? 'Marcar: rezei hoje' : 'Marcar como rezado'}
           </Text>
         </Pressable>
       </View>

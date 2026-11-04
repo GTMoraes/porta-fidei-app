@@ -7,7 +7,7 @@ import { Espaco, fonteTitulo, usePaleta } from '@/tema';
 import { COR_CANCELADO, COR_REAGENDADO, Etiqueta, textoReagendado } from '@/ui/Agenda';
 import { Aviso, Botao, Fundo, Icone, Linha, Secao, Vidro } from '@/ui/base';
 import { BotoesLink, ImagemInteira, PlayerVideo, TextoComLinks } from '@/ui/Midia';
-import { quando } from '@/util/datas';
+import { quandoEvento } from '@/util/datas';
 import { ehLinkDoApp } from '@/util/destinos';
 import { abrirNoMapa, linkMapa, temPonto } from '@/util/mapas';
 import { salvarNaAgenda } from '@/util/salvarNaAgenda';
@@ -34,7 +34,7 @@ export default function TelaEvento() {
   const lugar = { nome: e.titulo, local: e.local, lat: e.lat, lng: e.lng };
   const compartilhar = () =>
     Share.share({
-      message: `${e.situacao === 'cancelado' ? 'CANCELADO: ' : e.situacao === 'reagendado' ? `${textoReagendado(e, srv.eventos).toUpperCase()}: ` : ''}${e.titulo}\n${quando(e.inicio, e.fim)}${e.local ? `\n${e.local}` : ''}${temPonto(lugar) ? `\n${linkMapa(lugar)}` : ''}${e.descricao ? `\n\n${e.descricao}` : ''}${(e.botoes ?? []).filter((b) => !ehLinkDoApp(b.url)).map((b) => `\n\n${b.texto}: ${b.url}`).join('')}\n\nComunidade Católica Porta Fidei`,
+      message: `${e.situacao === 'cancelado' ? 'CANCELADO: ' : e.situacao === 'reagendado' ? `${textoReagendado(e, srv.eventos).toUpperCase()}: ` : ''}${e.titulo}\n${quandoEvento(e.inicio, e.fim).join('\n')}${e.local ? `\n${e.local}` : ''}${temPonto(lugar) ? `\n${linkMapa(lugar)}` : ''}${e.descricao ? `\n\n${e.descricao}` : ''}${(e.botoes ?? []).filter((b) => !ehLinkDoApp(b.url)).map((b) => `\n\n${b.texto}: ${b.url}`).join('')}\n\nComunidade Católica Porta Fidei`,
     });
 
   return (
@@ -65,7 +65,7 @@ export default function TelaEvento() {
           </Vidro>
         </View>
         <Secao>
-          <Linha titulo={quando(e.inicio, e.fim)} icone="clock" />
+          <Linha titulo={quandoEvento(e.inicio, e.fim)[0]} sub={quandoEvento(e.inicio, e.fim)[1]} icone="clock" ultimo={!(e.local || temPonto(lugar))} />
           {e.local || temPonto(lugar) ? (
             <Linha titulo={e.local || 'Ver no mapa'} sub="Abrir no mapa" icone="mappin.and.ellipse" onPress={() => abrirNoMapa(lugar)} ultimo />
           ) : null}

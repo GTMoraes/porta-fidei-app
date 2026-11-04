@@ -39,9 +39,9 @@ export function rotaDoLink(p: Record<string, string>): { aba?: boolean; pathname
     case 'rezar':
       return { aba: true, pathname: '/orar' };
     case 'agenda':
-      return { aba: true, pathname: '/agenda', params: { aba: 'agenda' } };
+      return { aba: true, pathname: '/agenda', params: { aba: 'agenda', t: String(Date.now()) } };
     case 'avisos':
-      return { aba: true, pathname: '/agenda', params: { aba: 'avisos' } };
+      return { aba: true, pathname: '/agenda', params: { aba: 'avisos', t: String(Date.now()) } };
     case 'hora': {
       // sem data: a tela da hora escolhe a do dia (e as Completas da madrugada, as do dia anterior)
       return p.h ? { pathname: '/hora', params: { h: p.h } } : null;
@@ -77,7 +77,8 @@ export function rotaDoLink(p: Record<string, string>): { aba?: boolean; pathname
     case 'calendario':
       return { pathname: '/calendario' };
     case 'dia':
-      return { pathname: '/dia', params: { data: hojeIso() } };
+      // o dia litúrgico agora fica no Rezar (card do dia e Próprios do dia): abre o Rezar em hoje
+      return { aba: true, pathname: '/orar', params: { data: hojeIso(), t: String(Date.now()) } };
     case 'martirologio':
       return { pathname: '/martirologio', params: { data: hojeIso() } };
     default:
@@ -85,11 +86,12 @@ export function rotaDoLink(p: Record<string, string>): { aba?: boolean; pathname
   }
 }
 
-/** Abre a parte do app que o link indica */
+/** Abre a parte do app que o link indica. Abas: volta para elas (os botões ficam em telas por cima das abas,
+ *  e "navigate" ali empilharia outra cópia das abas) */
 export function irPara(url: string) {
   const r = rotaDoLink(lerLink(url));
   if (!r) return;
-  if (r.aba) router.navigate({ pathname: r.pathname as any, params: r.params });
+  if (r.aba) router.dismissTo({ pathname: r.pathname as any, params: r.params });
   else router.push({ pathname: r.pathname as any, params: r.params });
 }
 
