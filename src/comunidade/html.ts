@@ -4,7 +4,10 @@ import type { Proposta, SecaoProposta } from '@/servidor/api';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** Parágrafos separados por linha em branco; linha simples vira quebra. V./R. ganham a cor das rubricas. */
+/** Parágrafos separados por linha em branco; linha simples vira quebra. V./R. ganham a cor das rubricas.
+ *  Linha curta terminada em ":" vira título em negrito, mas só no começo do parágrafo ou depois de uma frase
+ *  terminada: no meio de uma invocação ("Coração, vítima de todas as iniquidades:", depois de linhas com ";"),
+ *  continua texto. */
 export function textoParaHtml(texto: string): string {
   return texto
     .trim()
@@ -13,7 +16,11 @@ export function textoParaHtml(texto: string): string {
       const linhas = esc(p.trim())
         .split('\n')
         .map((l) => l.replace(/^(V\.|R\.|℣\.?|℟\.?)\s*/, '<span class="r">$1</span> '))
-        .map((l) => (l.length < 45 && /:$/.test(l) && !l.includes('<') ? `<b>${l}</b>` : l));
+        .map((l, i, todas) => {
+          const titulo = l.length < 45 && /:$/.test(l) && !l.includes('<');
+          const depoisDeFrase = i === 0 || /[.!?…:)»”"]\s*$/.test(todas[i - 1]);
+          return titulo && depoisDeFrase ? `<b>${l}</b>` : l;
+        });
       return `<p>${linhas.join('<br/>')}</p>`;
     })
     .join('');
