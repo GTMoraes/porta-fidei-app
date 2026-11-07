@@ -5,6 +5,8 @@ import type { Proposta, SecaoProposta } from '@/servidor/api';
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** Parágrafos separados por linha em branco; linha simples vira quebra. V./R. ganham a cor das rubricas.
+ *  Linha começando com "# " é o título de uma parte (vermelho, como as seções da Proposta, e entra no índice do
+ *  leitor): serve para juntar várias orações num texto só.
  *  Linha curta terminada em ":" vira título em negrito, mas só no começo do parágrafo ou depois de uma frase
  *  terminada: no meio de uma invocação ("Coração, vítima de todas as iniquidades:", depois de linhas com ";"),
  *  continua texto. */
@@ -13,6 +15,8 @@ export function textoParaHtml(texto: string): string {
     .trim()
     .split(/\n{2,}/)
     .map((p) => {
+      const m = p.trim().match(/^#\s+(.+?)\s*(?:\n([\s\S]*))?$/);
+      if (m) return `<h2 class="sc">${esc(m[1])}</h2>` + (m[2]?.trim() ? textoParaHtml(m[2]) : '');
       const linhas = esc(p.trim())
         .split('\n')
         .map((l) => l.replace(/^(V\.|R\.|℣\.?|℟\.?)\s*/, '<span class="r">$1</span> '))
