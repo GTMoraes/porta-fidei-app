@@ -40,6 +40,11 @@ export function toque() {
   if (lerAjustes().feedbackTatil) Haptics.selectionAsync().catch(() => {});
 }
 
+/** Vibração de "concluído" (ex.: as 10 Ave-Marias do contador do Rosário) */
+export function toqueConcluido() {
+  if (lerAjustes().feedbackTatil) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+}
+
 /** Fundo do app: gradiente quente (claro) ou azul-noite (escuro) */
 /**
  * Altura do teclado no Android. Lá o app ocupa a tela inteira (de ponta a ponta) e a janela não

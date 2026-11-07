@@ -5,6 +5,7 @@ import { alternarFavorito, ehFavorito, registrarRecente, useSalvos } from '@/est
 
 import { montarArquivo } from '@/conteudo/montar';
 import { imagemDataUri } from '@/conteudo/pacote';
+import { prepararRosario } from '@/conteudo/rosario';
 import { htmlMartirologio } from '@/liturgia/martirologio';
 import { Leitor } from '@/ui/Leitor';
 
@@ -35,6 +36,8 @@ export default function Texto() {
       const m = await montarArquivo(arquivo, desde || undefined, ate || undefined);
       let html = m.faltando.length ? '<p class="c"><span class="lacuna">Este texto não está no pacote de conteúdo instalado.</span></p>' : m.corpo;
 
+      // Rosário: títulos, meditação, leitura e virtude, jaculatória e o contador de Ave-Marias (ver rosario.ts)
+      html = prepararRosario(arquivo, html);
       // figuras do Rosário
       const figuras = FIGURAS_ROSARIO[arquivo];
       if (figuras) {

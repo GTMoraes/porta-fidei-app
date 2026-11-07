@@ -13,7 +13,7 @@ import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { paginaHtml, textoParaVoz } from '@/conteudo/montar';
 import { mudarAjustes, useAjustes } from '@/estado/ajustes';
 import { usePaleta } from '@/tema';
-import { Icone, toque, Vidro } from './base';
+import { Icone, toque, toqueConcluido, Vidro } from './base';
 import { mostrarOpcoes } from './Opcoes';
 
 interface Props {
@@ -168,6 +168,10 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
     } else if (m.tipo === 'tocou') {
       // dedo na tela durante a rolagem automática: mostra os controles por 5 s
       if (rolando) mostrarBarra(5);
+    } else if (m.tipo === 'conta') {
+      // contador de Ave-Marias do Rosário: vibração leve a cada conta; no 10, a de "concluído"
+      if (m.fim) toqueConcluido();
+      else toque();
     } else if (m.tipo === 'toque') {
       if (rolando) mostrarBarra(5);
       else if (barraVisivel && aj.expandirTexto) setBarraVisivel(false);

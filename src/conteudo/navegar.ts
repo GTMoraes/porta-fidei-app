@@ -1,6 +1,8 @@
 // Script do leitor (roda dentro da página): índice das partes do texto e busca na página.
 // O índice é deduzido do próprio HTML: linhas inteiras em vermelho (Hino, Salmodia, Leitura breve...),
 // títulos em negrito e maiúsculas (rituais), .sec (Liturgia Diária) e h2.sc (textos da Comunidade).
+// Um elemento com data-indice entra com esse nome (ex.: os mistérios do Rosário, de título longo).
+// O contador de Ave-Marias (.pf-terco) fica de fora do índice.
 
 export const JS_NAVEGAR = String.raw`
 (function(){
@@ -38,6 +40,8 @@ export const JS_NAVEGAR = String.raw`
         } else if (c.nodeType === 1){
           if (c.tagName === 'BR'){ nova(); continue; }
           if (c.tagName === 'SCRIPT' || c.tagName === 'STYLE' || c.tagName === 'HEADER') continue;
+          if (c.classList && c.classList.contains('pf-terco')) continue;
+          if (c.hasAttribute && c.hasAttribute('data-indice')){ nova(); out.push({ fixo: c.getAttribute('data-indice'), el: c, partes: [] }); continue; }
           var bloco = BLOCO.test(c.tagName);
           if (bloco) nova();
           anda(c);
@@ -53,6 +57,7 @@ export const JS_NAVEGAR = String.raw`
     itens = [];
     var vistos = 0;
     linhas(document.body).forEach(function(l){
+      if (l.fixo){ var idf = 'pfi' + (vistos++); l.el.setAttribute('data-pfi', idf); itens.push({ id: idf, titulo: l.fixo, nivel: 1 }); return; }
       var uteis = l.partes.filter(function(p){ return !p.ignora; });
       if (!uteis.length) return;
       var texto = uteis.map(function(p){ return p.t; }).join('');
