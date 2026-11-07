@@ -1,6 +1,7 @@
 // Junta as partes de uma Hora num único HTML e gera a página do leitor (com o visual do app).
 
 import type { Ajustes } from '@/estado/ajustes';
+import { ligarIglh } from '@/conteudo/iglh';
 import { JS_NAVEGAR } from '@/conteudo/navegar';
 import type { Paleta } from '@/tema';
 import type { Parte, PlanoHora } from '@/liturgia/horas';
@@ -241,6 +242,8 @@ export async function montarArquivo(arquivo: string, desde?: string, ate?: strin
       trecho = trecho.slice(0, fimAnt > 0 ? fimAnt : i);
     }
   }
+  // Instrução Geral: índice, setas e notas voltam a ser links (ver iglh.ts)
+  if (arquivo === 'IGLH' && !desde) trecho = ligarIglh(trecho);
   return { corpo: `<section class="parte">${trecho}</section>`, faltando: [] };
 }
 
@@ -340,6 +343,11 @@ mark.pfa{background:#E5A33A;color:#1a1208}
 .dica{text-align:center;margin:4px 0 18px!important;font-family:-apple-system,system-ui,sans-serif;font-size:.74em;line-height:1.35}
 .dica a{color:var(--dt);text-decoration:none;display:inline-block;border:1px solid currentColor;border-radius:14px;padding:6px 12px;opacity:.85}
 .fonte{color:var(--fr);font-size:.72em;text-align:center;margin:28px 0 0!important;font-family:-apple-system,system-ui,sans-serif}
+/* links dentro da página (Instrução Geral: índice, setas, notas) */
+.pf-ir{color:var(--dt);cursor:pointer}
+.pf-volta{color:var(--dt);font-weight:700;padding:0 .35em;cursor:pointer}
+sup.pf-nota{color:var(--dt);font-weight:700;padding:0 .15em;cursor:pointer}
+.pf-alvo{background:rgba(222,190,130,.4);border-radius:3px}
 </style></head><body>${cab}${corpo}
 <script>
 (function(){
@@ -352,6 +360,12 @@ mark.pfa{background:#E5A33A;color:#1a1208}
   window.pfFonte=function(px){ document.body.style.fontSize=px+'px'; };
   document.addEventListener('touchstart',function(){ post({tipo:'tocou'}); },{passive:true});
   document.addEventListener('click',function(e){
+    // links dentro da própria página (data-ir = id do destino), ex.: índice e notas da Instrução Geral
+    var ir=e.target.closest && e.target.closest('[data-ir]');
+    if(ir){ e.preventDefault(); var alvo=document.getElementById(ir.getAttribute('data-ir'));
+      if(alvo){ var y=alvo.getBoundingClientRect().top+window.scrollY-(window.pfTopo||0)-16; window.scrollTo({top:Math.max(0,y),behavior:'smooth'});
+        alvo.classList.add('pf-alvo'); setTimeout(function(){ alvo.classList.remove('pf-alvo'); },1600); }
+      return; }
     var a=e.target.closest && e.target.closest('a');
     if(a){ e.preventDefault(); post({tipo:'link', href:a.getAttribute('href'), titulo:a.getAttribute('data-titulo')||a.textContent}); return; }
     post({tipo:'toque'});

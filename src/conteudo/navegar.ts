@@ -12,7 +12,7 @@ export const JS_NAVEGAR = String.raw`
 
   var PARTE = /^(Hino|Salmodia|Leitura|Responsório|Cântico evangélico|Preces|Oração|Conclusão|Invocação|Pai nosso|Bênção|Antífona|Exame|Hora|Evangelho|Salmo responsorial|Aclamação|Primeira|Segunda|Ritos?|Liturgia)/i;
   function titulo(t){
-    t = t.replace(/\s+/g,' ').replace(/,?\s*Ant\.?$/,'').trim();
+    t = t.replace(/\s+/g,' ').replace(/,?\s*Ant\.?$/,'').replace(/\s*↑$/,'').trim();
     if (/latim/i.test(t)) return '';
     if (t.length < 3 || t.length > 52) return '';
     if (!/^[A-ZÀ-Ý0-9]/.test(t) || NAO.test(t) || REF.test(t) || /[:;,]$/.test(t)) return '';

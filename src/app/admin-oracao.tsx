@@ -79,7 +79,7 @@ export default function AdminOracao() {
                 key={j.id}
                 titulo={j.titulo}
                 sub={`${j.ativa ? '' : 'Desativada · '}${p ? `${dt(p.inicio)} a ${dt(p.fim)}` : 'sem data'}${j.anual ? ' · todo ano' : ''}${j.pronta ? '' : ' · sem textos'}`}
-                icone="sparkles"
+                icone="figure.hiking"
                 onPress={() => router.push({ pathname: '/editar-jornada', params: { id: j.id } })}
               />
             );

@@ -11,7 +11,7 @@ import { Aviso, Fundo, Linha, Secao } from '@/ui/base';
 import { dataCurta } from '@/util/datas';
 
 const dt = (iso: string) => dataCurta(new Date(iso + 'T12:00:00'));
-const ICONE: Record<Jornada['tipo'], any> = { novena: 'sparkles', quaresma: 'shield', cerco: 'figure.walk.circle', outra: 'hands.sparkles' };
+const ICONE: Record<Jornada['tipo'], any> = { novena: 'figure.hiking', quaresma: 'shield', cerco: 'figure.walk.circle', outra: 'figure.hiking' };
 
 export default function Jornadas() {
   const srv = useServidor();
@@ -38,7 +38,7 @@ export default function Jornadas() {
         key={j.id}
         titulo={j.titulo}
         sub={sub}
-        icone={ICONE[j.tipo] ?? 'sparkles'}
+        icone={ICONE[j.tipo] ?? 'figure.hiking'}
         onPress={() => router.push({ pathname: '/jornada', params: ehHoje ? { id: j.id } : { id: j.id, data: hoje } })}
         ultimo={i === lista.length - 1}
       />

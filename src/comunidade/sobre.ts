@@ -13,7 +13,9 @@ export type Bloco =
   | { tipo: 'citacao'; texto: string; autor?: string }
   | { tipo: 'links'; itens: { titulo: string; sub?: string; url: string; icone?: string }[] }
   | { tipo: 'paginas'; itens: { titulo: string; sub?: string; id: string; icone?: string }[] } // abre outra página daqui
-  | { tipo: 'aviso'; texto: string };
+  | { tipo: 'aviso'; texto: string }
+  // horários fixos cadastrados na Administração › Rotinas (todos, ou só os das comissões)
+  | { tipo: 'rotinas'; so?: 'comissao' };
 
 export interface Pagina {
   id: string;
@@ -35,6 +37,13 @@ export const REDES = [
 ];
 
 export const PAGINAS: Record<string, Pagina> = {
+  // a rotina da Comunidade: vem do servidor (Administração › Rotinas)
+  horarios: {
+    id: 'horarios',
+    titulo: 'Horários e encontros',
+    sobre: 'A rotina da Comunidade',
+    blocos: [{ tipo: 'rotinas' }],
+  },
   quemsomos: {
     id: 'quemsomos',
     titulo: 'Quem somos',
@@ -73,7 +82,7 @@ export const PAGINAS: Record<string, Pagina> = {
       {
         tipo: 'lista',
         itens: [
-          { titulo: '29 de setembro de 2012', sub: 'A pedido de um padre da arquidiocese, um jovem, o Rodriguinho, reúne um pequeno grupo de estudo numa paróquia. É o primeiro encontro.', icone: 'sparkles' },
+          { titulo: '29 de setembro de 2012', sub: 'A pedido de um padre da arquidiocese, um jovem, o Rodriguinho, reúne um pequeno grupo de estudo numa paróquia. É o primeiro encontro.', icone: 'flag' },
           { titulo: 'O nome: Porta Fidei', sub: 'Inspirado na Carta Apostólica Porta Fidei, de Bento XVI, que convocou o Ano da Fé.', icone: 'door.left.hand.open' },
           { titulo: 'Os primeiros anos', sub: 'O grupo percebe que a missão vai além da própria formação: levar mais pessoas ao Senhor. Nascem o SOS Curados pelo Amor e o Happy Day.', icone: 'heart' },
           { titulo: '20 de dezembro de 2015', sub: 'Os membros se compreendem, de fato, como Comunidade.', icone: 'person.3' },
@@ -153,6 +162,7 @@ export const PAGINAS: Record<string, Pagina> = {
     sobre: 'A Comunidade em serviço',
     blocos: [
       { tipo: 'aviso', texto: 'Em breve: cada comissão com a sua página, fotos e contatos.' },
+      { tipo: 'rotinas', so: 'comissao' },
       {
         tipo: 'lista',
         itens: [

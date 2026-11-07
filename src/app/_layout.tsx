@@ -140,6 +140,9 @@ export default function Raiz() {
         <Stack.Screen name="editar-proposta" options={{ title: 'Proposta da semana', presentation: 'modal' }} />
         <Stack.Screen name="editar-jornada" options={{ title: 'Jornada', presentation: 'modal' }} />
         <Stack.Screen name="editar-oracao" options={{ title: 'Oração', presentation: 'modal' }} />
+        <Stack.Screen name="admin-rotinas" options={{ title: 'Rotinas' }} />
+        <Stack.Screen name="editar-rotina" options={{ title: 'Rotina', presentation: 'modal' }} />
+        <Stack.Screen name="sua-comissao" options={{ title: 'Sua comissão' }} />
       </Stack>
       <PilulaAtualizado />
       <FolhaOpcoes />

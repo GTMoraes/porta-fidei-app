@@ -135,6 +135,12 @@ export default function Admin() {
             icone="hands.sparkles"
             onPress={() => router.push('/admin-oracao')}
           />
+          <Linha
+            titulo="Rotinas"
+            sub="Horários fixos: missas da semana, adoração, grupos de oração, comissões"
+            icone="clock"
+            onPress={() => router.push('/admin-rotinas')}
+          />
           <Linha titulo="Sugestões recebidas" sub="Ideias e textos que os membros não encontraram" icone="text.bubble" onPress={() => router.push('/sugestoes')} />
           <Linha
             titulo="Testar notificação"

@@ -12,7 +12,7 @@ import { aplicarAtualizacao, buscarNova, useAtualizacaoPronta } from '@/estado/a
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
 import { infoRemota, type InfoRemota } from '@/conteudo/remoto';
 import { lerAjustes } from '@/estado/ajustes';
-import { resetarDataRezar } from '@/estado/dataRezar';
+import { abrirRezarHoje } from '@/estado/dataRezar';
 import { dataPorExtenso, diaLiturgico, hojeIso } from '@/liturgia/calendario';
 import { HORAS } from '@/liturgia/horas';
 import { santosDoDia } from '@/liturgia/martirologio';
@@ -68,8 +68,6 @@ export default function Hoje() {
     useCallback(() => {
       setHoje(hojeIso());
       setAgora(new Date());
-      // voltar para a Hoje volta o Rezar para hoje (a folhinha do Rezar escolhe outro dia)
-      resetarDataRezar();
     }, []),
   );
 
@@ -120,7 +118,7 @@ export default function Hoje() {
       ? [
           {
             titulo: 'Santo do dia',
-            icone: 'sparkles' as SFSymbol,
+            icone: 'person.crop.circle' as SFSymbol,
             abrir: () =>
               router.push({ pathname: '/texto', params: { arquivo: santoArquivo, titulo: cel.nome, imagem: fotoSanto ? `santos/${cel.slug}` : '', mart: hoje } }),
           },
@@ -266,10 +264,11 @@ export default function Hoje() {
           </DeslizarParaArquivar>
         ))}
 
-        {/* Celebração do dia: o toque leva ao Rezar (que tem o card do dia, os próprios do dia e tudo o mais) */}
+        {/* Celebração do dia: o toque leva ao Rezar já em hoje (que tem o card do dia, os próprios do dia e tudo o
+            mais); a Hoje mostra sempre hoje, mesmo com outro dia escolhido no Rezar */}
         <CartaoDoDia
           data={hoje}
-          onPress={() => router.navigate('/orar')}
+          onPress={abrirRezarHoje}
           style={{ marginBottom: proposta || jornadas.length ? Espaco.xxl : Espaco.xl }}
         />
 
@@ -306,7 +305,7 @@ export default function Hoje() {
                   key={j.id}
                   titulo={j.titulo}
                   sub={`Dia ${n} de ${j.dias}${rezou ? ' · rezado hoje' : ''}`}
-                  icone={rezou ? 'checkmark.circle.fill' : 'sparkles'}
+                  icone={rezou ? 'checkmark.circle.fill' : 'figure.hiking'}
                   corIcone={rezou ? Marca.ouro : undefined}
                   onPress={() => router.push({ pathname: '/jornada', params: { id: j.id } })}
                   ultimo={i === jornadas.length - 1}

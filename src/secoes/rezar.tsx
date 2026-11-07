@@ -75,10 +75,10 @@ export function ProprioDoDia({ data }: { data: string }) {
   const linhas: { k: string; titulo: string; sub?: string; icone: SFSymbol; abrir: () => void }[] = [
     { k: 'liturgia', titulo: 'Liturgia Diária', sub: 'Leituras e orações da Missa', icone: 'book', abrir: () => router.push({ pathname: '/liturgia', params: { data } }) },
   ];
-  if (santo) linhas.push({ k: 'santo', titulo: 'Vida do santo', sub: cel.nome, icone: 'sparkles', abrir: () => abrirBio(santo, cel.nome, data) });
+  if (santo) linhas.push({ k: 'santo', titulo: 'Vida do santo', sub: cel.nome, icone: 'person.crop.circle', abrir: () => abrirBio(santo, cel.nome, data) });
   for (const f of dia.facultativas) {
     const b = bio(f.slug);
-    if (b) linhas.push({ k: `f-${f.nome}`, titulo: f.nome, sub: 'Memória facultativa', icone: 'sparkles', abrir: () => abrirBio(b, f.nome) });
+    if (b) linhas.push({ k: `f-${f.nome}`, titulo: f.nome, sub: 'Memória facultativa', icone: 'person.crop.circle', abrir: () => abrirBio(b, f.nome) });
   }
   if (santosDoDia(data).length)
     linhas.push({ k: 'mart', titulo: 'Outros santos do dia', sub: 'Martirológio Romano', icone: 'person.3', abrir: () => router.push({ pathname: '/martirologio', params: { data } }) });
@@ -189,7 +189,7 @@ function DaComunidade() {
             ? `${r.escolhida ? `Em ${dataCurta(new Date(r.data + 'T12:00:00'))}` : 'Agora'}: ${doDia.map((j) => j.titulo).join(', ')}`
             : 'Novenas dos baluartes, Quaresma de São Miguel, Cerco de Jericó'
         }
-        icone="sparkles"
+        icone="figure.hiking"
         onPress={() => router.push(r.escolhida ? { pathname: '/jornadas', params: { data: r.data } } : '/jornadas')}
         ultimo={!com?.oracoes.length}
       />

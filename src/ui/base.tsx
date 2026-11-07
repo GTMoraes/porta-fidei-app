@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Keyboard, Platform, Pressable, StyleSheet, Switch, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, Keyboard, Platform, Pressable, StyleSheet, Switch, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { lerAjustes } from '@/estado/ajustes';
@@ -16,6 +16,12 @@ const VIDRO = Platform.OS === 'ios' && isLiquidGlassAvailable();
 const ANDROID = Platform.OS === 'android';
 // no Android, estes desenham com a fonte cheia do Material Symbols (a de sempre só tem o desenho vazado)
 const CHEIOS_ANDROID = new Set(['star.fill', 'heart.fill']);
+
+// Mãos em oração: nem o iPhone (SF Symbols) nem o Android (Material Symbols) têm esse desenho, e o
+// "hands.sparkles" da Apple parece mãos batendo palmas. No app, "hands.sparkles" quer dizer este ícone próprio
+// (src/ui/icones/maos-em-oracao.svg, exportado em PNG 1x/2x/3x), pintado com a cor pedida. Vai pelo ar.
+const MAOS_EM_ORACAO = require('./icones/maos-em-oracao.png');
+const EH_MAOS = (nome: string) => nome === 'hands.sparkles' || nome === 'hands.sparkles.fill';
 
 // Símbolos que só existem a partir do iOS 17: nos iPhones que param no iOS 16 (8, 8 Plus e X) eles não aparecem.
 // Lá entra o equivalente que já existe no 16; do 17 em diante, nada muda.
@@ -109,6 +115,11 @@ export function Vidro({
 
 export function Icone({ nome, cor, tamanho = 20 }: { nome: SFSymbol; cor?: string; tamanho?: number }) {
   const c = usePaleta();
+  if (EH_MAOS(nome)) {
+    // o desenho ocupa menos do quadro que um símbolo do sistema: um pouco maior, para ficarem do mesmo tamanho
+    const t = Math.round(tamanho * 1.1);
+    return <Image source={MAOS_EM_ORACAO} style={{ width: t, height: t, tintColor: cor ?? c.destaque }} accessibilityIgnoresInvertColors />;
+  }
   // Android: onde o cheio indica um estado (estrela de favorito marcada), a versão cheia da mesma fonte
   const cheio = ANDROID && CHEIOS_ANDROID.has(nome) && PESO_CHEIO;
   return (

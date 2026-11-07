@@ -19,7 +19,7 @@ export default function Propostas() {
                 key={p.id}
                 titulo={p.titulo}
                 sub={semana(p) || new Date(p.criado).toLocaleDateString('pt-BR')}
-                icone={p.id === srv.comunidade?.atual ? 'sparkles' : 'doc.richtext'}
+                icone={p.id === srv.comunidade?.atual ? 'star.circle' : 'doc.richtext'}
                 onPress={() => router.push({ pathname: '/proposta', params: { id: p.id } })}
                 ultimo={i === lista.length - 1}
               />

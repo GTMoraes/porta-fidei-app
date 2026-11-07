@@ -391,3 +391,85 @@ export function botoesProntos(botoes: BotaoLink[]): BotaoLink[] | null {
 
 export const AVISO_TITULO_NOTIF = 'No iPhone, o título da notificação tem uma linha só e o que passar disso é cortado. Deixe o título curto e use o texto para o resto.';
 export const AVISO_TEXTO_NOTIF = 'Na tela de bloqueio aparecem umas 4 linhas; o resto só aparece quando a pessoa abre a notificação.';
+
+/** Escolha de uma opção (fileira de botões, como os seletores dos Ajustes). `valores`: [valor, rótulo] */
+export function CampoEscolha<T extends string | number>({
+  rotulo,
+  valor,
+  valores,
+  mudar,
+}: {
+  rotulo: string;
+  valor: T;
+  valores: [T, string][];
+  mudar: (v: T) => void;
+}) {
+  const c = usePaleta();
+  return (
+    <View style={{ paddingHorizontal: Espaco.l, paddingVertical: 10 }}>
+      <Text style={{ color: c.textoFraco, fontSize: 13, marginBottom: 6 }}>{rotulo}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {valores.map(([v, n]) => {
+          const sel = v === valor;
+          return (
+            <Pressable
+              key={String(v)}
+              onPress={() => {
+                toque();
+                mudar(v);
+              }}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: sel }}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 10,
+                backgroundColor: sel ? Marca.ouro : c.escuro ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+              }}>
+              <Text style={{ color: sel ? '#FFFFFF' : c.texto, fontSize: 14.5, fontWeight: sel ? '600' : '400' }}>{n}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const SIGLA_DIA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const NOME_DIA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+
+/** Dias da semana (0 = domingo). `um`: só um dia (o toque troca); senão, o toque liga e desliga cada dia. */
+export function CampoDias({ rotulo, dias, mudar, um }: { rotulo: string; dias: number[]; mudar: (d: number[]) => void; um?: boolean }) {
+  const c = usePaleta();
+  return (
+    <View style={{ paddingHorizontal: Espaco.l, paddingVertical: 10 }}>
+      <Text style={{ color: c.textoFraco, fontSize: 13, marginBottom: 6 }}>{rotulo}</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        {SIGLA_DIA.map((s, d) => {
+          const sel = dias.includes(d);
+          return (
+            <Pressable
+              key={d}
+              onPress={() => {
+                toque();
+                mudar(um ? [d] : sel ? dias.filter((x) => x !== d) : [...dias, d].sort((a, b) => a - b));
+              }}
+              accessibilityRole="checkbox"
+              accessibilityLabel={NOME_DIA[d]}
+              accessibilityState={{ checked: sel }}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: sel ? Marca.ouro : c.escuro ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+              }}>
+              <Text style={{ color: sel ? '#FFFFFF' : c.texto, fontSize: 15, fontWeight: '600' }}>{s}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}

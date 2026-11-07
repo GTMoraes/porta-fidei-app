@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { horaCurta, type Ocorrencia } from '@/comunidade/rotinas';
 import { MESES } from '@/liturgia/calendario';
 import { useServidor, type Evento } from '@/servidor/api';
 import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
@@ -109,6 +110,42 @@ export function LinhaEvento({ e, ultimo, comData }: { e: Evento; ultimo?: boolea
         </View>
       </Pressable>
       {!ultimo ? <View style={{ height: 0.5, backgroundColor: c.separador, marginLeft: comData ? Espaco.m + 46 + Espaco.m : 58 }} /> : null}
+    </View>
+  );
+}
+
+/** Linha de uma rotina (missa da semana, adoração, grupo, comissão) na Agenda: fina, sem ícone e com o texto mais
+ *  claro, para os eventos pontuais se destacarem. A hora fica à esquerda, no lugar do ícone dos eventos; enquanto
+ *  acontece, aparece "agora". O toque abre Horários e encontros (aba Comunidade). */
+export function LinhaRotina({ o, ultimo, agora = Date.now() }: { o: Ocorrencia; ultimo?: boolean; agora?: number }) {
+  const c = usePaleta();
+  const router = useRouter();
+  const r = o.rotina;
+  const acontecendo = o.inicio.getTime() <= agora && agora < o.fim.getTime();
+  // o local só aparece quando o título ainda não diz ("Missa na Samaria" já diz onde é)
+  const jaDiz = (t?: string | null) => !!t && r.titulo.toLowerCase().includes(t.toLowerCase());
+  const detalhe = [r.tipo === 'comissao' && r.comissao && !jaDiz(r.comissao) ? r.comissao : '', jaDiz(r.local) ? '' : r.local ?? ''].filter(Boolean).join(' · ');
+  return (
+    <View>
+      <Pressable
+        onPress={() => {
+          toque();
+          router.push({ pathname: '/pagina', params: { id: 'horarios' } });
+        }}
+        accessibilityLabel={`${horaCurta(r.hora)}, ${r.titulo}${detalhe ? `, ${detalhe}` : ''}. Horário fixo.`}
+        style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: Espaco.l, gap: Espaco.m }}>
+          <Text style={{ width: 30, color: c.textoFraco, fontSize: 12.5, fontWeight: '600', textAlign: 'center', fontVariant: ['tabular-nums'] }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            {horaCurta(r.hora)}
+          </Text>
+          <Text style={{ flex: 1, color: c.textoSuave, fontSize: 14.5 }} numberOfLines={1}>
+            {r.titulo}
+            {detalhe ? <Text style={{ color: c.textoFraco }}>{` · ${detalhe}`}</Text> : null}
+          </Text>
+          {acontecendo ? <Text style={{ color: c.destaque, fontSize: 11, fontWeight: '700', letterSpacing: 0.6 }}>AGORA</Text> : null}
+        </View>
+      </Pressable>
+      {!ultimo ? <View style={{ height: 0.5, backgroundColor: c.separador, marginLeft: 58 }} /> : null}
     </View>
   );
 }

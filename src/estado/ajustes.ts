@@ -33,6 +33,9 @@ export interface Ajustes {
   antifonaNasEstrofes: boolean;
   pularInstrucoes: boolean; // Proposta de oração: instruções no fim (padrão: no começo, como no PDF)
   lembretes: Record<Hora, Lembrete>;
+  memoriasNoCalendario: boolean; // Calendário litúrgico: memórias obrigatórias na lista do mês
+  mostrarRotinas: boolean; // Agenda: rotinas (missas fixas, adoração, grupos) além dos eventos; as de hoje aparecem sempre
+  suasComissoes: string[]; // comissões cujas reuniões entram na Agenda; ['*'] = todas
 }
 
 export const PADRAO: Ajustes = {
@@ -70,6 +73,9 @@ export const PADRAO: Ajustes = {
     vesperas: { ativo: false, hora: 18, minuto: 0 },
     completas: { ativo: false, hora: 21, minuto: 30 },
   },
+  memoriasNoCalendario: false,
+  mostrarRotinas: true,
+  suasComissoes: [],
 };
 
 const CHAVE = 'pf.ajustes.v1';

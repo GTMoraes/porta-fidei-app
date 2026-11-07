@@ -5,6 +5,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
 import { RodapeContribuir } from '@/comunidade/Contribuir';
+import { BlocoRotinas } from '@/comunidade/Horarios';
 import { PAGINAS } from '@/comunidade/sobre';
 import { Espaco, Fontes, usePaleta } from '@/tema';
 import { Aviso, Botao, Fundo, Linha, Secao, TituloPagina } from '@/ui/base';
@@ -76,6 +77,8 @@ export default function TelaPagina() {
                   ))}
                 </Secao>
               );
+            case 'rotinas':
+              return <BlocoRotinas key={i} so={b.so} />;
             case 'paginas':
               return (
                 <Secao key={i}>
@@ -95,7 +98,7 @@ export default function TelaPagina() {
         })}
         {p.id === 'benfeitor' ? (
           <View style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.xl, gap: 10 }}>
-            <Botao titulo="Quero ser Benfeitor" icone="arrow.triangle.2.circlepath" onPress={() => abrirDoacao(true)} />
+            <Botao titulo="Seja Benfeitor" icone="arrow.triangle.2.circlepath" onPress={() => abrirDoacao(true)} />
             <Botao titulo="Fazer uma doação única" icone="heart" tipo="secundario" onPress={() => abrirDoacao(false)} />
           </View>
         ) : (

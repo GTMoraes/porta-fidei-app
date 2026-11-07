@@ -156,9 +156,7 @@ export default function LiturgiaDiaria() {
             </Text>
             <Icone nome="chevron.down" cor={c.textoFraco} tamanho={10} />
           </View>
-          <Text style={{ color: c.textoFraco, textAlign: 'center', fontSize: 12 }} numberOfLines={1}>
-            {dia.celebracao.nome}
-          </Text>
+          {/* a celebração fica no texto, logo embaixo do título (a da CNBB; sem ela, o nome do calendário do app) */}
         </Pressable>
         <Pressable onPress={() => mudarDia(1)} hitSlop={8} style={{ padding: 12 }}>
           <Icone nome="chevron.right" tamanho={16} />
@@ -178,7 +176,7 @@ export default function LiturgiaDiaria() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Leitor corpo={corpo} titulo="Liturgia Diária" topo={topo} acoes={acoes} iconeAcoes="text.book.closed" tituloAcoes="Missal" />
+      <Leitor corpo={corpo} titulo="Liturgia Diária" subtitulo={cnbb?.celebracao ? undefined : dia.celebracao.nome} topo={topo} acoes={acoes} iconeAcoes="text.book.closed" tituloAcoes="Missal" />
       <SeletorDataLiturgica
         visivel={escolhendoDia}
         data={data}

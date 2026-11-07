@@ -3,10 +3,11 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
+import { mudarAjustes, useAjustes } from '@/estado/ajustes';
 import { abrirRezarNoDia } from '@/estado/dataRezar';
 import { NOME_COR, NOME_GRAU, NOME_TEMPO, diaLiturgico, hojeIso, type GrauDia } from '@/liturgia/calendario';
 import { Espaco, Marca, comAlfa, usePaleta, type Paleta } from '@/tema';
-import { Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
+import { Chave, Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
 import { MesLiturgico, diasDoMes, useMes, type DiaDoMes } from '@/ui/CalendarioLiturgico';
 import { Folhinha, SEMANA_SIGLA } from '@/ui/Folhinha';
 
@@ -14,6 +15,7 @@ import { Folhinha, SEMANA_SIGLA } from '@/ui/Folhinha';
 // dia, os Próprios do dia e as Horas daquela data. `data` (opcional): o dia em que o calendário abre.
 export default function Calendario() {
   const router = useRouter();
+  const aj = useAjustes();
   usePacote(); // redesenha quando o conteúdo litúrgico termina de carregar (biografias dos santos)
   const { data } = useLocalSearchParams<{ data?: string }>();
   const hoje = hojeIso();
@@ -23,7 +25,9 @@ export default function Calendario() {
 
   const dias = useMemo(() => diasDoMes(ano, mes), [ano, mes]);
   const dSel = diaLiturgico(sel);
-  const destaques = dias.filter((x) => x && ['S', 'F'].includes(x.dia.celebracao.grau)) as DiaDoMes[];
+  // a chave do fim da lista acrescenta as memórias obrigatórias (fica guardada nos ajustes)
+  const graus: GrauDia[] = aj.memoriasNoCalendario ? ['S', 'F', 'M'] : ['S', 'F'];
+  const destaques = dias.filter((x) => x && graus.includes(x.dia.celebracao.grau)) as DiaDoMes[];
 
   return (
     <Fundo>
@@ -66,21 +70,25 @@ export default function Calendario() {
           })}
         </Secao>
 
-        {destaques.length ? (
-          <Secao titulo="Solenidades e festas do mês">
-            {destaques.map((x, i) => (
-              <LinhaFesta key={x.iso} x={x} ultimo={i === destaques.length - 1} />
-            ))}
-          </Secao>
-        ) : null}
+        <Secao titulo={aj.memoriasNoCalendario ? 'Solenidades, festas e memórias do mês' : 'Solenidades e festas do mês'}>
+          {destaques.map((x) => (
+            <LinhaFesta key={x.iso} x={x} />
+          ))}
+          <Linha
+            titulo="Mostrar memórias obrigatórias"
+            direita={<Chave valor={aj.memoriasNoCalendario} mudar={(v) => mudarAjustes({ memoriasNoCalendario: v })} />}
+            ultimo
+          />
+        </Secao>
         <View style={{ height: 40 }} />
       </ScrollView>
     </Fundo>
   );
 }
 
-/** Solenidade dourada, Festa vinho (no escuro, um vinho mais claro, para ler bem no azul-noite) */
+/** Solenidade dourada, Festa vinho (no escuro, um vinho mais claro, para ler bem no azul-noite), Memória neutra */
 function corDoGrau(c: Paleta, g: GrauDia) {
+  if (g === 'M') return c.textoSuave;
   return g === 'S' ? c.destaque : c.escuro ? '#E39A9C' : Marca.vinho;
 }
 
@@ -103,7 +111,7 @@ function LinhaFesta({ x, ultimo }: { x: DiaDoMes; ultimo?: boolean }) {
             topo={SEMANA_SIGLA[d.getDay()]}
             dia={d.getDate()}
             corTopo={cor}
-            fundo={comAlfa(g === 'S' ? Marca.ouro : Marca.vinho, c.escuro ? 0.3 : 0.14)}
+            fundo={g === 'M' ? c.preenchimento : comAlfa(g === 'S' ? Marca.ouro : Marca.vinho, c.escuro ? 0.3 : 0.14)}
             largura={44}
             altura={48}
           />

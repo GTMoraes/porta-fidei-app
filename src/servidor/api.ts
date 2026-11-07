@@ -117,12 +117,37 @@ export interface Oracao {
   texto: string;
   ordem?: number;
   ativa?: boolean;
+  lembrete?: RegraRepeticao | null; // lembrete sugerido (ex.: toda 1ª sexta-feira), servidor 0.6.10 em diante
+}
+
+/** Repetição de uma rotina ou lembrete. semanal: em cada dia de `dias` (0 = domingo ... 6 = sábado);
+ *  mensal: no dia `dias[0]` da `semana`-ésima semana do mês (1 a 4; -1 = a última). */
+export interface RegraRepeticao {
+  repete: 'semanal' | 'mensal';
+  dias: number[];
+  semana?: number | null;
+}
+export type TipoRotina = 'missa' | 'adoracao' | 'grupo' | 'comissao' | 'outra';
+/** Horário fixo que se repete (missa da semana, adoração, grupo de oração, reunião de comissão) */
+export interface Rotina extends RegraRepeticao {
+  id: string;
+  titulo: string;
+  tipo: TipoRotina;
+  comissao?: string | null; // nome da comissão (tipo = comissao)
+  hora: string; // HH:MM
+  fim?: string | null; // HH:MM (aproximado; não aparece, serve para o "agora")
+  local?: string | null;
+  endereco?: string | null; // para o mapa (sem ele, o mapa busca pelo local)
+  obs?: string | null;
+  ativa?: boolean;
+  ordem?: number;
 }
 export interface Comunidade {
   atual: string | null;
   propostas: Proposta[];
   jornadas: Jornada[];
   oracoes: Oracao[];
+  rotinas?: Rotina[]; // servidor 0.6.10 em diante
 }
 
 interface Dados {
@@ -312,6 +337,8 @@ export const apagarJornada = (id: string) => admin(`/jornadas/${id}`, 'DELETE');
 export const jornadaDoPdf = (base64: string) => admin('/jornadas/pdf', 'POST', { base64 }, 90000) as Promise<{ comum: string; textos: string[] }>;
 export const salvarOracao = (o: Partial<Oracao>) => (o.id ? admin(`/oracoes/${o.id}`, 'PUT', o) : admin('/oracoes', 'POST', o)) as Promise<Oracao>;
 export const apagarOracao = (id: string) => admin(`/oracoes/${id}`, 'DELETE');
+export const salvarRotina = (r: Partial<Rotina>) => (r.id ? admin(`/rotinas/${r.id}`, 'PUT', r) : admin('/rotinas', 'POST', r)) as Promise<Rotina>;
+export const apagarRotina = (id: string) => admin(`/rotinas/${id}`, 'DELETE');
 export const textoDoPdf = (base64: string) => admin('/pdf-texto', 'POST', { base64 }, 90000) as Promise<{ texto: string }>;
 
 /** Registra este aparelho para receber push (rota pública) */

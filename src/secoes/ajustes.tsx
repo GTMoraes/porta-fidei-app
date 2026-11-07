@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { abrirDoacao } from '@/comunidade/Contribuir';
+import { nomesComissoes, textoSuasComissoes } from '@/comunidade/rotinas';
 import { usePacote } from '@/conteudo/pacote';
 import { mudarAjustes, useAjustes, type Ajustes } from '@/estado/ajustes';
 import { useServidor } from '@/servidor/api';
@@ -18,7 +19,7 @@ export const SECOES_AJUSTES: InfoSecao[] = [
   { id: 'aj-oracao', titulo: 'Oração', sub: 'Tela, rolagem, notificações e mais', icone: 'hands.sparkles', cor: Quadrado.vinho },
   { id: 'aj-voz', titulo: 'Voz e leitura', sub: 'Leitura em voz alta e Laudes ampliada', icone: 'speaker.wave.2.fill', cor: Quadrado.azul },
   { id: 'aj-aparencia', titulo: 'Aparência', sub: 'Tema, tamanho da letra e fontes', icone: 'textformat.size', cor: Quadrado.ouro },
-  { id: 'aj-conteudo', titulo: 'Conteúdo e Comunidade', sub: 'Conteúdo litúrgico, sugestões e mais', icone: 'books.vertical', cor: Quadrado.cinza },
+  { id: 'aj-conteudo', titulo: 'Conteúdo e Comunidade', sub: 'Conteúdo litúrgico, sua comissão e mais', icone: 'books.vertical', cor: Quadrado.cinza },
 ];
 
 /** Linha com chave liga/desliga para um ajuste */
@@ -69,7 +70,7 @@ function Oracao() {
         sub="Adicionar as coletas salmódicas após salmos e hinos (o pacote provisório não traz as coletas)"
         direita={<Chave valor={aj.coletasSalmodicas} mudar={(v) => mudarAjustes({ coletasSalmodicas: v })} />}
       />
-      <Linha titulo="Configura notificações" sub="Configurar notificações para as horas canônicas" onPress={() => router.push('/notificacoes')} />
+      <Linha titulo="Configurar notificações" sub="Configurar notificações para as horas canônicas" onPress={() => router.push('/notificacoes')} />
       {chave('repetirRespostas', 'Repetir respostas nas preces', 'Repetir as respostas nas preces das Laudes e Vésperas')}
       {chave('esconderBarraStatus', 'Esconder a barra de status', 'Esconder a barra de status que fica no topo da tela')}
       {chave('feedbackTatil', 'Habilitar feedback tátil', 'Emitir pequena vibração ao selecionar algumas opções')}
@@ -166,6 +167,7 @@ function ConteudoEComunidade() {
   const router = useRouter();
   const pacote = usePacote();
   const srv = useServidor();
+  const aj = useAjustes();
   return (
     <Secao>
       <Linha
@@ -173,6 +175,12 @@ function ConteudoEComunidade() {
         sub={pacote.manifest ? (pacote.manifest.tipo === 'provisorio' ? 'Pacote provisório de demonstração instalado' : 'Pacote oficial instalado') : 'Não instalado'}
         icone="books.vertical"
         onPress={() => router.push('/conteudo')}
+      />
+      <Linha
+        titulo="Sua comissão"
+        sub={`${textoSuasComissoes(aj.suasComissoes.filter((n) => n === '*' || nomesComissoes(srv.comunidade?.rotinas).includes(n)))} · as reuniões entram na Agenda`}
+        icone="person.2"
+        onPress={() => router.push('/sua-comissao')}
       />
       <Linha titulo="Administração" sub={srv.admin ? 'Conectado como administrador' : 'Para a coordenação publicar agenda e avisos'} icone="lock.shield" onPress={() => router.push('/admin')} />
       <Linha titulo="Contribuir com a Comunidade" sub="Doação única ou ser Benfeitor" icone="heart" onPress={() => abrirDoacao(false)} />

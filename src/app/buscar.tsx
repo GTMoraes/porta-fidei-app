@@ -74,7 +74,7 @@ export default function Buscar() {
     });
     com?.jornadas.forEach((j) => {
       if (bate(j.titulo, j.descricao, j.comum, ...(j.textos ?? [])))
-        comunidade.push({ chave: 'j' + j.id, titulo: j.titulo, sub: 'Jornada de oração', icone: 'sparkles', abrir: () => router.push({ pathname: '/jornada', params: { id: j.id } }) });
+        comunidade.push({ chave: 'j' + j.id, titulo: j.titulo, sub: 'Jornada de oração', icone: 'figure.hiking', abrir: () => router.push({ pathname: '/jornada', params: { id: j.id } }) });
     });
     com?.propostas.forEach((p) => {
       if (bate(p.titulo, ...p.secoes.map((s) => `${s.titulo} ${s.texto}`)))
@@ -101,7 +101,7 @@ export default function Buscar() {
         for (const s of l) {
           if (!s.slug || !bate(s.nome) || !existe(`santos/${s.slug}`)) continue;
           const [m, d] = md.split('-').map(Number);
-          st.push({ chave: 's' + s.slug, titulo: s.nome, sub: `${d}/${String(m).padStart(2, '0')}`, icone: 'sparkles', abrir: () => router.push({ pathname: '/texto', params: { arquivo: `santos/${s.slug}`, titulo: s.nome, imagem: `santos/${s.slug}` } }) });
+          st.push({ chave: 's' + s.slug, titulo: s.nome, sub: `${d}/${String(m).padStart(2, '0')}`, icone: 'person.crop.circle', abrir: () => router.push({ pathname: '/texto', params: { arquivo: `santos/${s.slug}`, titulo: s.nome, imagem: `santos/${s.slug}` } }) });
         }
       if (st.length) grupos.push({ grupo: 'Santos', itens: st.slice(0, 30) });
     }

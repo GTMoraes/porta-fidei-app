@@ -121,9 +121,7 @@ export default function TelaHora() {
               </Text>
               <Icone nome="chevron.down" cor={c.textoFraco} tamanho={10} />
             </View>
-            <Text style={{ color: c.textoFraco, textAlign: 'center', fontSize: 12 }} numberOfLines={1}>
-              {plano.diaCelebrado.celebracao.nome}
-            </Text>
+            {/* a celebração fica só embaixo do título da hora (pedido do seminarista: não repetir na barra) */}
           </Pressable>
           <Pressable onPress={() => mudarDia(1)} hitSlop={8} style={{ padding: 12 }}>
             <Icone nome="chevron.right" tamanho={16} />

@@ -10,6 +10,10 @@ import { SANTOS } from '@/liturgia/santos';
 import { Espaco, usePaleta } from '@/tema';
 import { Aviso, Fundo, Linha, Secao } from '@/ui/base';
 
+// Listas longas em níveis, como as seções do Rezar: primeiro só os títulos dos grupos (ex.: "Comum de Nossa
+// Senhora"); o toque abre outra tela com os itens daquele grupo (parâmetro `grupo`). A busca do alto procura em tudo.
+const EM_NIVEIS = new Set(['comuns', 'oracoes', 'rituais', 'missal', 'salmos']);
+
 const TITULOS: Record<string, string> = {
   oracoes: 'Orações',
   confissao: 'Confissão',
@@ -140,7 +144,7 @@ interface EntradaSalterio {
 }
 
 export default function Lista() {
-  const { tipo, pasta, data } = useLocalSearchParams<{ tipo: string; pasta?: string; data?: string }>();
+  const { tipo, pasta, data, grupo } = useLocalSearchParams<{ tipo: string; pasta?: string; data?: string; grupo?: string }>();
   const router = useRouter();
   const nav = useNavigation();
   const c = usePaleta();
@@ -150,9 +154,9 @@ export default function Lista() {
   const [canticos, setCanticos] = useState<Item[]>([]);
 
   useEffect(() => {
-    const t = tipo === 'missal-proprio' ? PASTAS_MISSAL.find((p) => p[0] === pasta)?.[1] ?? 'Próprio' : TITULOS[tipo] ?? '';
+    const t = grupo || (tipo === 'missal-proprio' ? PASTAS_MISSAL.find((p) => p[0] === pasta)?.[1] ?? 'Próprio' : TITULOS[tipo] ?? '');
     nav.setOptions({ title: t });
-  }, [tipo, pasta, nav]);
+  }, [tipo, pasta, grupo, nav]);
 
   useEffect(() => {
     if (tipo !== 'salmos') return;
@@ -180,7 +184,7 @@ export default function Lista() {
     });
   }, [tipo]);
 
-  const grupos: Grupo[] = useMemo(() => {
+  const todos: Grupo[] = useMemo(() => {
     const filtra = (gs: Grupo[]) =>
       gs.map((g) => ({ ...g, itens: g.itens.filter(disponivel) })).filter((g) => g.itens.length);
     switch (tipo) {
@@ -250,6 +254,10 @@ export default function Lista() {
     }
   }, [tipo, pasta, data, salmos, canticos]);
 
+  // tela de um grupo: só os itens dele, sem o título (que já está no alto)
+  const grupos: Grupo[] = grupo ? todos.filter((g) => g.titulo === grupo).map((g) => ({ ...g, titulo: '' })) : todos;
+  const emNiveis = !grupo && EM_NIVEIS.has(tipo) && grupos.length > 1;
+
   const q = busca
     .trim()
     .toLowerCase()
@@ -294,7 +302,20 @@ export default function Lista() {
             <Aviso texto="Nada encontrado no pacote de conteúdo instalado." />
           </Secao>
         ) : null}
-        {filtrados.map((g) => (
+        {emNiveis && !q ? (
+          <Secao>
+            {grupos.map((g, k) => (
+              <Linha
+                key={g.titulo}
+                titulo={g.titulo}
+                sub={`${g.itens.length} ${g.itens.length === 1 ? 'item' : 'itens'}`}
+                onPress={() => router.push({ pathname: '/lista', params: { tipo, grupo: g.titulo, ...(pasta ? { pasta } : {}), ...(data ? { data } : {}) } })}
+                ultimo={k === grupos.length - 1}
+              />
+            ))}
+          </Secao>
+        ) : null}
+        {(emNiveis && !q ? [] : filtrados).map((g) => (
           <Secao key={g.titulo || 'g'} titulo={g.titulo || undefined}>
             {g.itens.map((i, k) => (
               <Linha key={i.arquivo + k} titulo={i.titulo} sub={i.sub} onPress={() => abrir(i)} ultimo={k === g.itens.length - 1} />

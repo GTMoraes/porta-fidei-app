@@ -3,14 +3,16 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import Animated, { LinearTransition, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
+import { ocorrencias, rotinasDaAgenda, type Ocorrencia } from '@/comunidade/rotinas';
+import { mudarAjustes, useAjustes } from '@/estado/ajustes';
 import { arquivado, arquivar, remover, removido, useArquivados, visivel } from '@/estado/arquivados';
 import { eventosDaAgenda, marcarVisto, useNovidadesAgenda } from '@/estado/vistos';
 import { atualizar, encerrado, useServidor, type Aviso as AvisoT, type Evento } from '@/servidor/api';
 import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
-import { Aviso, Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base';
+import { Aviso, Chave, Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base';
 import { DeslizarComAcoes, DeslizarParaArquivar } from '@/ui/Deslizar';
 import { dataHoraCurta, dataLonga } from '@/util/datas';
-import { CalendarioAgenda, LinhaEvento } from '@/ui/Agenda';
+import { CalendarioAgenda, diaIso, LinhaEvento, LinhaRotina } from '@/ui/Agenda';
 import { CapaVideo, ImagemInteira } from '@/ui/Midia';
 import { Segmentos } from '@/ui/Segmentos';
 import { useSubirAoTopo } from '@/ui/subirAoTopo';
@@ -63,11 +65,22 @@ export default function Agenda() {
   const ate = meiaNoite.getTime() + dias * 86400_000;
   const naJanela = futuros.filter((e) => new Date(e.inicio).getTime() < ate);
   const temMais = futuros.some((e) => new Date(e.inicio).getTime() >= ate);
-  const porDia = new Map<string, Evento[]>();
-  for (const e of naJanela) {
-    const k = new Date(e.inicio).toDateString();
-    porDia.set(k, [...(porDia.get(k) ?? []), e]);
-  }
+
+  // rotinas (missas da semana, adoração, grupos, a sua comissão): com a chave desligada, só as de hoje;
+  // as que já terminaram somem, como os eventos
+  const aj = useAjustes();
+  const rotinas = rotinasDaAgenda(srv.comunidade?.rotinas, aj.suasComissoes);
+  const hojeIso = diaIso(meiaNoite);
+  const ultimoDia = diaIso(new Date(ate - 12 * 3600_000));
+  const ocs = rotinas.length ? ocorrencias(rotinas, hojeIso, aj.mostrarRotinas ? ultimoDia : hojeIso).filter((o) => o.fim.getTime() > agora) : [];
+
+  // por dia, eventos e rotinas na ordem do horário
+  type Item = { k: string; t: number; e?: Evento; o?: Ocorrencia };
+  const grupos = new Map<string, Item[]>();
+  const porNoDia = (d: Date, it: Item) => grupos.set(d.toDateString(), [...(grupos.get(d.toDateString()) ?? []), it]);
+  for (const e of naJanela) porNoDia(new Date(e.inicio), { k: e.id, t: new Date(e.inicio).getTime(), e });
+  for (const o of ocs) porNoDia(o.inicio, { k: `${o.rotina.id}-${o.data}`, t: o.inicio.getTime(), o });
+  const porDia = [...grupos.values()].map((l) => l.sort((x, y) => x.t - y.t)).sort((x, y) => x[0].t - y[0].t);
   const arquivados = useArquivados();
   const [verArquivados, setVerArquivados] = useState(false);
   const todos = [...srv.avisos].sort((a, b) => Number(!!b.fixado) - Number(!!a.fixado) || b.criado.localeCompare(a.criado));
@@ -131,12 +144,27 @@ export default function Agenda() {
             {aba === 'agenda' ? (
               <>
                 <CalendarioAgenda eventos={srv.eventos} />
-                {porDia.size ? (
-                  [...porDia.entries()].map(([k, doDia]) => (
-                    <Secao key={k} titulo={dataLonga(new Date(doDia[0].inicio))}>
-                      {doDia.map((e, i) => (
-                        <LinhaEvento key={e.id} e={e} ultimo={i === doDia.length - 1} />
-                      ))}
+                {rotinas.length ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Espaco.m, marginHorizontal: Espaco.xl, marginBottom: Espaco.l }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: c.texto, fontSize: 15 }}>Mostrar rotinas</Text>
+                      <Text style={{ color: c.textoFraco, fontSize: 12.5, marginTop: 1 }}>
+                        Horários fixos: missas da semana, adoração, grupos{aj.suasComissoes.length ? ', sua comissão' : ''}. Os de hoje aparecem sempre.
+                      </Text>
+                    </View>
+                    <Chave valor={aj.mostrarRotinas} mudar={(v) => mudarAjustes({ mostrarRotinas: v })} />
+                  </View>
+                ) : null}
+                {porDia.length ? (
+                  porDia.map((doDia) => (
+                    <Secao key={doDia[0].k} titulo={dataLonga(new Date(doDia[0].t))}>
+                      {doDia.map((it, i) =>
+                        it.e ? (
+                          <LinhaEvento key={it.k} e={it.e} ultimo={i === doDia.length - 1} />
+                        ) : (
+                          <LinhaRotina key={it.k} o={it.o!} agora={agora} ultimo={i === doDia.length - 1} />
+                        ),
+                      )}
                     </Secao>
                   ))
                 ) : (
