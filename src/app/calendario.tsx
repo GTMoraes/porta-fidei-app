@@ -4,22 +4,25 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
 import { mudarAjustes, useAjustes } from '@/estado/ajustes';
-import { abrirRezarNoDia } from '@/estado/dataRezar';
-import { NOME_COR, NOME_GRAU, NOME_TEMPO, diaLiturgico, hojeIso, type GrauDia } from '@/liturgia/calendario';
+import { abrirRezarNoDia, useDataRezar } from '@/estado/dataRezar';
+import { NOME_COR, NOME_GRAU, NOME_TEMPO, dataPorExtenso, diaLiturgico, type GrauDia } from '@/liturgia/calendario';
 import { Espaco, Marca, comAlfa, usePaleta, type Paleta } from '@/tema';
 import { Chave, Fundo, Icone, Linha, Secao, toque, Vidro } from '@/ui/base';
 import { MesLiturgico, diasDoMes, useMes, type DiaDoMes } from '@/ui/CalendarioLiturgico';
 import { Folhinha, SEMANA_SIGLA } from '@/ui/Folhinha';
 
 // Tocar num dia (o selecionado ou uma solenidade ou festa da lista) abre o Rezar naquele dia, com o card do
-// dia, os Próprios do dia e as Horas daquela data. `data` (opcional): o dia em que o calendário abre.
+// dia, os Próprios do dia e as Horas daquela data. `data` (opcional): o dia em que o calendário abre; sem ele,
+// abre no dia do Rezar. Aberto da Agenda ou do Rezar, é o mesmo: se o Rezar está noutro dia que não hoje, esse dia
+// tem um anel dourado (hoje fica com o contorno de sempre).
 export default function Calendario() {
   const router = useRouter();
+  const c = usePaleta();
   const aj = useAjustes();
   usePacote(); // redesenha quando o conteúdo litúrgico termina de carregar (biografias dos santos)
   const { data } = useLocalSearchParams<{ data?: string }>();
-  const hoje = hojeIso();
-  const inicial = data && /^\d{4}-\d{2}-\d{2}$/.test(data) ? data : hoje;
+  const r = useDataRezar();
+  const inicial = data && /^\d{4}-\d{2}-\d{2}$/.test(data) ? data : r.data;
   const { ano, mes, mudarMes, irParaMes } = useMes(inicial);
   const [sel, setSel] = useState(inicial);
 
@@ -40,12 +43,21 @@ export default function Calendario() {
               mudarMes={mudarMes}
               irParaMes={irParaMes}
               selecionado={sel}
+              diaRezar={r.escolhida ? r.data : undefined}
               aoTocar={(d) => {
                 toque();
                 setSel(d);
               }}
             />
           </Vidro>
+          {r.escolhida ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: Espaco.m, marginHorizontal: Espaco.s }}>
+              <View style={{ width: 14, height: 14, borderRadius: 4, borderWidth: 2, borderColor: Marca.ouro }} />
+              <Text style={{ flex: 1, color: c.textoSuave, fontSize: 13.5 }}>
+                Dia aberto no Rezar: {dataPorExtenso(r.data)}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <Secao titulo="Dia selecionado">

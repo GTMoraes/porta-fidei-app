@@ -5,6 +5,7 @@ import Animated, { LinearTransition, useAnimatedStyle, useSharedValue, withSprin
 
 import { ocorrencias, rotinasDaAgenda, type Ocorrencia } from '@/comunidade/rotinas';
 import { mudarAjustes, useAjustes } from '@/estado/ajustes';
+import { COR_HEX, diaLiturgico, hojeIso } from '@/liturgia/calendario';
 import { arquivado, arquivar, remover, removido, useArquivados, visivel } from '@/estado/arquivados';
 import { eventosDaAgenda, marcarVisto, useNovidadesAgenda } from '@/estado/vistos';
 import { atualizar, encerrado, useServidor, type Aviso as AvisoT, type Evento } from '@/servidor/api';
@@ -116,7 +117,7 @@ export default function Agenda() {
         scrollToOverflowEnabled
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={puxando} onRefresh={puxar} tintColor={c.destaque} colors={[c.destaque]} />}>
-        <TituloTela titulo="Agenda" sub="Missas, eventos e avisos" />
+        <TituloTela titulo="Agenda" sub="Missas, eventos e avisos" direita={<BotaoLiturgico onPress={() => router.push('/calendario')} />} />
 
         {/* Missas e eventos / Avisos: tocar ou arrastar a bolha (como na barra de abas) */}
         <View onLayout={(e) => (largura.value = e.nativeEvent.layout.width)}>
@@ -282,6 +283,42 @@ function CartaoAviso({ a, onArquivar }: { a: AvisoT; onArquivar: () => void }) {
           <Text style={{ color: c.textoSuave, fontSize: 15, lineHeight: 21, marginTop: 6 }} numberOfLines={4}>
             {a.texto}
           </Text>
+        </View>
+      </Vidro>
+    </Pressable>
+  );
+}
+
+/** Atalho para o Calendário litúrgico, no alto da Agenda: a palavra "Litúrgico" (um ícone só seria lido como o
+ *  calendário dos eventos) e o ponto na cor litúrgica de hoje. Não acompanha a data escolhida no Rezar: a Agenda é
+ *  sempre de hoje em diante. */
+function BotaoLiturgico({ onPress }: { onPress: () => void }) {
+  const c = usePaleta();
+  const cor = diaLiturgico(hojeIso()).celebracao.cor;
+  return (
+    <Pressable
+      onPress={() => {
+        toque();
+        onPress();
+      }}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel="Calendário litúrgico"
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+      <Vidro interativo style={{ borderRadius: 18 }}>
+        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12 }}>
+          <Icone nome="calendar" tamanho={15} />
+          <Text style={{ color: c.destaque, fontSize: 14.5, fontWeight: '600' }}>Litúrgico</Text>
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: COR_HEX[cor],
+              borderWidth: cor === 'branco' ? 0.6 : 0,
+              borderColor: c.textoFraco,
+            }}
+          />
         </View>
       </Vidro>
     </Pressable>

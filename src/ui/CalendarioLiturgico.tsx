@@ -8,7 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { COR_HEX, MESES, diaLiturgico, hojeIso } from '@/liturgia/calendario';
-import { Espaco, fonteTitulo, usePaleta } from '@/tema';
+import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
 import { Icone, toque } from './base';
 import { DeslizarMes } from './Deslizar';
 
@@ -57,6 +57,7 @@ export function MesLiturgico({
   mudarMes,
   irParaMes,
   selecionado,
+  diaRezar,
   aoTocar,
 }: {
   ano: number;
@@ -64,6 +65,8 @@ export function MesLiturgico({
   mudarMes: (n: number) => void;
   irParaMes?: (ano: number, mes: number) => void;
   selecionado?: string;
+  /** o dia aberto no Rezar, quando não é hoje: anel dourado */
+  diaRezar?: string;
   aoTocar: (iso: string) => void;
 }) {
   const c = usePaleta();
@@ -155,8 +158,8 @@ export function MesLiturgico({
                         alignItems: 'center',
                         justifyContent: 'center',
                         backgroundColor: selecionado === x.iso || pressed ? realcado : 'transparent',
-                        borderWidth: x.iso === hoje ? 1.2 : 0,
-                        borderColor: c.destaque,
+                        borderWidth: x.iso === diaRezar ? 2 : x.iso === hoje ? 1.2 : 0,
+                        borderColor: x.iso === diaRezar ? Marca.ouro : c.destaque,
                       })}>
                       <Text
                         style={{
