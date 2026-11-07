@@ -4,7 +4,7 @@
 // o agrupamento da página "Horários e encontros" e o filtro da Agenda ("Sua comissão").
 // Os horários são os de Recife (UTC-3, sem horário de verão), como os eventos do servidor.
 
-import type { RegraRepeticao, Rotina, TipoRotina } from '@/servidor/api';
+import type { ExcecaoRotina, RegraRepeticao, Rotina, TipoRotina } from '@/servidor/api';
 
 export const TIPOS_ROTINA: TipoRotina[] = ['missa', 'adoracao', 'grupo', 'comissao', 'outra'];
 export const NOME_TIPO_ROTINA: Record<TipoRotina, string> = {
@@ -77,12 +77,13 @@ export function caiNoDia(r: RegraRepeticao, iso: string): boolean {
   return Math.ceil(d / 7) === semana;
 }
 
-/** Início e fim de uma rotina num dia (horário de Recife) */
-export function horarioNoDia(r: Rotina, iso: string): { inicio: Date; fim: Date } {
-  const inicio = new Date(`${iso}T${r.hora}:00-03:00`);
-  let fim = r.fim ? new Date(`${iso}T${r.fim}:00-03:00`) : new Date(inicio.getTime() + 3600_000);
-  if (fim <= inicio) fim = new Date(inicio.getTime() + 3600_000);
-  return { inicio, fim };
+/** Início e fim de uma rotina num dia (horário de Recife); `hora`: outro horário (remarcada), com a mesma duração */
+export function horarioNoDia(r: Rotina, iso: string, hora = r.hora): { inicio: Date; fim: Date } {
+  const base = new Date(`${iso}T${r.hora}:00-03:00`);
+  let dur = r.fim ? new Date(`${iso}T${r.fim}:00-03:00`).getTime() - base.getTime() : 3600_000;
+  if (dur <= 0) dur = 3600_000;
+  const inicio = new Date(`${iso}T${hora}:00-03:00`);
+  return { inicio, fim: new Date(inicio.getTime() + dur) };
 }
 
 const somaDias = (iso: string, n: number) => {
@@ -96,14 +97,45 @@ export interface Ocorrencia {
   data: string; // AAAA-MM-DD
   inicio: Date;
   fim: Date;
+  /** cancelado: não acontece neste dia; remarcado: o dia original, que mudou para `novo`; remarcada: o novo horário
+   *  (veio do dia `original`) */
+  situacao?: 'cancelado' | 'remarcado' | 'remarcada';
+  novo?: { data: string; hora: string };
+  original?: string;
 }
 
-/** Ocorrências entre duas datas (inclusive), em ordem de horário */
-export function ocorrencias(rs: Rotina[], de: string, ate: string): Ocorrencia[] {
+/** Ocorrências entre duas datas (inclusive), em ordem de horário, já com os cancelamentos e as mudanças de um dia */
+export function ocorrencias(rs: Rotina[], de: string, ate: string, excecoes: ExcecaoRotina[] = []): Ocorrencia[] {
   const out: Ocorrencia[] = [];
+  const ex = new Map(excecoes.map((e) => [`${e.rotina}|${e.data}`, e]));
   for (let dia = de, n = 0; dia <= ate && n < 400; dia = somaDias(dia, 1), n++)
-    for (const r of rs) if (r.ativa !== false && caiNoDia(r, dia)) out.push({ rotina: r, data: dia, ...horarioNoDia(r, dia) });
+    for (const r of rs) {
+      if (r.ativa === false || !caiNoDia(r, dia)) continue;
+      const e = ex.get(`${r.id}|${dia}`);
+      const o: Ocorrencia = { rotina: r, data: dia, ...horarioNoDia(r, dia) };
+      if (e?.situacao === 'cancelado') o.situacao = 'cancelado';
+      else if (e?.situacao === 'remarcado' && e.novaData && e.novaHora) {
+        o.situacao = 'remarcado';
+        o.novo = { data: e.novaData, hora: e.novaHora };
+      }
+      out.push(o);
+    }
+  // o novo horário das remarcadas que cai no intervalo
+  const porId = new Map(rs.map((r) => [r.id, r]));
+  for (const e of excecoes) {
+    const r = porId.get(e.rotina);
+    if (!r || r.ativa === false || e.situacao !== 'remarcado' || !e.novaData || !e.novaHora || e.novaData < de || e.novaData > ate) continue;
+    if (!caiNoDia(r, e.data)) continue; // a exceção é de um dia em que a rotina nem acontece mais
+    out.push({ rotina: r, data: e.novaData, ...horarioNoDia(r, e.novaData, e.novaHora), situacao: 'remarcada', original: e.data });
+  }
   return out.sort((x, y) => x.inicio.getTime() - y.inicio.getTime());
+}
+
+/** "ter. 10/11, 19h" */
+export function diaHoraCurtos(iso: string, hora: string) {
+  const [a, m, d] = iso.split('-').map(Number);
+  const sem = ['dom.', 'seg.', 'ter.', 'qua.', 'qui.', 'sex.', 'sáb.'][new Date(Date.UTC(a, m - 1, d, 12)).getUTCDay()];
+  return `${sem} ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}, ${horaCurta(hora)}`;
 }
 
 /** Na Agenda, as comissões entram só as marcadas em "Sua comissão" (['*'] = todas); as outras rotinas, sempre */

@@ -33,9 +33,20 @@ export function resetarDataRezar() {
   emitir();
 }
 
+// quem abre o Rezar num dia de propósito (calendário litúrgico, card do dia da Hoje) pede um destaque: o Rezar
+// sobe para o topo e a folhinha pulsa, para a pessoa ver em que dia está (mesmo que seja hoje)
+let destaque = false;
+/** O Rezar foi aberto num dia de propósito? Lê e apaga o pedido (lido pelo Rezar ao aparecer) */
+export function pegarDestaqueRezar() {
+  const d = destaque;
+  destaque = false;
+  return d;
+}
+
 /** Card do dia na Hoje: abre o Rezar já em hoje */
 export function abrirRezarHoje() {
   resetarDataRezar();
+  destaque = true;
   router.navigate('/orar');
 }
 
@@ -76,5 +87,6 @@ export const dataDaHora = (h: string, r: DataRezar) => (r.escolhida ? r.data : d
 
 /** Abre a aba Rezar já num dia, de qualquer tela (volta para as abas; não empilha outra cópia delas) */
 export function abrirRezarNoDia(data: string) {
+  destaque = true;
   router.dismissTo({ pathname: '/orar', params: { data, t: String(Date.now()) } });
 }

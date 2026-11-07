@@ -66,13 +66,17 @@ export default function Agenda() {
   const naJanela = futuros.filter((e) => new Date(e.inicio).getTime() < ate);
   const temMais = futuros.some((e) => new Date(e.inicio).getTime() >= ate);
 
-  // rotinas (missas da semana, adoração, grupos, a sua comissão): com a chave desligada, só as de hoje;
-  // as que já terminaram somem, como os eventos
+  // rotinas (missas da semana, adoração, grupos, a sua comissão): com a chave desligada, só as de hoje e as
+  // canceladas ou remarcadas (mudança é notícia); as que já terminaram somem, como os eventos
   const aj = useAjustes();
   const rotinas = rotinasDaAgenda(srv.comunidade?.rotinas, aj.suasComissoes);
   const hojeIso = diaIso(meiaNoite);
   const ultimoDia = diaIso(new Date(ate - 12 * 3600_000));
-  const ocs = rotinas.length ? ocorrencias(rotinas, hojeIso, aj.mostrarRotinas ? ultimoDia : hojeIso).filter((o) => o.fim.getTime() > agora) : [];
+  const ocs = rotinas.length
+    ? ocorrencias(rotinas, hojeIso, ultimoDia, srv.comunidade?.excecoes).filter(
+        (o) => o.fim.getTime() > agora && (aj.mostrarRotinas || o.data === hojeIso || !!o.situacao),
+      )
+    : [];
 
   // por dia, eventos e rotinas na ordem do horário
   type Item = { k: string; t: number; e?: Evento; o?: Ocorrencia };

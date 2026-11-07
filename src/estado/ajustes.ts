@@ -8,6 +8,13 @@ export interface Lembrete {
   minuto: number;
 }
 
+/** Lembrete que a pessoa ligou para uma oração, jornada ou rotina (ver estado/lembretes.ts) */
+export interface ModoLembrete {
+  vespera?: boolean; // na véspera, no horário `horaVespera`
+  noDia?: boolean; // no dia, no horário `horaNoDia` (orações e jornadas)
+  antes?: boolean; // `minutosAntes` antes do horário (rotinas)
+}
+
 export interface Ajustes {
   telaLigada: boolean;
   bienal: boolean;
@@ -36,6 +43,10 @@ export interface Ajustes {
   memoriasNoCalendario: boolean; // Calendário litúrgico: memórias obrigatórias na lista do mês
   mostrarRotinas: boolean; // Agenda: rotinas (missas fixas, adoração, grupos) além dos eventos; as de hoje aparecem sempre
   suasComissoes: string[]; // comissões cujas reuniões entram na Agenda; ['*'] = todas
+  lembretesItens: Record<string, ModoLembrete>; // 'oracao:<id>', 'jornada:<id>', 'rotina:<id>'
+  horaVespera: string; // HH:MM
+  horaNoDia: string; // HH:MM
+  minutosAntes: number;
 }
 
 export const PADRAO: Ajustes = {
@@ -76,6 +87,10 @@ export const PADRAO: Ajustes = {
   memoriasNoCalendario: false,
   mostrarRotinas: true,
   suasComissoes: [],
+  lembretesItens: {},
+  horaVespera: '20:00',
+  horaNoDia: '08:00',
+  minutosAntes: 60,
 };
 
 const CHAVE = 'pf.ajustes.v1';

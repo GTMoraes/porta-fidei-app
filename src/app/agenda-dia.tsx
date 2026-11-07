@@ -16,7 +16,7 @@ export default function AgendaDia() {
   const srv = useServidor();
   const aj = useAjustes();
   const eventos = srv.eventos.filter((e) => diaIso(new Date(e.inicio)) === data).map((e) => ({ k: e.id, t: new Date(e.inicio).getTime(), e, o: undefined }));
-  const rotinas = data ? ocorrencias(rotinasDaAgenda(srv.comunidade?.rotinas, aj.suasComissoes), data, data) : [];
+  const rotinas = data ? ocorrencias(rotinasDaAgenda(srv.comunidade?.rotinas, aj.suasComissoes), data, data, srv.comunidade?.excecoes) : [];
   const doDia = [...eventos, ...rotinas.map((o) => ({ k: `${o.rotina.id}-${o.data}`, t: o.inicio.getTime(), e: undefined, o }))].sort((x, y) => x.t - y.t);
   const [a, m, d] = (data ?? '').split('-').map(Number);
   const titulo = data ? dataLonga(new Date(a, m - 1, d)) : '';

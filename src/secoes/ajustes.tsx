@@ -6,17 +6,22 @@ import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { abrirDoacao } from '@/comunidade/Contribuir';
-import { nomesComissoes, textoSuasComissoes } from '@/comunidade/rotinas';
+import { periodo } from '@/comunidade/jornadas';
+import { horaCurta, nomesComissoes, textoRegra, textoSuasComissoes } from '@/comunidade/rotinas';
 import { usePacote } from '@/conteudo/pacote';
 import { mudarAjustes, useAjustes, type Ajustes } from '@/estado/ajustes';
+import { escolherLembrete, ligado, modoDe, reagendarLembretes, textoAntes, textoModo } from '@/estado/lembretes';
+import { hojeIso } from '@/liturgia/calendario';
 import { useServidor } from '@/servidor/api';
 import { Espaco, Marca, Quadrado, usePaleta } from '@/tema';
-import { Chave, Icone, Linha, Secao, toque } from '@/ui/base';
+import { Aviso, Chave, Icone, Linha, Secao, toque } from '@/ui/base';
+import { CampoData } from '@/ui/Data';
 
 import type { InfoSecao } from './tipos';
 
 export const SECOES_AJUSTES: InfoSecao[] = [
-  { id: 'aj-oracao', titulo: 'Oração', sub: 'Tela, rolagem, notificações e mais', icone: 'hands.sparkles', cor: Quadrado.vinho },
+  { id: 'aj-oracao', titulo: 'Oração', sub: 'Tela, rolagem, timer e mais', icone: 'hands.sparkles', cor: Quadrado.vinho },
+  { id: 'aj-lembretes', titulo: 'Lembretes', sub: 'Horas, devoções, jornadas e horários fixos', icone: 'bell', cor: Quadrado.verde },
   { id: 'aj-voz', titulo: 'Voz e leitura', sub: 'Leitura em voz alta e Laudes ampliada', icone: 'speaker.wave.2.fill', cor: Quadrado.azul },
   { id: 'aj-aparencia', titulo: 'Aparência', sub: 'Tema, tamanho da letra e fontes', icone: 'textformat.size', cor: Quadrado.ouro },
   { id: 'aj-conteudo', titulo: 'Conteúdo e Comunidade', sub: 'Conteúdo litúrgico, sua comissão e mais', icone: 'books.vertical', cor: Quadrado.cinza },
@@ -32,7 +37,6 @@ function useChave() {
 
 function Oracao() {
   const aj = useAjustes();
-  const router = useRouter();
   const c = usePaleta();
   const chave = useChave();
   return (
@@ -70,7 +74,6 @@ function Oracao() {
         sub="Adicionar as coletas salmódicas após salmos e hinos (o pacote provisório não traz as coletas)"
         direita={<Chave valor={aj.coletasSalmodicas} mudar={(v) => mudarAjustes({ coletasSalmodicas: v })} />}
       />
-      <Linha titulo="Configurar notificações" sub="Configurar notificações para as horas canônicas" onPress={() => router.push('/notificacoes')} />
       {chave('repetirRespostas', 'Repetir respostas nas preces', 'Repetir as respostas nas preces das Laudes e Vésperas')}
       {chave('esconderBarraStatus', 'Esconder a barra de status', 'Esconder a barra de status que fica no topo da tela')}
       {chave('feedbackTatil', 'Habilitar feedback tátil', 'Emitir pequena vibração ao selecionar algumas opções')}
@@ -163,6 +166,112 @@ function Aparencia() {
   );
 }
 
+/** Lembretes: as horas (tela própria), as devoções com lembrete sugerido, as jornadas e as rotinas, e os horários */
+function Lembretes() {
+  const aj = useAjustes();
+  const router = useRouter();
+  const srv = useServidor();
+  const com = srv.comunidade;
+  const hoje = hojeIso();
+  const horasAtivas = Object.values(aj.lembretes).filter((l) => l.ativo).length;
+  const oracoes = (com?.oracoes ?? []).filter((o) => o.lembrete);
+  const jornadas = (com?.jornadas ?? []).filter((j) => j.ativa !== false).flatMap((j) => {
+    const p = periodo(j, hoje);
+    return p ? [{ j, p }] : [];
+  });
+  const rotinas = (com?.rotinas ?? []).filter((r) => r.ativa !== false);
+  const curto = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+  const sino = (m: ReturnType<typeof modoDe>) => (ligado(m) ? 'bell.fill' : 'bell');
+  const mudar = (p: Partial<Ajustes>) => {
+    mudarAjustes(p);
+    reagendarLembretes();
+  };
+  return (
+    <>
+      <Secao titulo="Liturgia das Horas">
+        <Linha
+          titulo="Lembretes das horas"
+          sub={horasAtivas ? `${horasAtivas} ${horasAtivas === 1 ? 'hora lembrada' : 'horas lembradas'} todo dia` : 'Nenhum ligado'}
+          icone="clock"
+          onPress={() => router.push('/notificacoes')}
+          ultimo
+        />
+      </Secao>
+      <Secao titulo="Devoções da Comunidade">
+        {oracoes.length ? (
+          oracoes.map((o, i) => {
+            const m = modoDe(aj, 'oracao', o.id);
+            return (
+              <Linha
+                key={o.id}
+                titulo={o.titulo}
+                sub={`${textoRegra(o.lembrete!)} · ${textoModo(m, aj)}`}
+                icone={sino(m)}
+                onPress={() => escolherLembrete('oracao', o.id, o.titulo)}
+                ultimo={i === oracoes.length - 1}
+              />
+            );
+          })
+        ) : (
+          <Aviso icone="bell" texto="Quando a Comunidade sugerir um lembrete numa oração (ex.: toda 1ª sexta-feira), ela aparece aqui." />
+        )}
+      </Secao>
+      {jornadas.length ? (
+        <Secao titulo="Jornadas">
+          {jornadas.map(({ j, p }, i) => {
+            const m = modoDe(aj, 'jornada', j.id);
+            const quando = p.inicio > hoje ? `Começa em ${curto(p.inicio)}` : `Até ${curto(p.fim)}`;
+            return (
+              <Linha
+                key={j.id}
+                titulo={j.titulo}
+                sub={`${quando}${j.anual ? ', todo ano' : ''} · ${textoModo(m, aj)}`}
+                icone={sino(m)}
+                onPress={() => escolherLembrete('jornada', j.id, j.titulo)}
+                ultimo={i === jornadas.length - 1}
+              />
+            );
+          })}
+        </Secao>
+      ) : null}
+      {rotinas.length ? (
+        <Secao titulo="Horários fixos">
+          {rotinas.map((r, i) => {
+            const m = modoDe(aj, 'rotina', r.id);
+            return (
+              <Linha
+                key={r.id}
+                titulo={r.tipo === 'comissao' && r.comissao && !r.titulo.includes(r.comissao) ? `${r.comissao} · ${r.titulo}` : r.titulo}
+                sub={`${textoRegra(r)}, ${horaCurta(r.hora)} · ${textoModo(m, aj)}`}
+                icone={sino(m)}
+                onPress={() => escolherLembrete('rotina', r.id, r.titulo)}
+                ultimo={i === rotinas.length - 1}
+              />
+            );
+          })}
+        </Secao>
+      ) : null}
+      <Secao titulo="Horários dos lembretes">
+        <CampoData rotulo="Na véspera, às" valor={aj.horaVespera} modo="time" mudar={(v) => mudar({ horaVespera: v })} />
+        <CampoData rotulo="No dia, às" valor={aj.horaNoDia} modo="time" mudar={(v) => mudar({ horaNoDia: v })} />
+        <Linha
+          titulo="Antes dos horários fixos"
+          direita={
+            <Contador
+              valor={Math.round(aj.minutosAntes / 15)}
+              min={1}
+              max={16}
+              formatar={(v) => textoAntes(v * 15)}
+              mudar={(v) => mudar({ minutosAntes: v * 15 })}
+            />
+          }
+          ultimo
+        />
+      </Secao>
+    </>
+  );
+}
+
 function ConteudoEComunidade() {
   const router = useRouter();
   const pacote = usePacote();
@@ -195,6 +304,8 @@ export function ConteudoAjustes({ id }: { id: string }) {
   switch (id) {
     case 'aj-oracao':
       return <Oracao />;
+    case 'aj-lembretes':
+      return <Lembretes />;
     case 'aj-voz':
       return <VozELeitura />;
     case 'aj-aparencia':

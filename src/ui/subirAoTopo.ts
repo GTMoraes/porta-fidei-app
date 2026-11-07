@@ -3,9 +3,14 @@
 // em foco (veio de outra aba), não faz nada.
 
 import { useNavigation } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { Platform, type ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+/** Sobe uma lista até o topo (ver o recuo da barra de status abaixo) */
+export function subirAoTopo(ref: RefObject<ScrollView | null>, recuoTopo: number, animado = true) {
+  ref.current?.scrollTo({ y: Platform.OS === 'ios' ? -recuoTopo : 0, animated: animado });
+}
 
 export function useSubirAoTopo() {
   const ref = useRef<ScrollView>(null);
@@ -19,7 +24,7 @@ export function useSubirAoTopo() {
         if (e?.defaultPrevented) return;
         // a lista começa abaixo da barra de status (o iOS recua o conteúdo): o topo é o recuo negativo
         // (no Android o conteúdo já começa abaixo dela: o topo é zero)
-        ref.current?.scrollTo({ y: Platform.OS === 'ios' ? -ins.top : 0, animated: true });
+        subirAoTopo(ref, ins.top);
       });
     });
     return sair;

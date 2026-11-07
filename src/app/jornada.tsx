@@ -9,7 +9,9 @@ import { Pressable, Text, View } from 'react-native';
 import { oracaoHtml, textoParaHtml } from '@/comunidade/html';
 import { dataDoDia, diaAtual, diasFeitos, marcar, periodo, useFeitos } from '@/comunidade/jornadas';
 import { montarArquivo } from '@/conteudo/montar';
+import { useAjustes } from '@/estado/ajustes';
 import { alternarFavorito, ehFavorito, itemComunidade, registrarRecente, useSalvos } from '@/estado/favoritos';
+import { escolherLembrete, ligado, modoDe } from '@/estado/lembretes';
 import { usePacote } from '@/conteudo/pacote';
 import { hojeIso } from '@/liturgia/calendario';
 import { useServidor } from '@/servidor/api';
@@ -35,6 +37,7 @@ export default function TelaJornada() {
   const [doPacote, setDoPacote] = useState<string | null>(null);
   // favorito e recentes (abre sempre no dia de hoje da jornada)
   const salvos = useSalvos();
+  const aj = useAjustes();
   const item = j ? itemComunidade('jornada', j.id, j.titulo) : null;
   useEffect(() => {
     if (item) registrarRecente(item);
@@ -136,6 +139,8 @@ export default function TelaJornada() {
       topo={topo}
       rodape={rodape}
       favorito={item ? { ativo: ehFavorito(salvos, item), alternar: () => alternarFavorito(item) } : undefined}
+      // sino: lembrete do começo (na véspera e/ou no dia)
+      extra={j.inicioBase ? { icone: ligado(modoDe(aj, 'jornada', j.id)) ? 'bell.fill' : 'bell', onPress: () => escolherLembrete('jornada', j.id, j.titulo) } : undefined}
     />
   );
 }

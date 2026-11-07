@@ -148,6 +148,15 @@ export interface Comunidade {
   jornadas: Jornada[];
   oracoes: Oracao[];
   rotinas?: Rotina[]; // servidor 0.6.10 em diante
+  excecoes?: ExcecaoRotina[]; // servidor 0.6.11 em diante
+}
+/** Rotina cancelada ou remarcada só num dia (`data`); as outras semanas seguem a regra */
+export interface ExcecaoRotina {
+  rotina: string;
+  data: string; // AAAA-MM-DD do dia original
+  situacao: 'cancelado' | 'remarcado';
+  novaData?: string | null;
+  novaHora?: string | null;
 }
 
 interface Dados {
@@ -165,6 +174,13 @@ const CHAVE_TOKEN = 'pf.admin.token';
 let dados: Dados = { eventos: [], avisos: [], carregando: false };
 const ouvintes = new Set<() => void>();
 const emitir = () => ouvintes.forEach((f) => f());
+
+/** Fora do React (lembretes): os dados atuais e o aviso de que mudaram */
+export const lerServidor = () => dados;
+export function assinarServidor(f: () => void) {
+  ouvintes.add(f);
+  return () => void ouvintes.delete(f);
+}
 
 export function useServidor(): Dados {
   return useSyncExternalStore(
@@ -339,6 +355,8 @@ export const salvarOracao = (o: Partial<Oracao>) => (o.id ? admin(`/oracoes/${o.
 export const apagarOracao = (id: string) => admin(`/oracoes/${id}`, 'DELETE');
 export const salvarRotina = (r: Partial<Rotina>) => (r.id ? admin(`/rotinas/${r.id}`, 'PUT', r) : admin('/rotinas', 'POST', r)) as Promise<Rotina>;
 export const apagarRotina = (id: string) => admin(`/rotinas/${id}`, 'DELETE');
+export const salvarExcecao = (e: ExcecaoRotina) => admin(`/rotinas/${e.rotina}/excecoes`, 'POST', e);
+export const desfazerExcecao = (rotina: string, data: string) => admin(`/rotinas/${rotina}/excecoes/${data}`, 'DELETE');
 export const textoDoPdf = (base64: string) => admin('/pdf-texto', 'POST', { base64 }, 90000) as Promise<{ texto: string }>;
 
 /** Registra este aparelho para receber push (rota pública) */

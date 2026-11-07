@@ -21,6 +21,7 @@ export const MATERIAL: Record<string, AndroidSymbol> = {
   'arrow.uturn.backward': 'undo',
   'bell': 'notifications',
   'bell.badge': 'notifications_active',
+  'bell.fill': 'notifications_active',
   'book': 'book',
   'book.closed': 'book',
   'book.closed.fill': 'book',

@@ -7,7 +7,7 @@ import { Alert, ScrollView, View } from 'react-native';
 
 import { recarregarAdmin, useAdminComunidade } from '@/comunidade/admin';
 import { TIPOS_ROTINA, TIPO_ROTINA_UM, horaCurta, nomesComissoes, textoRegra } from '@/comunidade/rotinas';
-import { apagarRotina, salvarRotina, type TipoRotina } from '@/servidor/api';
+import { apagarRotina, salvarRotina, useServidor, type TipoRotina } from '@/servidor/api';
 import { Espaco } from '@/tema';
 import { Botao, Chave, Fundo, Linha, Secao } from '@/ui/base';
 import { CampoData } from '@/ui/Data';
@@ -24,7 +24,9 @@ export default function EditarRotina() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const router = useRouter();
   const { dados } = useAdminComunidade();
-  const orig = dados?.rotinas?.find((r) => r.id === id);
+  const srv = useServidor();
+  // aberta pela Agenda, os dados da Administração podem não ter carregado: vale a cópia que todos têm
+  const orig = id ? (dados?.rotinas?.find((r) => r.id === id) ?? srv.comunidade?.rotinas?.find((r) => r.id === id)) : undefined;
   const existentes = nomesComissoes(dados?.rotinas);
 
   const [titulo, setTitulo] = useState(orig?.titulo ?? '');

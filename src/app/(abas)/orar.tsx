@@ -2,8 +2,9 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { mudarDataRezar, rezarEmOutroDia, useDataRezar } from '@/estado/dataRezar';
+import { mudarDataRezar, pegarDestaqueRezar, rezarEmOutroDia, useDataRezar } from '@/estado/dataRezar';
 import { abrirSalvo, useSalvos } from '@/estado/favoritos';
 import { dataPorExtenso } from '@/liturgia/calendario';
 import { ProprioDoDia, SECOES_REZAR, mostrarLeituras } from '@/secoes/rezar';
@@ -12,7 +13,7 @@ import { Fundo, Icone, Linha, Secao, TituloTela, toque, Vidro } from '@/ui/base'
 import { SeletorDataLiturgica } from '@/ui/CalendarioLiturgico';
 import { CartaoDoDia } from '@/ui/CartaoDoDia';
 import { Folhinha, MES_SIGLA } from '@/ui/Folhinha';
-import { useSubirAoTopo } from '@/ui/subirAoTopo';
+import { subirAoTopo, useSubirAoTopo } from '@/ui/subirAoTopo';
 import { useFolgaAbas } from '@/ui/AbasAndroid';
 
 // Aba Rezar: a folhinha no alto escolhe o dia, e tudo o que depende do dia segue essa data (o card do dia,
@@ -40,11 +41,16 @@ export default function Orar() {
 
   // de volta ao Rezar com outro dia escolhido: um pulso dourado em volta da folhinha, um instante depois de a tela
   // aparecer, lembra que não é hoje. Lê a data na hora do pulso (o pedido de um link pode chegar logo depois do foco).
+  // Aberto num dia de propósito (dia do calendário litúrgico, card do dia da Hoje): sobe para o topo e pulsa sempre,
+  // mesmo em hoje, para a pessoa ver a data.
+  const ins = useSafeAreaInsets();
   const pulso = useSharedValue(0);
   useFocusEffect(
     useCallback(() => {
+      const destacar = pegarDestaqueRezar();
+      if (destacar) requestAnimationFrame(() => subirAoTopo(lista, ins.top));
       const t = setTimeout(() => {
-        if (!rezarEmOutroDia()) return;
+        if (!destacar && !rezarEmOutroDia()) return;
         pulso.value = 0;
         pulso.value = withSequence(
           withTiming(1, { duration: 260 }),

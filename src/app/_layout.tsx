@@ -69,8 +69,12 @@ export default function Raiz() {
     if (d.tipo === 'aviso' && typeof d.id === 'string') {
       const idAviso = d.id;
       atualizar().finally(() => setTimeout(() => router.push({ pathname: '/aviso', params: { id: idAviso } }), 300));
-    } else if ((d.tipo === 'proposta' || d.tipo === 'jornada' || d.tipo === 'evento') && typeof d.id === 'string') {
-      const rota = d.tipo === 'proposta' ? '/proposta' : d.tipo === 'jornada' ? '/jornada' : '/evento';
+    } else if (d.tipo === 'rotina' && typeof d.id === 'string') {
+      // lembrete de uma rotina (missa da semana, comissão...)
+      const params = { id: d.id, data: typeof d.data === 'string' ? d.data : '' };
+      setTimeout(() => router.push({ pathname: '/rotina-dia', params }), 300);
+    } else if ((d.tipo === 'proposta' || d.tipo === 'jornada' || d.tipo === 'evento' || d.tipo === 'oracao') && typeof d.id === 'string') {
+      const rota = d.tipo === 'proposta' ? '/proposta' : d.tipo === 'jornada' ? '/jornada' : d.tipo === 'oracao' ? '/oracao' : '/evento';
       const idItem = d.id;
       atualizar().finally(() => setTimeout(() => router.push({ pathname: rota, params: { id: idItem } }), 300));
     } else if (typeof d.hora === 'string') {
@@ -143,6 +147,8 @@ export default function Raiz() {
         <Stack.Screen name="admin-rotinas" options={{ title: 'Rotinas' }} />
         <Stack.Screen name="editar-rotina" options={{ title: 'Rotina', presentation: 'modal' }} />
         <Stack.Screen name="sua-comissao" options={{ title: 'Sua comissão' }} />
+        <Stack.Screen name="rotina-dia" options={{ title: '' }} />
+        <Stack.Screen name="editar-excecao" options={{ title: '', presentation: 'modal' }} />
       </Stack>
       <PilulaAtualizado />
       <FolhaOpcoes />
