@@ -169,9 +169,12 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
       // dedo na tela durante a rolagem automática: mostra os controles por 5 s
       if (rolando) mostrarBarra(5);
     } else if (m.tipo === 'conta') {
-      // contador de Ave-Marias do Rosário: vibração leve a cada conta; no 10, a de "concluído"
+      // contador de Ave-Marias do Rosário: vibração leve a cada conta; na última, a de "concluído"
       if (m.fim) toqueConcluido();
       else toque();
+    } else if (m.tipo === 'dobra') {
+      // Rosário: abriu ou fechou uma oração, a meditação ou o Evangelho
+      toque();
     } else if (m.tipo === 'toque') {
       if (rolando) mostrarBarra(5);
       else if (barraVisivel && aj.expandirTexto) setBarraVisivel(false);

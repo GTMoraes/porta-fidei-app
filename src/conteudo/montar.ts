@@ -2,7 +2,7 @@
 
 import type { Ajustes } from '@/estado/ajustes';
 import { ligarIglh } from '@/conteudo/iglh';
-import { cssTerco, JS_TERCO } from '@/conteudo/terco';
+import { cssRosario, JS_ROSARIO } from '@/conteudo/terco';
 import { JS_NAVEGAR } from '@/conteudo/navegar';
 import type { Paleta } from '@/tema';
 import type { Parte, PlanoHora } from '@/liturgia/horas';
@@ -283,8 +283,8 @@ export function paginaHtml(corpo: string, aj: Ajustes, cor: Paleta, op: OpcoesPa
       ? `"Baskerville", "Times New Roman", "New York", ui-serif, Georgia, serif`
       : `-apple-system, system-ui, "Helvetica Neue", Roboto, sans-serif`;
   const horasEsquerda = op.tipo === 'horas' && aj.alinhamento === 'esquerda';
-  // contador de Ave-Marias (Rosário): estilo e script só nas páginas que têm
-  const terco = corpo.includes('class="pf-terco"');
+  // Rosário (o que abre e fecha, contador de Ave-Marias): estilo e script só nas páginas que têm
+  const rosario = /class="[^"]*\bpf-(?:terco|dobra|med)\b/.test(corpo);
   const cab = op.titulo
     ? `<header><h1>${op.titulo}</h1>${op.subtitulo ? `<p>${op.subtitulo}</p>` : ''}</header>`
     : '';
@@ -351,10 +351,7 @@ mark.pfa{background:#E5A33A;color:#1a1208}
 .pf-volta{color:var(--dt);font-weight:700;padding:0 .35em;cursor:pointer}
 sup.pf-nota{color:var(--dt);font-weight:700;padding:0 .15em;cursor:pointer}
 .pf-alvo{background:rgba(222,190,130,.4);border-radius:3px}
-/* Rosário: meditação e virtude de cada mistério */
-.pf-meditacao{margin-top:.2em}
-.pf-virtude{font-style:italic}
-${terco ? cssTerco(cor) : ''}
+${rosario ? cssRosario(cor) : ''}
 </style></head><body>${cab}${corpo}
 <script>
 (function(){
@@ -367,8 +364,8 @@ ${terco ? cssTerco(cor) : ''}
   window.pfFonte=function(px){ document.body.style.fontSize=px+'px'; };
   document.addEventListener('touchstart',function(){ post({tipo:'tocou'}); },{passive:true});
   document.addEventListener('click',function(e){
-    // contador de Ave-Marias: o toque é dele (não mostra nem esconde a barra)
-    if(e.target.closest && e.target.closest('.pf-terco')) return;
+    // Rosário: o contador e o que abre e fecha têm o próprio toque (não mostram nem escondem a barra)
+    if(e.target.closest && e.target.closest('.pf-terco,[data-dobra],[data-acao]')) return;
     // links dentro da própria página (data-ir = id do destino), ex.: índice e notas da Instrução Geral
     var ir=e.target.closest && e.target.closest('[data-ir]');
     if(ir){ e.preventDefault(); var alvo=document.getElementById(ir.getAttribute('data-ir'));
@@ -382,6 +379,6 @@ ${terco ? cssTerco(cor) : ''}
   var antes=0; window.addEventListener('scroll',function(){ var y=window.scrollY; if(Math.abs(y-antes)>40){ post({tipo:'rolou', desce:y>antes, y:y}); antes=y; } },{passive:true});
 })();
 </script>
-${terco ? `<script>${JS_TERCO}</script>` : ''}
+${rosario ? `<script>${JS_ROSARIO}</script>` : ''}
 <script>window.pfTopo=${op.topoExtra ?? 0};${JS_NAVEGAR}</script></body></html>`;
 }

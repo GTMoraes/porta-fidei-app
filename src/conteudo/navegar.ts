@@ -144,6 +144,7 @@ export const JS_NAVEGAR = String.raw`
     if (marcaAtual >= 0) marcas[marcaAtual].classList.remove('pfa');
     marcaAtual = (marcaAtual + d + marcas.length) % marcas.length;
     var m = marcas[marcaAtual]; m.classList.add('pfa');
+    if (window.pfMostrar) window.pfMostrar(m); // trecho que estava fechado (Rosário) abre
     var r = m.getBoundingClientRect(), alto = window.innerHeight;
     var y = r.top + window.scrollY - alto * 0.35;
     window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });

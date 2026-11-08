@@ -4,8 +4,14 @@
 // - meditação, leitura e virtude de cada mistério, escritas para o app (aprovadas pelo Gabriel em 07/11/2026), no
 //   lugar do texto do original; o Evangelho de cada mistério (referência e texto) continua o do pacote;
 // - a jaculatória da Comunidade;
-// - o contador de Ave-Marias: aqui só o lugar dele (`<div class="pf-terco">`); o terço e o botão são montados pelo
-//   script da página (`conteudo/terco.ts`).
+// - o que abre e fecha ao tocar (pedido de 08/11/2026, para o terço ficar mais curto): Ato de contrição, Oferecimento,
+//   Pai-Nosso e Ave-Maria (o texto da oração), a meditação (em dois estágios) e o Evangelho de cada mistério; o Credo,
+//   o Glória e a jaculatória ficam abertos;
+// - as três Ave-Marias do começo ("Deus Salve Maria, filha de Deus Pai"...) com um terço de 3 contas, e o terço de 10
+//   em cada mistério: aqui só o lugar deles (`<div class="pf-terco">`); as contas e o botão são montados pelo script
+//   da página (`conteudo/terco.ts`);
+// - no fim, ficam o Agradecimento e a Salve Rainha; a Oração final e a Ladainha saem (a Ladainha continua à parte).
+// Esses textos não têm direitos de ninguém (escritos para o app ou orações tradicionais), por isso podem ficar aqui.
 // Se o pacote mudar e algum trecho não for encontrado, aquela parte fica como está (nada some).
 
 interface Misterio {
@@ -205,49 +211,129 @@ const CONJUNTOS: Record<string, { nome: string; misterios: Misterio[] }> = {
 
 /** Jaculatória da Comunidade (sem o ponto final: o ponto do original fica onde está) */
 export const JACULATORIA =
-  'Ó meu Jesus, perdoai e nos livrai do fogo do inferno, levai as almas todas para o céu, e socorrei principalmente as que mais precisarem da Vossa misericórdia. Abençoai o Santo Padre, o Papa, santificai o clero, protegei as nossas famílias e dai-nos saúde e paz';
+  'Ó meu Jesus, perdoai-nos e livrai-nos do fogo do inferno, levai as almas todas para o céu, e socorrei principalmente as que mais precisarem da Vossa misericórdia. Abençoai o Santo Padre, o Papa, santificai o clero, protegei as nossas famílias e dai-nos saúde e paz';
+
+/** Orações que abrem ao tocar em "Pai Nosso" e "Ave Maria" (versões de sempre, as do Missal; confirmadas pelo Gabriel) */
+export const PAI_NOSSO =
+  'Pai nosso que estais nos céus, santificado seja o vosso nome; venha a nós o vosso Reino; seja feita a vossa vontade, assim na terra como no céu. O pão nosso de cada dia nos dai hoje; perdoai-nos as nossas ofensas, assim como nós perdoamos a quem nos tem ofendido; e não nos deixeis cair em tentação, mas livrai-nos do mal. Amém.';
+export const AVE_MARIA =
+  'Ave Maria, cheia de graça, o Senhor é convosco; bendita sois vós entre as mulheres, e bendito é o fruto do vosso ventre, Jesus. Santa Maria, Mãe de Deus, rogai por nós, pecadores, agora e na hora de nossa morte. Amém.';
+
+/** As três Ave-Marias do começo, como a Comunidade reza (no lugar da explicação do original) */
+const SAUDACOES = ['Deus Salve Maria, filha de Deus Pai', 'Deus Salve Maria, Mãe de Deus Filho', 'Deus Salve Maria, Esposa do Divino Espírito Santo'];
 
 const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // título do original: <div class="c"><span class="r">Primeiro Mistério: <br/>A ANUNCIAÇÃO</span></div>
 const RE_TITULO = /<div class="c"><span class="r">\s*(Primeiro|Segundo|Terceiro|Quarto|Quinto)\s+Mist[ée]rio:?\s*<br\s*\/?>[^<]*<\/span><\/div>/g;
-// do fim da figura até o Evangelho (ou a Leitura) do mistério: o texto do original, que dá lugar ao nosso
-const RE_TEXTO = /(<img[^>]*>\s*<\/div>)(?:\s*<br\s*\/?>)?[\s\S]*?(<p><span class="r">\s*(?:Evangelho|Leitura))/;
-const RE_CONTADOR = /<div[^>]*>\s*Contar Ave Marias\s*<span[^>]*>\s*\d*\s*<\/span>\s*<\/div>/;
+const RE_FIGURA = /<div class="c"><img[^>]*><\/div>/;
+const RE_EVANGELHO = /<p><span class="r">\s*((?:Evangelho|Leitura):[^<]*?)\s*<\/span>\s*(?:<br\s*\/?>)?/;
+const RE_PAI_NOSSO = /<p>(?:(?!<\/p>)[\s\S])*?-\s*Pai Nosso/;
 const RE_JACULATORIA = /Ó\s+meu\s+Jesus,\s+perdoai-nos,[^<]*?mais\s+precisarem/g;
 
 /** Os mistérios do arquivo (para os testes e para quem precisar dos nomes) */
 export const misteriosDe = (arquivo: string) => CONJUNTOS[arquivo];
 
-/** Aplica as partes da Comunidade num arquivo do Rosário (os outros textos passam sem mudança) */
+/**
+ * Aplica as partes da Comunidade num arquivo do Rosário (os outros textos passam sem mudança). O que abre e fecha:
+ * - `<span class="pf-dobra" data-dobra="id">` (título tocável) + `<div class="pf-corpo" id="id">` (o que abre);
+ * - a meditação, em três estágios (`<div class="pf-med" data-med="0|1|2">`: só "Meditação"; a meditação breve com
+ *   "mais meditação"; e a leitura com a virtude, com "menos");
+ * - `<div class="pf-terco" data-contas="3|10">`: o terço (contador de Ave-Marias).
+ * O comportamento e o estilo ficam em `conteudo/terco.ts`, incluídos pela página só quando ela tem essas partes.
+ */
 export function prepararRosario(arquivo: string, html: string): string {
   const conj = CONJUNTOS[arquivo];
   if (!conj) return html;
   const inicios = [...html.matchAll(RE_TITULO)];
   if (!inicios.length) return html;
-  let out = html.slice(0, inicios[0].index);
+  let n = 0;
+  const id = () => `pfd${++n}`;
+  /** título tocável + o que ele abre */
+  const dobra = (titulo: string, corpo: string, vermelho = true) => {
+    const i = id();
+    return `<p class="pf-dobra-p"><span class="${vermelho ? 'r ' : ''}pf-dobra" data-dobra="${i}" role="button">${titulo}</span></p><div class="pf-corpo" id="${i}">${corpo}</div>`;
+  };
+  const oracao = (t: string) => `<p><b>${esc(t)}</b></p>`;
+
+  let out = abertura(html.slice(0, inicios[0].index), dobra, id, oracao);
   inicios.forEach((m, k) => {
     const fim = k + 1 < inicios.length ? inicios[k + 1].index! : html.length;
-    let bloco = html.slice(m.index!, fim);
-    const n = ORDINAL.indexOf(m[1]);
-    const mist = conj.misterios[n];
-    if (!mist) {
-      out += bloco;
-      return;
-    }
-    // título
-    const titulo = `<div class="c pf-misterio" data-indice="${n + 1}º ${conj.nome}: ${esc(mist.curto)}"><span class="r">${ORDINAL[n]} Mistério ${conj.nome}:<br/>${esc(mist.titulo)}</span></div>`;
-    bloco = bloco.replace(m[0], () => titulo);
-    // meditação, leitura e virtude no lugar do texto do original
-    bloco = bloco.replace(
-      RE_TEXTO,
-      (_t, figura: string, evangelho: string) =>
-        `${figura}<p class="pf-meditacao"><span class="r">Meditação:</span> ${esc(mist.meditacao)}</p>` +
-        `<p class="pf-leitura">${esc(mist.leitura)} <span class="pf-virtude">(${esc(mist.virtude)})</span></p>${evangelho}`,
-    );
-    // o contador de Ave-Marias (o terço é montado pelo script da página)
-    bloco = bloco.replace(RE_CONTADOR, () => `<div class="pf-terco" data-misterio="${n + 1}"></div>`);
-    out += bloco;
+    const bloco = html.slice(m.index!, fim);
+    const mist = conj.misterios[ORDINAL.indexOf(m[1])];
+    out += mist ? misterio(bloco, ORDINAL.indexOf(m[1]), conj.nome, mist, dobra, oracao) : bloco;
   });
-  return out.replace(RE_JACULATORIA, () => JACULATORIA);
+  out = out.replace(RE_JACULATORIA, () => JACULATORIA);
+  // no fim, ficam o Agradecimento e a Salve Rainha: saem a Oração final e a Ladainha (que continua como oração à parte)
+  out = out.replace(/<p>\s*<span class="r">\s*Oração final\s*<\/span>[\s\S]*?(?=<\/div>\s*<\/section>\s*$)/, '');
+  return out;
+}
+
+type Dobra = (titulo: string, corpo: string, vermelho?: boolean) => string;
+
+/** Orações iniciais: Ato de contrição, Oferecimento e Pai-Nosso abrem ao tocar; as três Ave-Marias com o terço de 3 */
+function abertura(h: string, dobra: Dobra, id: () => string, oracao: (t: string) => string) {
+  // num dos arquivos, o Oferecimento vem dentro do mesmo parágrafo da última opção do Ato de contrição
+  h = h.replace(/(?:<br\s*\/?>\s*)?<span class="r">(?:\s|<br\s*\/?>)*Oferecimento\s*<\/span>/, (t, pos: number) =>
+    /<p>\s*$/.test(h.slice(0, pos)) ? '<span class="r">Oferecimento</span>' : '</p> <p><span class="r">Oferecimento</span>',
+  );
+  h = h.replace(
+    /<p>\s*<span class="r">\s*Ato de contrição\s*(<i>[\s\S]*?<\/i>)?\s*<\/span>\s*(?:<br\s*\/?>)?([\s\S]*?)(?=<p>\s*<span class="r">Oferecimento)/,
+    (_t, nota: string | undefined, resto: string) =>
+      dobra('Ato de contrição', `<p>${nota ? `<span class="r">${nota.trim()}</span><br/>` : ''}${resto.trim()}`),
+  );
+  h = h.replace(/<p>\s*<span class="r">Oferecimento<\/span>\s*(?:<br\s*\/?>)?([\s\S]*?)<\/p>/, (_t, corpo: string) =>
+    dobra('Oferecimento', `<p>${corpo.trim()}</p>`),
+  );
+  h = h.replace(/<p>\s*<span class="r">\s*Pai Nosso\s*<\/span>\s*<\/p>/, () => dobra('Pai Nosso', oracao(PAI_NOSSO)));
+  h = h.replace(/<p>\s*<span class="r">\s*Ave Maria\s*<\/span>\s*(?:<\/p>\s*<p>|<br\s*\/?>)\s*São\s+rezadas[\s\S]*?<\/p>/, () => {
+    const saudacoes = SAUDACOES.map((s) => {
+      const i = id();
+      return `<p class="pf-saudacao">${esc(s)}<br/><span class="r pf-dobra" data-dobra="${i}" role="button">(Ave Maria)</span></p><div class="pf-corpo" id="${i}">${oracao(AVE_MARIA)}</div>`;
+    }).join('');
+    return `<p><span class="r">Ave Maria</span></p>${saudacoes}<div class="pf-terco pf-terco3" data-contas="3"></div>`;
+  });
+  return h;
+}
+
+/**
+ * Um mistério, montado de novo na ordem combinada: título, figura, meditação (fechada), Evangelho (fechado, com a
+ * referência à vista), breve silêncio, "- Pai Nosso" e "- 10 Ave Marias" (abrem a oração), o terço de 10 e, dali em
+ * diante, o original (Glória e jaculatória). Se algum ponto do original não for achado, só título e meditação mudam.
+ */
+function misterio(bloco: string, n: number, nome: string, mist: Misterio, dobra: Dobra, oracao: (t: string) => string) {
+  const titulo = `<div class="c pf-misterio" data-indice="${n + 1}º ${nome}: ${esc(mist.curto)}"><span class="r">${ORDINAL[n]} Mistério ${nome}:<br/>${esc(mist.titulo)}</span></div>`;
+  const meditacao =
+    `<div class="pf-med" data-med="0"><p class="pf-med-breve"><span class="r pf-med-rot" data-acao="med" role="button">Meditação</span>` +
+    `<span class="pf-med-txt"> ${esc(mist.meditacao)} <span class="r pf-mais" data-acao="mais" role="button"></span><span class="r pf-menos" data-acao="menos" role="button"></span></span></p>` +
+    `<p class="pf-leitura">${esc(mist.leitura)} <span class="pf-virtude">(${esc(mist.virtude)})</span></p></div>`;
+  const figura = bloco.match(RE_FIGURA)?.[0] ?? '';
+  const ev = bloco.match(RE_EVANGELHO);
+  const iPai = bloco.search(RE_PAI_NOSSO);
+  const iGloria = iPai >= 0 ? bloco.indexOf('Glória ao Pai', iPai) : -1;
+  const iCauda = iGloria >= 0 ? bloco.lastIndexOf('<p', iGloria) : -1;
+  if (!figura || !ev || ev.index! > iPai || iCauda < iPai) {
+    // estrutura inesperada: troca só o título e o texto antes do Evangelho
+    return bloco
+      .replace(RE_TITULO, () => titulo)
+      .replace(/(<img[^>]*>\s*<\/div>)(?:\s*<br\s*\/?>)?[\s\S]*?(<p><span class="r">\s*(?:Evangelho|Leitura))/, (_t, f: string, e: string) => f + meditacao + e);
+  }
+  // o texto do Evangelho: do fim da referência até o "- Pai Nosso", sem o "(breve silêncio)", que vem depois, à vista
+  const texto = bloco
+    .slice(ev.index! + ev[0].length, iPai)
+    .replace(/<p>\s*<span class="r">\s*\(breve silêncio\)\s*<\/span>\s*<\/p>/g, '')
+    .replace(/<span class="r">\s*\(breve silêncio\)\s*<\/span>/g, '')
+    .replace(/\(breve silêncio\)/g, '')
+    .trim();
+  return (
+    titulo +
+    figura +
+    meditacao +
+    dobra(ev[1], `<p>${texto}`) +
+    '<p><span class="r">(breve silêncio)</span></p>' +
+    dobra('- Pai Nosso', oracao(PAI_NOSSO), false) +
+    dobra('- 10 Ave Marias', oracao(AVE_MARIA), false) +
+    '<div class="pf-terco" data-contas="10"></div>' +
+    bloco.slice(iCauda)
+  );
 }
