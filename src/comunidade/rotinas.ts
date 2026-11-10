@@ -45,6 +45,9 @@ export const horaCurta = (h: string) => {
   return `${Number(hh)}h${mm && mm !== '00' ? mm : ''}`;
 };
 
+/** "19h às 19h30" (com o horário de término) ou só "19h" */
+export const faixaHoras = (hora: string, fim?: string | null) => (fim ? `${horaCurta(hora)} às ${horaCurta(fim)}` : horaCurta(hora));
+
 /** "1ª sexta-feira", "último sábado" */
 function ordinal(semana: number, dia: number) {
   const fem = dia >= 1 && dia <= 5; // as "-feiras"
@@ -165,6 +168,8 @@ export interface LinhaRotinas {
   quando: string; // "Domingos, 11h e 17h30"
   local?: string | null;
   endereco?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   obs: string[];
   rotinas: Rotina[];
 }
@@ -179,16 +184,21 @@ export function agruparRotinas(rs: Rotina[] | undefined, so?: TipoRotina): { tip
     const chave = [r.tipo, r.titulo, r.comissao ?? '', r.local ?? '', r.repete, [...r.dias].sort().join(','), r.semana ?? ''].join('|');
     let l = porChave.get(chave);
     if (!l) {
-      l = { chave, titulo: r.titulo, tipo: r.tipo, comissao: r.comissao, quando: '', local: r.local, endereco: r.endereco, obs: [], rotinas: [] };
+      l = { chave, titulo: r.titulo, tipo: r.tipo, comissao: r.comissao, quando: '', local: r.local, endereco: r.endereco, lat: r.lat, lng: r.lng, obs: [], rotinas: [] };
       porChave.set(chave, l);
     }
     l.rotinas.push(r);
     if (r.obs && !l.obs.includes(r.obs)) l.obs.push(r.obs);
     if (!l.endereco && r.endereco) l.endereco = r.endereco;
+    if (l.lat == null && r.lat != null) {
+      l.lat = r.lat;
+      l.lng = r.lng;
+    }
   }
   for (const l of porChave.values()) {
-    const horas = [...new Set(l.rotinas.map((r) => r.hora))].sort();
-    l.quando = `${textoRegra(l.rotinas[0])}, ${juntarE(horas.map(horaCurta))}`;
+    // com o término: "Domingos, 11h às 12h30 e 17h30 às 19h"
+    const faixas = [...new Map([...l.rotinas].sort((a, b) => a.hora.localeCompare(b.hora)).map((r) => [faixaHoras(r.hora, r.fim), true])).keys()];
+    l.quando = `${textoRegra(l.rotinas[0])}, ${juntarE(faixas)}`;
   }
   const grupos = TIPOS_ROTINA.map((tipo) => ({
     tipo,

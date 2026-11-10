@@ -1,14 +1,17 @@
-// Marcar no mapa o local de uma missa ou evento (Administração).
-// O alfinete fica fixo no centro: a pessoa arrasta o mapa até o ponto certo, ou busca o endereço.
+// Marcar no mapa o local de uma missa, evento ou horário fixo (Administração).
+// O alfinete fica fixo no centro: a pessoa arrasta o mapa até o ponto certo, ou busca. A busca olha primeiro os locais
+// já usados que têm ponto no mapa ("Porta Fidei" acha a Casa); depois, pontos de referência e endereços pelo servidor
+// (Google Places: "Shopping Plaza"), numa lista para escolher; sem o servidor, o endereço pelo próprio aparelho.
 
 import * as Location from 'expo-location';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import MapView, { type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { deixarPonto } from '@/estado/escolhaLocal';
+import { buscarLugares, locaisSalvos, type LocalSalvo, type LugarAchado } from '@/servidor/api';
 import { Espaco, Marca, usePaleta } from '@/tema';
 import { Botao, Icone, toque, Vidro } from '@/ui/base';
 
@@ -34,6 +37,14 @@ export default function MapaLocal() {
   const [busca, setBusca] = useState(p.busca ?? '');
   const [buscando, setBuscando] = useState(false);
   const pedido = useRef(0);
+  const [achados, setAchados] = useState<LugarAchado[]>([]);
+  const nomeEscolhido = useRef<string | null>(null); // lugar escolhido na lista: o rodapé mostra o nome dele
+  const salvos = useRef<LocalSalvo[]>([]);
+  useEffect(() => {
+    locaisSalvos()
+      .then((l) => (salvos.current = l.filter((x) => x.lat != null && x.lng != null)))
+      .catch(() => {});
+  }, []);
 
   const ir = (lat: number, lng: number) => mapa.current?.animateToRegion({ latitude: lat, longitude: lng, ...PERTO }, 450);
 
@@ -41,16 +52,37 @@ export default function MapaLocal() {
     const t = busca.trim();
     if (!t) return;
     Keyboard.dismiss();
+    // um local já usado com esse nome
+    const sem = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const achado = sem(t).length >= 3 ? salvos.current.find((l) => sem(l.local).includes(sem(t)) || (sem(l.local).length >= 4 && sem(t).includes(sem(l.local)))) : undefined;
+    if (achado) {
+      ir(achado.lat!, achado.lng!);
+      return;
+    }
     setBuscando(true);
     try {
+      // pontos de referência e endereços pelo servidor; um só resultado vai direto, vários viram uma lista
+      const lugares = await buscarLugares(t, { lat: centro.latitude, lng: centro.longitude }).catch(() => null);
+      if (lugares?.length === 1) return escolher(lugares[0]);
+      if (lugares?.length) return setAchados(lugares);
       const r = await Location.geocodeAsync(t);
-      if (!r.length) silencioso || Alert.alert('Endereço não encontrado', 'Tente escrever com rua, número e cidade, ou arraste o mapa até o local.');
+      if (!r.length) silencioso || Alert.alert('Nada encontrado', 'Tente outro nome, ou escreva com rua, número e cidade, ou arraste o mapa até o local.');
       else ir(r[0].latitude, r[0].longitude);
     } catch {
       if (!silencioso) Alert.alert('Não foi possível buscar', 'Confira a internet ou arraste o mapa até o local.');
     } finally {
       setBuscando(false);
     }
+  };
+
+  const escolher = (l: LugarAchado) => {
+    toque();
+    setAchados([]);
+    Keyboard.dismiss();
+    const nome = [l.nome, l.endereco].filter(Boolean).join(' · ');
+    nomeEscolhido.current = nome;
+    setEndereco(nome);
+    ir(l.lat, l.lng);
   };
 
   // aberto a partir do texto do local: já procura esse endereço
@@ -77,6 +109,12 @@ export default function MapaLocal() {
   const mudou = (r: Region) => {
     setCentro({ latitude: r.latitude, longitude: r.longitude });
     const n = ++pedido.current;
+    // chegou ao lugar escolhido na lista: fica o nome dele (arrastar de novo volta ao endereço do ponto)
+    if (nomeEscolhido.current) {
+      setEndereco(nomeEscolhido.current);
+      nomeEscolhido.current = null;
+      return;
+    }
     Location.reverseGeocodeAsync({ latitude: r.latitude, longitude: r.longitude })
       .then((e) => n === pedido.current && setEndereco(enderecoDe(e[0])))
       .catch(() => {});
@@ -126,7 +164,10 @@ export default function MapaLocal() {
             <Icone nome="magnifyingglass" cor={c.textoFraco} tamanho={16} />
             <TextInput underlineColorAndroid="transparent" cursorColor="#BC8C44"
               value={busca}
-              onChangeText={setBusca}
+              onChangeText={(t) => {
+                setBusca(t);
+                if (achados.length) setAchados([]);
+              }}
               onSubmitEditing={() => buscar()}
               returnKeyType="search"
               placeholder="Buscar endereço ou lugar"
@@ -136,6 +177,33 @@ export default function MapaLocal() {
             {buscando ? <ActivityIndicator /> : null}
           </View>
         </Vidro>
+        {achados.length ? (
+          <Vidro style={{ borderRadius: 18, marginTop: 8, maxHeight: 320 }}>
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {achados.map((l, i) => (
+                <Pressable
+                  key={`${l.lat},${l.lng},${i}`}
+                  onPress={() => escolher(l)}
+                  style={({ pressed }) => ({
+                    paddingVertical: 11,
+                    paddingHorizontal: 14,
+                    opacity: pressed ? 0.6 : 1,
+                    borderTopWidth: i ? 0.5 : 0,
+                    borderTopColor: c.separador,
+                  })}>
+                  <Text style={{ color: c.texto, fontSize: 15.5, fontWeight: '600' }} numberOfLines={1}>
+                    {l.nome}
+                  </Text>
+                  {l.endereco ? (
+                    <Text style={{ color: c.textoFraco, fontSize: 13 }} numberOfLines={2}>
+                      {l.endereco}
+                    </Text>
+                  ) : null}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </Vidro>
+        ) : null}
       </View>
 
       {/* rodapé */}

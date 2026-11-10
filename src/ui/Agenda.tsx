@@ -137,12 +137,20 @@ export function LinhaRotina({ o, ultimo, agora = Date.now() }: { o: Ocorrencia; 
           toque();
           router.push({ pathname: '/rotina-dia', params: { id: r.id, data: o.original ?? o.data } });
         }}
-        accessibilityLabel={`${hora(o.inicio)}, ${r.titulo}${detalhe ? `, ${detalhe}` : ''}. Horário fixo.${cancelado ? ' Cancelado neste dia.' : ''}${mudou ? ' Mudou de horário.' : ''}`}
+        accessibilityLabel={`${hora(o.inicio)}${r.fim ? ` às ${hora(o.fim)}` : ''}, ${r.titulo}${detalhe ? `, ${detalhe}` : ''}. Horário fixo.${cancelado ? ' Cancelado neste dia.' : ''}${mudou ? ' Mudou de horário.' : ''}`}
         style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: Espaco.l, gap: Espaco.m }}>
-          <Text style={{ width: 30, color: c.textoFraco, fontSize: 12.5, fontWeight: '600', textAlign: 'center', fontVariant: ['tabular-nums'] }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
-            {hora(o.inicio)}
-          </Text>
+          {/* horário; com término, embaixo e mais fraco */}
+          <View style={{ width: 34, alignItems: 'center' }}>
+            <Text style={{ color: c.textoFraco, fontSize: 12.5, fontWeight: '600', fontVariant: ['tabular-nums'] }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              {hora(o.inicio)}
+            </Text>
+            {r.fim ? (
+              <Text style={{ color: c.textoFraco, opacity: 0.75, fontSize: 11, fontVariant: ['tabular-nums'] }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                {hora(o.fim)}
+              </Text>
+            ) : null}
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: c.textoSuave, fontSize: 14.5, textDecorationLine: cancelado ? 'line-through' : 'none', opacity: cancelado || mudou ? 0.7 : 1 }} numberOfLines={1}>
               {r.titulo}
@@ -157,15 +165,15 @@ export function LinhaRotina({ o, ultimo, agora = Date.now() }: { o: Ocorrencia; 
           {o.situacao === 'remarcada' ? etiqueta('NOVO HORÁRIO', COR_REAGENDADO) : null}
         </View>
       </Pressable>
-      {!ultimo ? <View style={{ height: 0.5, backgroundColor: c.separador, marginLeft: 58 }} /> : null}
+      {!ultimo ? <View style={{ height: 0.5, backgroundColor: c.separador, marginLeft: 62 }} /> : null}
     </View>
   );
 }
 
 const SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
-/** Calendário do mês com as datas de missas e eventos marcadas; tocar num dia abre os eventos dele.
- *  Começa aberto e pode ser recolhido. */
+/** Calendário do mês com as datas de missas e eventos marcadas; tocar em qualquer dia abre o dia (eventos, horários
+ *  fixos e, para a Administração, cancelar um horário ou criar algo para ele). Começa aberto e pode ser recolhido. */
 export function CalendarioAgenda({ eventos }: { eventos: Evento[] }) {
   const c = usePaleta();
   const router = useRouter();
@@ -258,7 +266,6 @@ export function CalendarioAgenda({ eventos }: { eventos: Evento[] }) {
                     <View key={i} style={{ width: `${100 / 7}%`, height: 44, padding: 2 }}>
                       {d ? (
                         <Pressable
-                          disabled={!info}
                           onPress={() => {
                             toque();
                             router.push({ pathname: '/agenda-dia', params: { data: d } });

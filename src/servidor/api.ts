@@ -135,9 +135,11 @@ export interface Rotina extends RegraRepeticao {
   tipo: TipoRotina;
   comissao?: string | null; // nome da comissão (tipo = comissao)
   hora: string; // HH:MM
-  fim?: string | null; // HH:MM (aproximado; não aparece, serve para o "agora")
+  fim?: string | null; // HH:MM (aproximado; aparece como "19h às 19h30" e serve para o "agora")
   local?: string | null;
-  endereco?: string | null; // para o mapa (sem ele, o mapa busca pelo local)
+  endereco?: string | null; // texto do ponto do mapa (sem ponto nem endereço, o mapa não aparece)
+  lat?: number | null; // ponto no mapa (servidor da 0.6.15 em diante)
+  lng?: number | null;
   obs?: string | null;
   ativa?: boolean;
   ordem?: number;
@@ -326,6 +328,15 @@ export const descancelarEvento = (id: string, notificacao?: NotificacaoEvento, a
 export const reagendarEvento = (id: string, e: Partial<Evento> & { notificacao?: NotificacaoEvento } & AvisoDoEvento) => admin(`/eventos/${id}/reagendar`, 'POST', e) as Promise<Evento>;
 /** Locais já usados nos eventos (com o ponto no mapa, quando houver) */
 export const locaisSalvos = () => admin('/locais', 'GET') as Promise<LocalSalvo[]>;
+/** Lugar achado pela busca do mapa (pontos de referência, pelo Google, via servidor da 0.6.15) */
+export interface LugarAchado {
+  nome: string;
+  endereco: string;
+  lat: number;
+  lng: number;
+}
+export const buscarLugares = (q: string, perto?: { lat: number; lng: number }) =>
+  admin(`/lugares?q=${encodeURIComponent(q)}${perto ? `&lat=${perto.lat}&lng=${perto.lng}` : ''}`, 'GET', undefined, 10000) as Promise<LugarAchado[]>;
 export const salvarAviso = (a: Partial<Aviso> & { notificar?: boolean; urgente?: boolean }) =>
   a.id ? admin(`/avisos/${a.id}`, 'PUT', a) : admin('/avisos', 'POST', a);
 export const apagarAviso = (id: string) => admin(`/avisos/${id}`, 'DELETE');

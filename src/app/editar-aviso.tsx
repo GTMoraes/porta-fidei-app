@@ -10,7 +10,9 @@ import { fimDoDia } from '@/util/datas';
 import { AVISO_TEXTO_NOTIF, AVISO_TITULO_NOTIF, botoesProntos, Campo, CampoBotoes, CampoImagem, CampoVideo } from '@/ui/Formulario';
 
 export default function EditarAviso() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  // data (AAAA-MM-DD): aviso novo sobre esse dia, que some sozinho no fim dele (aberto por um dia da Agenda)
+  const { id, data } = useLocalSearchParams<{ id?: string; data?: string }>();
+  const doDia = !id && data && /^\d{4}-\d{2}-\d{2}$/.test(data) ? fimDoDia(new Date(Number(data.slice(0, 4)), Number(data.slice(5, 7)) - 1, Number(data.slice(8, 10)))) : null;
   const srv = useServidor();
   const router = useRouter();
   const orig = srv.avisos.find((a) => a.id === id);
@@ -22,8 +24,8 @@ export default function EditarAviso() {
   const [enviandoVideo, setEnviandoVideo] = useState(false);
   const [botoes, setBotoes] = useState<BotaoLink[]>(orig?.botoes ?? []);
   const [fixado, setFixado] = useState(!!orig?.fixado);
-  const [venceEm, setVenceEm] = useState<Date | null>(orig?.venceEm ? new Date(orig.venceEm) : null);
-  const [mexeuValidade, setMexeuValidade] = useState(!!orig?.venceEm);
+  const [venceEm, setVenceEm] = useState<Date | null>(orig?.venceEm ? new Date(orig.venceEm) : doDia);
+  const [mexeuValidade, setMexeuValidade] = useState(!!orig?.venceEm || !!doDia);
   // aviso fixado vem com "Fim de hoje" (enquanto a pessoa não escolher outra validade)
   const mudarFixado = (v: boolean) => {
     setFixado(v);
@@ -71,7 +73,7 @@ export default function EditarAviso() {
 
   return (
     <Fundo>
-      <ScrollView keyboardDismissMode="interactive" contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
+      <ScrollView keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
         <Secao titulo="Aviso">
           <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} limite={vaiNotificarJa ? 35 : undefined} alerta={AVISO_TITULO_NOTIF} />
           <Campo rotulo="Texto" value={texto} onChangeText={setTexto} multiline limite={soNotificacao ? 170 : undefined} alerta={AVISO_TEXTO_NOTIF} />

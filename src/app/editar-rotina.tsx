@@ -1,15 +1,17 @@
 // Editar rotina (horário fixo que se repete): o quê, quando (toda semana em certos dias, ou todo mês na N-ésima
-// semana), horário e onde. Comissão: o nome da comissão é o que aparece em Ajustes › Sua comissão.
+// semana), horário e onde (local, locais já usados e ponto no mapa, como nos eventos). Comissão: o nome da comissão
+// é o que aparece em Ajustes › Sua comissão.
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 
 import { recarregarAdmin, useAdminComunidade } from '@/comunidade/admin';
-import { TIPOS_ROTINA, TIPO_ROTINA_UM, horaCurta, nomesComissoes, textoRegra } from '@/comunidade/rotinas';
+import { faixaHoras, TIPOS_ROTINA, TIPO_ROTINA_UM, nomesComissoes, textoRegra } from '@/comunidade/rotinas';
 import { apagarRotina, salvarRotina, useServidor, type TipoRotina } from '@/servidor/api';
 import { Espaco } from '@/tema';
 import { Botao, Chave, Fundo, Linha, Secao } from '@/ui/base';
+import { CampoLocal, useLocalComMapa } from '@/ui/CampoLocal';
 import { CampoData } from '@/ui/Data';
 import { Campo, CampoDias, CampoEscolha } from '@/ui/Formulario';
 
@@ -38,8 +40,9 @@ export default function EditarRotina() {
   const [hora, setHora] = useState(orig?.hora ?? '19:00');
   const [temFim, setTemFim] = useState(!!orig?.fim);
   const [fim, setFim] = useState(orig?.fim ?? '');
-  const [local, setLocal] = useState(orig?.local ?? '');
   const [endereco, setEndereco] = useState(orig?.endereco ?? '');
+  // local e ponto no mapa; o endereço do ponto escolhido no mapa fica guardado para mostrar
+  const lugar = useLocalComMapa({ local: orig?.local, lat: orig?.lat, lng: orig?.lng }, (e) => e && setEndereco(e));
   const [obs, setObs] = useState(orig?.obs ?? '');
   const [ativa, setAtiva] = useState(orig?.ativa ?? true);
   const [salvando, setSalvando] = useState(false);
@@ -59,8 +62,10 @@ export default function EditarRotina() {
         semana: repete === 'mensal' ? semana : null,
         hora,
         fim: temFim && fim ? fim : null,
-        local: local.trim() || null,
+        local: lugar.local.trim() || null,
         endereco: endereco.trim() || null,
+        lat: lugar.lat,
+        lng: lugar.lng,
         obs: obs.trim() || null,
         ativa,
         ordem: orig?.ordem,
@@ -76,7 +81,7 @@ export default function EditarRotina() {
 
   return (
     <Fundo>
-      <ScrollView keyboardDismissMode="interactive" contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
+      <ScrollView keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
         <Secao titulo="Rotina">
           <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} placeholder="Ex.: Missa na Samaria" />
           <CampoEscolha rotulo="Tipo" valor={tipo} valores={TIPOS_ROTINA.map((t) => [t, TIPO_ROTINA_UM[t]] as [TipoRotina, string])} mudar={setTipo} />
@@ -119,7 +124,7 @@ export default function EditarRotina() {
           <CampoData rotulo="Horário" valor={hora} mudar={setHora} modo="time" />
           <Linha
             titulo="Horário de término"
-            sub="Aproximado. Não aparece; serve para a Agenda mostrar “agora” enquanto acontece"
+            sub="Aparece como “19h às 19h30” e faz a Agenda mostrar “agora” enquanto acontece"
             direita={
               <Chave
                 valor={temFim}
@@ -131,12 +136,11 @@ export default function EditarRotina() {
             }
           />
           {temFim ? <CampoData rotulo="Termina" valor={fim || somaMinutos(hora, 60)} mudar={setFim} modo="time" /> : null}
-          <Linha titulo="Vai aparecer assim" sub={dias.length ? `${textoRegra(regra)}, ${horaCurta(hora)}` : 'Escolha o dia da semana'} ultimo />
+          <Linha titulo="Vai aparecer assim" sub={dias.length ? `${textoRegra(regra)}, ${faixaHoras(hora, temFim && fim ? fim : null)}` : 'Escolha o dia da semana'} ultimo />
         </Secao>
 
         <Secao titulo="Onde">
-          <Campo rotulo="Local" value={local} onChangeText={setLocal} placeholder="Ex.: Casa Porta Fidei" />
-          <Campo rotulo="Endereço, para abrir no mapa (opcional)" value={endereco} onChangeText={setEndereco} />
+          <CampoLocal s={lugar} placeholder="Ex.: Casa Porta Fidei" />
           <Campo rotulo="Observação (opcional)" value={obs} onChangeText={setObs} placeholder="Ex.: exceto feriados" />
           <Linha titulo="Ativa" sub="Desativada, some do app" direita={<Chave valor={ativa} mudar={setAtiva} />} ultimo />
         </Secao>

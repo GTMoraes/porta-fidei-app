@@ -32,7 +32,7 @@ export default function EditarProposta() {
   if (!orig)
     return (
       <Fundo>
-        <ScrollView keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic">
+        <ScrollView keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic">
           <Secao>
             <Aviso texto="Proposta não encontrada." />
           </Secao>
@@ -58,7 +58,7 @@ export default function EditarProposta() {
 
   return (
     <Fundo>
-      <ScrollView keyboardDismissMode="interactive" contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
+      <ScrollView keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
         <Secao titulo="Proposta">
           <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} />
           <CampoData rotulo="Semana: de" valor={inicio} mudar={setInicio} />

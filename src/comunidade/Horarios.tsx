@@ -42,7 +42,9 @@ export function BlocoRotinas({ so }: { so?: 'comissao' }) {
                 titulo={t.titulo}
                 sub={t.sub}
                 icone={ICONE_ROTINA[l.tipo] as any}
-                onPress={l.endereco ? () => abrirNoMapa({ nome: l.titulo, local: l.endereco }) : undefined}
+                onPress={
+                  l.lat != null || l.endereco ? () => abrirNoMapa({ nome: l.titulo, local: l.lat != null ? l.local || l.titulo : l.endereco, lat: l.lat, lng: l.lng }) : undefined
+                }
                 ultimo={i === g.linhas.length - 1}
               />
             );

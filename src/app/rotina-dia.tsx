@@ -5,7 +5,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, ScrollView, Text, View } from 'react-native';
 
-import { diaHoraCurtos, horaCurta, ICONE_ROTINA, textoRegra } from '@/comunidade/rotinas';
+import { diaHoraCurtos, faixaHoras, ICONE_ROTINA, textoRegra } from '@/comunidade/rotinas';
 import { useAjustes } from '@/estado/ajustes';
 import { escolherLembrete, ligado, modoDe, textoModo } from '@/estado/lembretes';
 import { atualizar, desfazerExcecao, useServidor } from '@/servidor/api';
@@ -60,7 +60,7 @@ export default function RotinaDia() {
     <Fundo>
       <Stack.Screen options={{ title: '' }} />
       <ScrollView contentInsetAdjustmentBehavior="automatic">
-        <TituloPagina titulo={r.titulo} sobre="Horário fixo" sub={`${textoRegra(r)}, ${horaCurta(r.hora)}${r.local ? ` · ${r.local}` : ''}`} />
+        <TituloPagina titulo={r.titulo} sobre="Horário fixo" sub={`${textoRegra(r)}, ${faixaHoras(r.hora, r.fim)}${r.local ? ` · ${r.local}` : ''}`} />
 
         {dia ? (
           <Secao titulo={nomeDia}>
@@ -75,7 +75,7 @@ export default function RotinaDia() {
                 ultimo
               />
             ) : (
-              <Linha titulo={`Às ${horaCurta(r.hora)}`} sub={r.local ?? undefined} icone={ICONE_ROTINA[r.tipo] as any} ultimo />
+              <Linha titulo={r.fim ? `Das ${faixaHoras(r.hora, r.fim)}` : `Às ${faixaHoras(r.hora)}`} sub={r.local ?? undefined} icone={ICONE_ROTINA[r.tipo] as any} ultimo />
             )}
           </Secao>
         ) : null}
@@ -87,7 +87,14 @@ export default function RotinaDia() {
             icone={ligado(modo) ? 'bell.fill' : 'bell'}
             onPress={() => escolherLembrete('rotina', r.id, r.titulo)}
           />
-          {r.endereco ? <Linha titulo="Abrir no mapa" sub={r.endereco} icone="map" onPress={() => abrirNoMapa({ nome: r.titulo, local: r.endereco })} /> : null}
+          {r.lat != null || r.endereco ? (
+            <Linha
+              titulo="Abrir no mapa"
+              sub={r.endereco || r.local || undefined}
+              icone="map"
+              onPress={() => abrirNoMapa({ nome: r.titulo, local: r.lat != null ? r.local || r.titulo : r.endereco, lat: r.lat, lng: r.lng })}
+            />
+          ) : null}
           <Linha titulo="Todos os horários da Comunidade" icone="clock" onPress={() => router.push({ pathname: '/pagina', params: { id: 'horarios' } })} ultimo />
         </Secao>
 

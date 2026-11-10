@@ -76,7 +76,7 @@ export default function EditarExcecao() {
   return (
     <Fundo>
       <Stack.Screen options={{ title: remarcar ? 'Mudar o horário' : 'Cancelar este dia' }} />
-      <ScrollView keyboardDismissMode="interactive" contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
+      <ScrollView keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
         <Secao titulo={r.titulo}>
           <Linha titulo={remarcar ? 'Dia que muda' : 'Dia cancelado'} sub={diaHoraCurtos(data, r.hora)} ultimo={!remarcar} />
           {remarcar ? (

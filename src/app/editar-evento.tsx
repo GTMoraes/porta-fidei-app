@@ -1,11 +1,11 @@
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { pegarPonto } from '@/estado/escolhaLocal';
-import { apagarEvento, atualizar, cancelarEvento, descancelarEvento, locaisSalvos, reagendarEvento, salvarEvento, useServidor, type BotaoLink, type LocalSalvo, type TipoEvento, type VideoMidia } from '@/servidor/api';
+import { apagarEvento, atualizar, cancelarEvento, descancelarEvento, reagendarEvento, salvarEvento, useServidor, type BotaoLink, type TipoEvento, type VideoMidia } from '@/servidor/api';
 import { Espaco, Marca, usePaleta } from '@/tema';
-import { Botao, Chave, Fundo, Icone, Linha, Secao, toque } from '@/ui/base';
+import { Botao, Chave, Fundo, Linha, Secao, toque } from '@/ui/base';
+import { CampoLocal, useLocalComMapa } from '@/ui/CampoLocal';
 import { SeletorData } from '@/ui/Data';
 import { AVISO_TEXTO_NOTIF, AVISO_TITULO_NOTIF, botoesProntos, Campo, CampoBotoes, CampoImagem, CampoVideo } from '@/ui/Formulario';
 import { dataCurta, diaEHora, fimDoDia, hora } from '@/util/datas';
@@ -19,7 +19,8 @@ const TIPOS: [TipoEvento, string][] = [
 ];
 
 export default function EditarEvento() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  // data (AAAA-MM-DD): evento novo já nesse dia, às 19h (aberto por um dia da Agenda)
+  const { id, data } = useLocalSearchParams<{ id?: string; data?: string }>();
   const srv = useServidor();
   const router = useRouter();
   const c = usePaleta();
@@ -27,6 +28,10 @@ export default function EditarEvento() {
 
   const amanha19 = new Date();
   amanha19.setDate(amanha19.getDate() + 1);
+  if (data && /^\d{4}-\d{2}-\d{2}$/.test(data)) {
+    const [a, m, d] = data.split('-').map(Number);
+    amanha19.setFullYear(a, m - 1, d);
+  }
   amanha19.setHours(19, 0, 0, 0);
 
   const [tipo, setTipo] = useState<TipoEvento>(orig?.tipo ?? 'missa');
@@ -44,7 +49,9 @@ export default function EditarEvento() {
     if (v && fim.getTime() <= inicio.getTime()) setFim(new Date(inicio.getTime() + 3600_000));
     setTemFim(v);
   };
-  const [local, setLocal] = useState(orig?.local ?? '');
+  // local, locais já usados e ponto no mapa (opcional)
+  const lugar = useLocalComMapa({ local: orig?.local, lat: orig?.lat, lng: orig?.lng });
+  const { local, lat, lng, temPonto } = lugar;
   const [descricao, setDescricao] = useState(orig?.descricao ?? '');
   const [imagem, setImagem] = useState<string | null>(orig?.imagem ?? null);
   const [video, setVideo] = useState<VideoMidia | null>(orig?.video ?? null);
@@ -52,10 +59,6 @@ export default function EditarEvento() {
   const [botoes, setBotoes] = useState<BotaoLink[]>(orig?.botoes ?? []);
   const [repetir, setRepetir] = useState(0); // semanas
   const [salvando, setSalvando] = useState(false);
-  // ponto no mapa (opcional)
-  const [lat, setLat] = useState<number | null>(orig?.lat ?? null);
-  const [lng, setLng] = useState<number | null>(orig?.lng ?? null);
-  const [locais, setLocais] = useState<LocalSalvo[]>([]);
   // notificação (pré-preenchida; vira texto livre quando a pessoa edita)
   const [notificar, setNotificar] = useState(false);
   const [notifTitulo, setNotifTitulo] = useState<string | null>(null);
@@ -67,33 +70,6 @@ export default function EditarEvento() {
   const fimAviso = new Date(Math.max(fimDoDia(temFim ? fim : inicio).getTime(), fimDoDia().getTime()));
   const av = { publicarAviso, fixarAviso: publicarAviso && fixarAviso, avisoVenceEm: publicarAviso ? fimAviso.toISOString() : null };
 
-  const [tirou, setTirou] = useState(false); // tirou o ponto de propósito: não põe de novo sozinho
-  useEffect(() => {
-    locaisSalvos().then(setLocais).catch(() => {});
-  }, []);
-  // escreveu um local já usado que tem ponto no mapa: usa o mesmo ponto
-  const igual = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
-  useEffect(() => {
-    if (tirou || (lat != null && lng != null) || !local.trim()) return;
-    const l = locais.find((x) => x.lat != null && igual(x.local, local));
-    if (l) {
-      setLat(l.lat);
-      setLng(l.lng);
-    }
-  }, [local, locais, tirou, lat, lng]);
-
-  // volta da tela do mapa com o ponto escolhido
-  useFocusEffect(
-    useCallback(() => {
-      const p = pegarPonto();
-      if (!p) return;
-      setTirou(false);
-      setLat(p.lat);
-      setLng(p.lng);
-      if (p.endereco) setLocal((l) => (l.trim() ? l : p.endereco!));
-    }, []),
-  );
-
   const linhaPadrao = () => {
     const d = dataCurta(inicio);
     const partes = [d.charAt(0).toUpperCase() + d.slice(1), hora(inicio), local.trim()].filter(Boolean);
@@ -101,7 +77,6 @@ export default function EditarEvento() {
   };
   const tituloNotif = notifTitulo ?? (orig ? `Mudança: ${titulo.trim()}` : titulo.trim());
   const textoNotif = notifTexto ?? linhaPadrao();
-  const temPonto = lat != null && lng != null;
 
   // notificação de cancelar / reagendar / desfazer: o texto que a pessoa escreveu ou um automático com o prefixo certo
   const notifCom = (prefixo: string) => ({
@@ -214,7 +189,7 @@ export default function EditarEvento() {
 
   return (
     <Fundo>
-      <ScrollView keyboardDismissMode="interactive" contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
+      <ScrollView keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
         <Secao titulo="Tipo">
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: Espaco.l }}>
             {TIPOS.map(([v, n]) => (
@@ -234,71 +209,7 @@ export default function EditarEvento() {
 
         <Secao titulo="Informações">
           <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} />
-          <Campo rotulo="Local" value={local} onChangeText={setLocal} placeholder="Ex.: Casa de Missão, Recife" />
-          {locais.length ? (
-            <ScrollView keyboardDismissMode="interactive" horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 8, paddingHorizontal: Espaco.l, paddingBottom: 8 }}>
-              <Text style={{ color: c.textoFraco, fontSize: 13, alignSelf: 'center' }}>Já usados:</Text>
-              {locais.map((l) => {
-                const escolhido = igual(l.local, local) && (l.lat == null || (l.lat === lat && l.lng === lng));
-                return (
-                  <Pressable
-                    key={`${l.local}${l.lat}`}
-                    onPress={() => {
-                      toque();
-                      setLocal(l.local);
-                      setLat(l.lat);
-                      setLng(l.lng);
-                      setTirou(false);
-                    }}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 5,
-                      paddingVertical: 7,
-                      paddingHorizontal: 12,
-                      borderRadius: 16,
-                      backgroundColor: escolhido ? Marca.ouro : c.escuro ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-                    }}>
-                    {l.lat != null ? <Icone nome="mappin" cor={escolhido ? '#fff' : c.destaque} tamanho={12} /> : null}
-                    <Text style={{ color: escolhido ? '#fff' : c.textoSuave, fontSize: 14 }} numberOfLines={1}>
-                      {l.local.length > 34 ? `${l.local.slice(0, 33)}…` : l.local}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          ) : null}
-          <Linha
-            titulo={temPonto ? 'Marcado no mapa' : 'Marcar no mapa (opcional)'}
-            sub={temPonto ? 'Abre no ponto exato no Apple Maps, Google Maps ou Waze' : 'Sem o mapa, o botão de mapa busca pelo texto do local'}
-            icone={temPonto ? 'mappin.circle.fill' : 'mappin.and.ellipse'}
-            corIcone={temPonto ? Marca.ouro : undefined}
-            onPress={() =>
-              router.push({ pathname: '/mapa-local', params: temPonto ? { lat: String(lat), lng: String(lng) } : { busca: local.trim() } })
-            }
-            direita={
-              temPonto ? (
-                <Pressable
-                  hitSlop={10}
-                  onPress={() =>
-                    Alert.alert('Tem certeza?', 'O ponto será tirado do mapa. O texto do local continua.', [
-                      { text: 'Cancelar', style: 'cancel' },
-                      {
-                        text: 'Tirar do mapa',
-                        style: 'destructive',
-                        onPress: () => {
-                          setLat(null);
-                          setLng(null);
-                          setTirou(true);
-                        },
-                      },
-                    ])
-                  }>
-                  <Text style={{ color: c.textoFraco, fontSize: 14 }}>Tirar</Text>
-                </Pressable>
-              ) : undefined
-            }
-          />
+          <CampoLocal s={lugar} />
           <Campo rotulo="Descrição" value={descricao} onChangeText={setDescricao} multiline placeholder="Detalhes, o que levar, contato…" />
           <CampoImagem url={imagem} mudar={setImagem} />
           <CampoVideo video={video} mudar={setVideo} aoOcupar={setEnviandoVideo} />

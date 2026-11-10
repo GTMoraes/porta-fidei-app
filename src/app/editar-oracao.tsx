@@ -60,7 +60,7 @@ export default function EditarOracao() {
 
   return (
     <Fundo>
-      <ScrollView keyboardDismissMode="interactive" contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
+      <ScrollView keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: Espaco.l }}>
         <Secao titulo="Oração">
           <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} />
           <Campo rotulo="Subtítulo (opcional)" value={subtitulo} onChangeText={setSubtitulo} />
