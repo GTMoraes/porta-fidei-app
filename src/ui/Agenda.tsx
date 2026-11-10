@@ -123,8 +123,11 @@ export function LinhaRotina({ o, ultimo, agora = Date.now() }: { o: Ocorrencia; 
   const c = usePaleta();
   const router = useRouter();
   const r = o.rotina;
+  const srv = useServidor();
   const cancelado = o.situacao === 'cancelado';
   const mudou = o.situacao === 'remarcado';
+  // cancelado por causa de outro evento (ligado ao cancelar): aparece embaixo
+  const eventoNoLugar = o.excecao?.evento ? srv.eventos.find((e) => e.id === o.excecao!.evento) : undefined;
   const acontecendo = !cancelado && !mudou && o.inicio.getTime() <= agora && agora < o.fim.getTime();
   // o local só aparece quando o título ainda não diz ("Missa na Samaria" já diz onde é)
   const jaDiz = (t?: string | null) => !!t && r.titulo.toLowerCase().includes(t.toLowerCase());
@@ -158,6 +161,9 @@ export function LinhaRotina({ o, ultimo, agora = Date.now() }: { o: Ocorrencia; 
             </Text>
             {mudou && o.novo ? <Text style={{ color: COR_REAGENDADO, fontSize: 12.5 }}>{`Mudou para ${diaHoraCurtos(o.novo.data, o.novo.hora)}`}</Text> : null}
             {o.situacao === 'remarcada' && o.original ? <Text style={{ color: c.textoFraco, fontSize: 12.5 }}>{`Em vez de ${diaHoraCurtos(o.original, r.hora)}`}</Text> : null}
+            {cancelado && eventoNoLugar ? (
+              <Text style={{ color: c.textoFraco, fontSize: 12.5 }} numberOfLines={1}>{`No lugar: ${eventoNoLugar.titulo}`}</Text>
+            ) : null}
           </View>
           {acontecendo ? etiqueta('AGORA', c.destaque) : null}
           {cancelado ? etiqueta('CANCELADO', COR_CANCELADO) : null}

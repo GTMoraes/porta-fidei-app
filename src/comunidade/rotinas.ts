@@ -4,7 +4,7 @@
 // o agrupamento da página "Horários e encontros" e o filtro da Agenda ("Sua comissão").
 // Os horários são os de Recife (UTC-3, sem horário de verão), como os eventos do servidor.
 
-import type { ExcecaoRotina, RegraRepeticao, Rotina, TipoRotina } from '@/servidor/api';
+import type { Aviso, ExcecaoRotina, RegraRepeticao, Rotina, TipoRotina } from '@/servidor/api';
 
 export const TIPOS_ROTINA: TipoRotina[] = ['missa', 'adoracao', 'grupo', 'comissao', 'outra'];
 export const NOME_TIPO_ROTINA: Record<TipoRotina, string> = {
@@ -105,6 +105,8 @@ export interface Ocorrencia {
   situacao?: 'cancelado' | 'remarcado' | 'remarcada';
   novo?: { data: string; hora: string };
   original?: string;
+  /** a exceção do dia (motivo, aviso e evento que ocupou o horário) */
+  excecao?: ExcecaoRotina;
 }
 
 /** Ocorrências entre duas datas (inclusive), em ordem de horário, já com os cancelamentos e as mudanças de um dia */
@@ -121,6 +123,7 @@ export function ocorrencias(rs: Rotina[], de: string, ate: string, excecoes: Exc
         o.situacao = 'remarcado';
         o.novo = { data: e.novaData, hora: e.novaHora };
       }
+      if (o.situacao) o.excecao = e;
       out.push(o);
     }
   // o novo horário das remarcadas que cai no intervalo
@@ -129,9 +132,23 @@ export function ocorrencias(rs: Rotina[], de: string, ate: string, excecoes: Exc
     const r = porId.get(e.rotina);
     if (!r || r.ativa === false || e.situacao !== 'remarcado' || !e.novaData || !e.novaHora || e.novaData < de || e.novaData > ate) continue;
     if (!caiNoDia(r, e.data)) continue; // a exceção é de um dia em que a rotina nem acontece mais
-    out.push({ rotina: r, data: e.novaData, ...horarioNoDia(r, e.novaData, e.novaHora), situacao: 'remarcada', original: e.data });
+    out.push({ rotina: r, data: e.novaData, ...horarioNoDia(r, e.novaData, e.novaHora), situacao: 'remarcada', original: e.data, excecao: e });
   }
   return out.sort((x, y) => x.inicio.getTime() - y.inicio.getTime());
+}
+
+/** O aviso de um cancelamento ou mudança: o ligado à exceção ou, nas antigas (antes da 0.6.15, sem ligação), o aviso
+ *  com o título da rotina que vence no dia (é o que "Cancelar só este dia" publica) */
+export function avisoDaExcecao(e: ExcecaoRotina | undefined, r: Rotina, avisos: Aviso[]): Aviso | undefined {
+  if (!e) return undefined;
+  if (e.aviso) return avisos.find((a) => a.id === e.aviso);
+  if (e.motivo) return undefined;
+  const dias = [e.data, e.novaData].filter(Boolean);
+  const dia = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  return avisos.find((a) => a.titulo.trim().toLowerCase() === r.titulo.trim().toLowerCase() && !!a.venceEm && dias.includes(dia(a.venceEm)));
 }
 
 /** "ter. 10/11, 19h" */

@@ -1,16 +1,18 @@
 // Um dia de uma rotina (aberto pela linha da Agenda ou por um lembrete): quando, onde, se foi cancelada ou mudou
 // de horário naquele dia, o lembrete e, para a Administração, cancelar ou remarcar só aquele dia (ou desfazer).
 // `data`: o dia da regra (para uma remarcada, o dia original).
+// Cancelado ou mudado: mostra o motivo (o texto do aviso que saiu, mesmo depois de o aviso vencer), o aviso, quando
+// ainda existe, e o evento que ocupou o horário, quando a Administração ligou um.
 
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, ScrollView, Text, View } from 'react-native';
 
-import { diaHoraCurtos, faixaHoras, ICONE_ROTINA, textoRegra } from '@/comunidade/rotinas';
+import { avisoDaExcecao, diaHoraCurtos, faixaHoras, ICONE_ROTINA, textoRegra } from '@/comunidade/rotinas';
 import { useAjustes } from '@/estado/ajustes';
 import { escolherLembrete, ligado, modoDe, textoModo } from '@/estado/lembretes';
 import { atualizar, desfazerExcecao, useServidor } from '@/servidor/api';
 import { Espaco, usePaleta } from '@/tema';
-import { COR_CANCELADO, COR_REAGENDADO } from '@/ui/Agenda';
+import { COR_CANCELADO, COR_REAGENDADO, LinhaEvento } from '@/ui/Agenda';
 import { Aviso, Fundo, Linha, Secao, TituloPagina } from '@/ui/base';
 import { dataLonga } from '@/util/datas';
 import { abrirNoMapa } from '@/util/mapas';
@@ -38,6 +40,9 @@ export default function RotinaDia() {
   const [a, m, d] = (dia ?? '2000-01-01').split('-').map(Number);
   const nomeDia = dia ? dataLonga(new Date(a, m - 1, d)) : '';
   const modo = modoDe(aj, 'rotina', r.id);
+  const aviso = avisoDaExcecao(ex, r, srv.avisos);
+  const motivo = ex?.motivo || aviso?.texto;
+  const eventoNoLugar = ex?.evento ? srv.eventos.find((e) => e.id === ex.evento) : undefined;
 
   const desfazer = () =>
     Alert.alert('Tem certeza?', 'O dia volta ao horário normal para todos. Se você publicou um aviso, ele continua: encerre ou corrija o aviso pela Agenda.', [
@@ -77,6 +82,21 @@ export default function RotinaDia() {
             ) : (
               <Linha titulo={r.fim ? `Das ${faixaHoras(r.hora, r.fim)}` : `Às ${faixaHoras(r.hora)}`} sub={r.local ?? undefined} icone={ICONE_ROTINA[r.tipo] as any} ultimo />
             )}
+          </Secao>
+        ) : null}
+
+        {motivo ? (
+          <Secao titulo={ex?.situacao === 'cancelado' ? 'Por que foi cancelado' : 'Aviso'}>
+            <Text style={{ color: c.texto, fontSize: 15.5, lineHeight: 22, paddingHorizontal: Espaco.l, paddingVertical: Espaco.m }}>{motivo}</Text>
+            {aviso ? (
+              <Linha titulo="Ver o aviso" icone="megaphone" onPress={() => router.push({ pathname: '/aviso', params: { id: aviso.id } })} ultimo />
+            ) : null}
+          </Secao>
+        ) : null}
+
+        {eventoNoLugar ? (
+          <Secao titulo={ex?.situacao === 'cancelado' ? 'No lugar, neste horário' : 'Neste dia'}>
+            <LinhaEvento e={eventoNoLugar} ultimo />
           </Secao>
         ) : null}
 

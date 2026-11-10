@@ -159,6 +159,10 @@ export interface ExcecaoRotina {
   situacao: 'cancelado' | 'remarcado';
   novaData?: string | null;
   novaHora?: string | null;
+  // servidor da 0.6.15 em diante: o texto do aviso (o motivo), o aviso publicado e o evento que ocupou o horário
+  motivo?: string | null;
+  aviso?: string | null;
+  evento?: string | null;
 }
 
 interface Dados {
@@ -366,7 +370,7 @@ export const salvarOracao = (o: Partial<Oracao>) => (o.id ? admin(`/oracoes/${o.
 export const apagarOracao = (id: string) => admin(`/oracoes/${id}`, 'DELETE');
 export const salvarRotina = (r: Partial<Rotina>) => (r.id ? admin(`/rotinas/${r.id}`, 'PUT', r) : admin('/rotinas', 'POST', r)) as Promise<Rotina>;
 export const apagarRotina = (id: string) => admin(`/rotinas/${id}`, 'DELETE');
-export const salvarExcecao = (e: ExcecaoRotina) => admin(`/rotinas/${e.rotina}/excecoes`, 'POST', e);
+export const salvarExcecao = (e: ExcecaoRotina) => admin(`/rotinas/${e.rotina}/excecoes`, 'POST', e) as Promise<ExcecaoRotina>;
 export const desfazerExcecao = (rotina: string, data: string) => admin(`/rotinas/${rotina}/excecoes/${data}`, 'DELETE');
 export const textoDoPdf = (base64: string) => admin('/pdf-texto', 'POST', { base64 }, 90000) as Promise<{ texto: string }>;
 
