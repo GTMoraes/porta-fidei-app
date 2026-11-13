@@ -1,10 +1,11 @@
 // Liturgia Diária: leituras da CNBB (API do site oficial, buscada numa página invisível do próprio site)
 // com as orações do Missal intercaladas como na Missa. Guarda os próximos 30 dias no aparelho.
+// A data fica no cabeçalho, entre a seta de voltar e o botão da página da CNBB; o toque abre o calendário (0.7.0).
 
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 import { montarArquivo } from '@/conteudo/montar';
@@ -12,11 +13,9 @@ import { existe } from '@/conteudo/pacote';
 import { diaLiturgico, hojeIso, somaDias } from '@/liturgia/calendario';
 import { DIAS_ADIANTE, faltando, guardarDiaCNBB, jsBaixar, lerDiaCNBB, limparAntigos, URL_CNBB, type DiaCNBB } from '@/liturgia/cnbb';
 import { missalDoDia } from '@/liturgia/missal';
-import { usePaleta } from '@/tema';
-import { Icone, toque, Vidro } from '@/ui/base';
-import { SeletorDataLiturgica } from '@/ui/CalendarioLiturgico';
+import { BotaoCabecalho, toque } from '@/ui/base';
+import { PilulaData, SeletorDataLiturgica } from '@/ui/CalendarioLiturgico';
 import { Leitor } from '@/ui/Leitor';
-import { dataCurta } from '@/util/datas';
 
 /** Separa o próprio do Missal em: antes das leituras (entrada, coleta) e depois (oferendas, comunhão) */
 function dividirMissal(html: string): [string, string] {
@@ -29,7 +28,6 @@ export default function LiturgiaDiaria() {
   const p = useLocalSearchParams<{ data?: string }>();
   const nav = useNavigation();
   const router = useRouter();
-  const c = usePaleta();
   const hoje = hojeIso();
   const [data, setData] = useState(p.data || hoje);
   const [escolhendoDia, setEscolhendoDia] = useState(false); // calendário aberto (tocar na data)
@@ -53,13 +51,24 @@ export default function LiturgiaDiaria() {
   useEffect(() => {
     nav.setOptions({
       title: '',
-      headerRight: () => (
-        <Pressable onPress={() => WebBrowser.openBrowserAsync(URL_CNBB)} hitSlop={10}>
-          <Icone nome="safari" tamanho={20} />
-        </Pressable>
-      ),
+      headerTitleAlign: 'center',
+      headerRight: () => <BotaoCabecalho icone="safari" rotulo="Abrir a Liturgia Diária no site da CNBB" onPress={() => WebBrowser.openBrowserAsync(URL_CNBB)} />,
     });
   }, [nav]);
+  useEffect(() => {
+    nav.setOptions({
+      headerTitle: () => (
+        <PilulaData
+          data={data}
+          dica="Abre o calendário para escolher o dia"
+          onPress={() => {
+            toque();
+            setEscolhendoDia(true);
+          }}
+        />
+      ),
+    });
+  }, [nav, data]);
 
   // ao abrir: completa o que falta de hoje até +30 dias (e o dia escolhido, se estiver fora disso)
   useEffect(() => {
@@ -123,47 +132,11 @@ export default function LiturgiaDiaria() {
     return partes.join('');
   }, [cnbb, missal, memorias, baixando]);
 
-  const mudarDia = (n: number) => {
-    toque();
-    setData((d) => somaDias(d, n));
-  };
-
   const abrirComentario = () => {
     const arq = cnbb?.arquivo ? `comentarios/${cnbb.arquivo}` : '';
     if (arq && existe(arq)) router.push({ pathname: '/texto', params: { arquivo: arq, titulo: 'Comentário' } });
     else Alert.alert('Comentários', 'Não há comentário no pacote de conteúdo para as leituras deste dia.');
   };
-
-  const topo = (
-    <Vidro style={{ borderRadius: 22 }} interativo>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Pressable onPress={() => mudarDia(-1)} hitSlop={8} style={{ padding: 12 }}>
-          <Icone nome="chevron.left" tamanho={16} />
-        </Pressable>
-        {/* tocar na data abre o calendário litúrgico para escolher o dia */}
-        <Pressable
-          style={{ flex: 1 }}
-          accessibilityRole="button"
-          accessibilityHint="Abre o calendário para escolher o dia"
-          onPress={() => {
-            toque();
-            setEscolhendoDia(true);
-          }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
-            <Text style={{ color: c.texto, fontSize: 14, fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
-              {dataCurta(new Date(data + 'T12:00:00'))}
-              {data === hoje ? ' · hoje' : ''}
-            </Text>
-            <Icone nome="chevron.down" cor={c.textoFraco} tamanho={10} />
-          </View>
-          {/* a celebração fica no texto, logo embaixo do título (a da CNBB; sem ela, o nome do calendário do app) */}
-        </Pressable>
-        <Pressable onPress={() => mudarDia(1)} hitSlop={8} style={{ padding: 12 }}>
-          <Icone nome="chevron.right" tamanho={16} />
-        </Pressable>
-      </View>
-    </Vidro>
-  );
 
   // atalhos do Missal: menu discreto na barra do leitor (são mais usados por ministros e acólitos)
   const temComentario = !!cnbb?.arquivo && existe(`comentarios/${cnbb.arquivo}`);
@@ -176,7 +149,7 @@ export default function LiturgiaDiaria() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Leitor corpo={corpo} titulo="Liturgia Diária" subtitulo={cnbb?.celebracao ? undefined : dia.celebracao.nome} topo={topo} acoes={acoes} iconeAcoes="text.book.closed" tituloAcoes="Missal" />
+      <Leitor corpo={corpo} titulo="Liturgia Diária" subtitulo={cnbb?.celebracao ? undefined : dia.celebracao.nome} acoes={acoes} iconeAcoes="text.book.closed" tituloAcoes="Missal" />
       <SeletorDataLiturgica
         visivel={escolhendoDia}
         data={data}

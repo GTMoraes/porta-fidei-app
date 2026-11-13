@@ -6,6 +6,7 @@ import { Alert, ScrollView, View } from 'react-native';
 
 import { recarregarAdmin, useAdminComunidade } from '@/comunidade/admin';
 import { definirPrevia, lerPrevia } from '@/comunidade/previa';
+import { pode, useConta } from '@/estado/conta';
 import { hojeIso, somaDias } from '@/liturgia/calendario';
 import { anexarPdfProposta, apagarProposta, salvarProposta, type SecaoProposta } from '@/servidor/api';
 import { escolherPdf } from '@/comunidade/pdf';
@@ -25,7 +26,9 @@ export default function EditarProposta() {
   const [fim, setFim] = useState(orig?.fim ?? somaDias(orig?.inicio ?? hojeIso(), 6));
   const [secoes, setSecoes] = useState<SecaoProposta[]>(orig?.secoes ?? []);
   const [publicada, setPublicada] = useState(true);
-  const [notificar, setNotificar] = useState(!orig?.publicada);
+  // notificar = "notificar todos": só com "Avisos e notificações" (0.7.0; o servidor também confere)
+  const podeAvisar = pode(useConta(), 'avisos');
+  const [notificar, setNotificar] = useState(!orig?.publicada && podeAvisar);
   const [aberta, setAberta] = useState<number | null>(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -104,8 +107,10 @@ export default function EditarProposta() {
         </Secao>
 
         <Secao titulo="Publicação">
-          <Linha titulo="Publicada" sub="Aparece na tela Hoje e em Rezar para todos" direita={<Chave valor={publicada} mudar={setPublicada} />} />
-          <Linha titulo="Notificar os membros" sub="Envia a notificação “Proposta de oração da semana”" direita={<Chave valor={notificar} mudar={setNotificar} />} ultimo />
+          <Linha titulo="Publicada" sub="Aparece na tela Hoje e em Rezar para todos" direita={<Chave valor={publicada} mudar={setPublicada} />} ultimo={!podeAvisar} />
+          {podeAvisar ? (
+            <Linha titulo="Notificar os membros" sub="Envia a notificação “Proposta de oração da semana”" direita={<Chave valor={notificar} mudar={setNotificar} />} ultimo />
+          ) : null}
         </Secao>
 
         <View style={{ marginHorizontal: Espaco.l, gap: 12, marginBottom: 60 }}>

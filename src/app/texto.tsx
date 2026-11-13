@@ -6,7 +6,7 @@ import { alternarFavorito, ehFavorito, registrarRecente, useSalvos } from '@/est
 import { montarArquivo } from '@/conteudo/montar';
 import { imagemDataUri } from '@/conteudo/pacote';
 import { prepararRosario } from '@/conteudo/rosario';
-import { htmlMartirologio } from '@/liturgia/martirologio';
+import { htmlBotaoMartirologio } from '@/liturgia/martirologio';
 import { Leitor } from '@/ui/Leitor';
 
 // Figuras do Rosário, na ordem em que aparecem em cada arquivo (o original preenchia por código)
@@ -52,8 +52,8 @@ export default function Texto() {
       // foto do santo no topo
       const img = imagem ? await imagemDataUri(imagem) : undefined;
       if (img) html = `<img src="${img}" style="display:block;width:100%;margin-bottom:18px"/>` + html;
-      // Santo do dia: no fim, os outros santos do Martirológio
-      if (mart) html += htmlMartirologio(mart);
+      // Santo do dia: no fim, o botão para os outros santos do Martirológio (abre a página deles)
+      if (mart) html += htmlBotaoMartirologio(mart);
       setCorpo(html);
     })();
   }, [arquivo, desde, ate, imagem, mart, nav]);

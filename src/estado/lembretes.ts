@@ -9,7 +9,7 @@
 import * as Notifications from 'expo-notifications';
 import { Alert, Platform } from 'react-native';
 
-import { HORAS } from '@/liturgia/horas';
+import { HORAS_CANONICAS as HORAS } from '@/liturgia/horas';
 import { assinarServidor, lerServidor } from '@/servidor/api';
 import { mostrarOpcoes } from '@/ui/Opcoes';
 import { AJUSTES_DO_APARELHO } from '@/util/plataforma';

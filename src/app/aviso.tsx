@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, ScrollView, Share, Text, View } from 'react-native';
 
 import { arquivado, arquivar, remover, useArquivados } from '@/estado/arquivados';
+import { pode, useConta } from '@/estado/conta';
 import { atualizar, encerrado, encerrarAvisos, useServidor } from '@/servidor/api';
 import { Espaco, fonteTitulo, usePaleta } from '@/tema';
 import { Aviso as Caixa, Botao, Fundo, Icone, Secao, Vidro } from '@/ui/base';
@@ -13,6 +14,7 @@ import { APARELHO } from '@/util/plataforma';
 export default function TelaAviso() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const srv = useServidor();
+  const podeEditar = pode(useConta(), 'avisos');
   const router = useRouter();
   const c = usePaleta();
   const a = srv.avisos.find((x) => x.id === id);
@@ -126,8 +128,8 @@ export default function TelaAviso() {
             />
           )}
           <Botao titulo="Compartilhar" icone="square.and.arrow.up" tipo="secundario" onPress={() => Share.share({ message: `${a.titulo}\n\n${a.texto}${(a.botoes ?? []).filter((b) => !ehLinkDoApp(b.url)).map((b) => `\n\n${b.texto}: ${b.url}`).join('')}\n\nComunidade Católica Porta Fidei` })} />
-          {srv.admin ? <Botao titulo="Editar" icone="pencil" tipo="secundario" onPress={() => router.push({ pathname: '/editar-aviso', params: { id: a.id } })} /> : null}
-          {srv.admin ? (
+          {podeEditar ? <Botao titulo="Editar" icone="pencil" tipo="secundario" onPress={() => router.push({ pathname: '/editar-aviso', params: { id: a.id } })} /> : null}
+          {podeEditar ? (
             <Botao
               titulo={fim ? 'Reativar para todos' : 'Encerrar para todos'}
               icone={fim ? 'arrow.uturn.backward' : 'archivebox'}

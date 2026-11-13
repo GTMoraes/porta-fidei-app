@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, Share, Text, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 
+import { pode, useConta } from '@/estado/conta';
 import { useServidor } from '@/servidor/api';
 import { Espaco, fonteTitulo, usePaleta } from '@/tema';
 import { COR_CANCELADO, COR_REAGENDADO, Etiqueta, textoReagendado } from '@/ui/Agenda';
@@ -15,6 +16,7 @@ import { salvarNaAgenda } from '@/util/salvarNaAgenda';
 export default function TelaEvento() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const srv = useServidor();
+  const podeEditar = pode(useConta(), 'agenda');
   const router = useRouter();
   const c = usePaleta();
   const e = srv.eventos.find((x) => x.id === id);
@@ -67,7 +69,7 @@ export default function TelaEvento() {
         <Secao>
           <Linha titulo={quandoEvento(e.inicio, e.fim)[0]} sub={quandoEvento(e.inicio, e.fim)[1]} icone="clock" ultimo={!(e.local || temPonto(lugar))} />
           {e.local || temPonto(lugar) ? (
-            <Linha titulo={e.local || 'Ver no mapa'} sub="Abrir no mapa" icone="mappin.and.ellipse" onPress={() => abrirNoMapa(lugar)} ultimo />
+            <Linha titulo={e.local || 'Ver no mapa'} sub="Abrir no mapa" icone="mappin.and.ellipse" onPress={() => abrirNoMapa(lugar)} externo ultimo />
           ) : null}
         </Secao>
         {temPonto(lugar) ? (
@@ -99,7 +101,7 @@ export default function TelaEvento() {
             <Botao titulo="Adicionar à agenda" icone="calendar.badge.plus" tipo="secundario" onPress={() => salvarNaAgenda(e)} />
           ) : null}
           <Botao titulo="Compartilhar" icone="square.and.arrow.up" tipo="secundario" onPress={compartilhar} />
-          {srv.admin ? <Botao titulo="Editar" icone="pencil" tipo="secundario" onPress={() => router.push({ pathname: '/editar-evento', params: { id: e.id } })} /> : null}
+          {podeEditar ? <Botao titulo="Editar" icone="pencil" tipo="secundario" onPress={() => router.push({ pathname: '/editar-evento', params: { id: e.id } })} /> : null}
         </View>
       </ScrollView>
     </Fundo>

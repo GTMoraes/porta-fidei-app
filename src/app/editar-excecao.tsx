@@ -3,12 +3,16 @@
 // A exceção vai para o servidor; a notificação e o aviso vão pelas rotas de sempre. A exceção guarda o texto (o
 // motivo), o aviso publicado e, se houver, o evento que ocupou o horário: a tela do dia mostra os três.
 // "Por causa de outro evento": os eventos do mesmo dia, para ligar (ou cadastrar o evento, se ainda não existe).
+// Contas (0.7.0): a coordenação de uma comissão também cancela ou muda um dia das reuniões dela. Sem "Avisos e
+// notificações", em vez de notificação e aviso fica só o motivo (aparece para quem abrir o dia); sem "Agenda", não há
+// "Cadastrar o evento".
 
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 
 import { diaHoraCurtos } from '@/comunidade/rotinas';
+import { pode, useConta } from '@/estado/conta';
 import { atualizar, notificarTodos, salvarAviso, salvarExcecao, useServidor, type Aviso as AvisoT } from '@/servidor/api';
 import { diaIso } from '@/ui/Agenda';
 import { hora } from '@/util/datas';
@@ -24,6 +28,8 @@ export default function EditarExcecao() {
   const { id, data, acao } = useLocalSearchParams<{ id: string; data: string; acao: 'cancelar' | 'remarcar' }>();
   const router = useRouter();
   const srv = useServidor();
+  const conta = useConta();
+  const podeAvisar = pode(conta, 'avisos');
   const r = srv.comunidade?.rotinas?.find((x) => x.id === id);
   const remarcar = acao === 'remarcar';
 
@@ -43,8 +49,8 @@ export default function EditarExcecao() {
   const [titulo, setTitulo] = useState(r?.titulo ?? '');
   const [texto, setTexto] = useState(textoPadrao());
   const [mexeuTexto, setMexeuTexto] = useState(false);
-  const [notificar, setNotificar] = useState(true);
-  const [avisar, setAvisar] = useState(true);
+  const [notificar, setNotificar] = useState(podeAvisar);
+  const [avisar, setAvisar] = useState(podeAvisar);
   const [salvando, setSalvando] = useState(false);
 
   if (!r || !data)
@@ -79,7 +85,7 @@ export default function EditarExcecao() {
         situacao: remarcar ? ('remarcado' as const) : ('cancelado' as const),
         novaData: remarcar ? novaData : null,
         novaHora: remarcar ? novaHora : null,
-        motivo: notificar || avisar ? texto.trim() : null,
+        motivo: notificar || avisar || !podeAvisar ? texto.trim() || null : null,
         evento,
       };
       await salvarExcecao(ex);
@@ -114,7 +120,7 @@ export default function EditarExcecao() {
         </Secao>
 
         <Secao titulo="Por causa de outro evento? (opcional)">
-          {doDia.map((e) => (
+          {doDia.map((e, i) => (
             <Linha
               key={e.id}
               titulo={e.titulo}
@@ -122,17 +128,37 @@ export default function EditarExcecao() {
               direita={evento === e.id ? <Icone nome="checkmark" tamanho={17} /> : undefined}
               onPress={() => mudarEvento(evento === e.id ? null : e.id)}
               seta={false}
+              ultimo={!pode(conta, 'agenda') && i === doDia.length - 1}
             />
           ))}
-          <Linha
-            titulo={doDia.length ? 'Cadastrar outro evento neste dia' : 'Cadastrar o evento deste dia'}
-            sub="Depois de salvar, ele aparece aqui para escolher. Na tela do dia cancelado, quem tocar vai direto para ele."
-            icone="plus.circle"
-            onPress={() => router.push({ pathname: '/editar-evento', params: { data } })}
-            ultimo
-          />
+          {pode(conta, 'agenda') ? (
+            <Linha
+              titulo={doDia.length ? 'Cadastrar outro evento neste dia' : 'Cadastrar o evento deste dia'}
+              sub="Depois de salvar, ele aparece aqui para escolher. Na tela do dia cancelado, quem tocar vai direto para ele."
+              icone="plus.circle"
+              onPress={() => router.push({ pathname: '/editar-evento', params: { data } })}
+              ultimo
+            />
+          ) : doDia.length ? null : (
+            <Linha titulo="Nenhum evento cadastrado neste dia" sub="Quem cuida da Agenda pode cadastrar" icone="info.circle" seta={false} ultimo />
+          )}
         </Secao>
 
+        {podeAvisar ? null : (
+          <Secao titulo="Motivo (opcional)">
+            <Campo
+              rotulo="Aparece para quem abrir este dia na Agenda"
+              value={texto}
+              onChangeText={(t) => {
+                setMexeuTexto(true);
+                setTexto(t);
+              }}
+              multiline
+            />
+          </Secao>
+        )}
+
+        {podeAvisar ? (
         <Secao titulo="Avisar a Comunidade">
           <Linha titulo="Enviar notificação" sub="Para todos os aparelhos" direita={<Chave valor={notificar} mudar={setNotificar} />} />
           <Linha titulo="Publicar também nos Avisos" sub="Some sozinho no fim do dia" direita={<Chave valor={avisar} mudar={setAvisar} />} ultimo={!notificar && !avisar} />
@@ -151,6 +177,7 @@ export default function EditarExcecao() {
             </>
           ) : null}
         </Secao>
+        ) : null}
 
         <View style={{ marginHorizontal: Espaco.l, gap: 12, marginBottom: 60 }}>
           <Botao

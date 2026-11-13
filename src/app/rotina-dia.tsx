@@ -9,6 +9,7 @@ import { Alert, ScrollView, Text, View } from 'react-native';
 
 import { avisoDaExcecao, diaHoraCurtos, faixaHoras, ICONE_ROTINA, textoRegra } from '@/comunidade/rotinas';
 import { useAjustes } from '@/estado/ajustes';
+import { coordena, pode, useConta } from '@/estado/conta';
 import { escolherLembrete, ligado, modoDe, textoModo } from '@/estado/lembretes';
 import { atualizar, desfazerExcecao, useServidor } from '@/servidor/api';
 import { Espaco, usePaleta } from '@/tema';
@@ -23,6 +24,7 @@ export default function RotinaDia() {
   const c = usePaleta();
   const aj = useAjustes();
   const srv = useServidor();
+  const conta = useConta();
   const r = srv.comunidade?.rotinas?.find((x) => x.id === id);
   if (!r)
     return (
@@ -113,6 +115,7 @@ export default function RotinaDia() {
               sub={r.endereco || r.local || undefined}
               icone="map"
               onPress={() => abrirNoMapa({ nome: r.titulo, local: r.lat != null ? r.local || r.titulo : r.endereco, lat: r.lat, lng: r.lng })}
+              externo
             />
           ) : null}
           <Linha titulo="Todos os horários da Comunidade" icone="clock" onPress={() => router.push({ pathname: '/pagina', params: { id: 'horarios' } })} ultimo />
@@ -120,27 +123,30 @@ export default function RotinaDia() {
 
         {r.obs ? <Text style={{ color: c.textoSuave, fontSize: 14.5, marginHorizontal: Espaco.xl, marginBottom: Espaco.xl }}>{r.obs}</Text> : null}
 
-        {srv.admin && dia ? (
-          <Secao titulo="Administração">
+        {dia && (pode(conta, 'agenda') || (r.tipo === 'comissao' && coordena(conta, r.comissao))) ? (
+          <Secao titulo={pode(conta, 'agenda') ? 'Administração' : 'Coordenação da comissão'}>
             {ex ? (
-              <Linha titulo="Desfazer" sub="Volta este dia ao horário normal" icone="arrow.counterclockwise" onPress={desfazer} />
+              <Linha titulo="Desfazer" sub="Volta este dia ao horário normal" icone="arrow.counterclockwise" onPress={desfazer} ultimo={!pode(conta, 'agenda')} />
             ) : (
               <>
                 <Linha
                   titulo="Cancelar só este dia"
-                  sub="Com notificação e aviso, se quiser"
+                  sub={pode(conta, 'avisos') ? 'Com notificação e aviso, se quiser' : 'Com o motivo, se quiser'}
                   icone="xmark.circle"
                   onPress={() => router.push({ pathname: '/editar-excecao', params: { id: r.id, data: dia, acao: 'cancelar' } })}
                 />
                 <Linha
                   titulo="Mudar o horário só deste dia"
-                  sub="Outro dia ou outro horário, com notificação e aviso"
+                  sub={pode(conta, 'avisos') ? 'Outro dia ou outro horário, com notificação e aviso' : 'Outro dia ou outro horário'}
                   icone="arrow.uturn.right"
                   onPress={() => router.push({ pathname: '/editar-excecao', params: { id: r.id, data: dia, acao: 'remarcar' } })}
+                  ultimo={!pode(conta, 'agenda')}
                 />
               </>
             )}
-            <Linha titulo="Editar a rotina" sub="Muda todas as semanas" icone="pencil" onPress={() => router.push({ pathname: '/editar-rotina', params: { id: r.id } })} ultimo />
+            {pode(conta, 'agenda') ? (
+              <Linha titulo="Editar a rotina" sub="Muda todas as semanas" icone="pencil" onPress={() => router.push({ pathname: '/editar-rotina', params: { id: r.id } })} ultimo />
+            ) : null}
           </Secao>
         ) : null}
         <View style={{ height: 40 }} />

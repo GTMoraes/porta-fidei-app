@@ -2,7 +2,7 @@
 // (tamanho da letra, rolagem automática, voz e timer de oração silenciosa).
 
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -13,7 +13,7 @@ import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { paginaHtml, textoParaVoz } from '@/conteudo/montar';
 import { mudarAjustes, useAjustes } from '@/estado/ajustes';
 import { usePaleta } from '@/tema';
-import { Icone, toque, toqueConcluido, Vidro } from './base';
+import { BotaoCabecalho, Icone, TEM_VIDRO, toque, toqueConcluido, Vidro } from './base';
 import { mostrarOpcoes } from './Opcoes';
 
 interface Props {
@@ -59,6 +59,13 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
   const [achados, setAchados] = useState({ total: 0, atual: 0 });
   const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
   const js = (codigo: string) => web.current?.injectJavaScript(`${codigo};true;`);
+
+  // iPhone sem Liquid Glass: a seta de voltar ganha um círculo de vidro (solta sobre o texto, parecia um caractere)
+  const nav = useNavigation();
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || TEM_VIDRO || !router.canGoBack()) return;
+    nav.setOptions({ headerLeft: () => <BotaoCabecalho icone="chevron.left" rotulo="Voltar" onPress={() => router.back()} /> });
+  }, [nav, router]);
 
   // tela sempre ligada enquanto se reza
   useEffect(() => {
@@ -162,6 +169,9 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
     if (m.tipo === 'link' && typeof m.href === 'string') {
       if (m.href.startsWith('pf://ajuste/instrucoes')) {
         router.push('/ajuste-instrucoes');
+      } else if (m.href.startsWith('pf://martirologio/')) {
+        // vida do santo: o botão "Outros santos deste dia" abre a página do Martirológio
+        router.push({ pathname: '/martirologio', params: { data: m.href.replace('pf://martirologio/', '') } });
       } else if (m.href.startsWith('pf://abrir/')) {
         router.push({ pathname: '/texto', params: { arquivo: m.href.replace('pf://abrir/', ''), titulo: m.titulo ?? '' } });
       }

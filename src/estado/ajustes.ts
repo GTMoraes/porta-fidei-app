@@ -19,7 +19,6 @@ export interface Ajustes {
   telaLigada: boolean;
   bienal: boolean;
   evangelhoAoAcaso: boolean;
-  iniciarMenuAberto: boolean;
   velocidadeRolagem: number; // 0 = sem rolagem automática
   coletasSalmodicas: boolean;
   repetirRespostas: boolean;
@@ -53,7 +52,6 @@ export const PADRAO: Ajustes = {
   telaLigada: true,
   bienal: false,
   evangelhoAoAcaso: false,
-  iniciarMenuAberto: false,
   velocidadeRolagem: 5,
   coletasSalmodicas: false,
   repetirRespostas: false,

@@ -18,6 +18,7 @@ const SECOES: { id: string; titulo: string; sub: string; icone: SFSymbol; cor: s
   { id: 'casa', titulo: 'Casa Porta Fidei', sub: 'Serviços gratuitos e onde fica', icone: 'house', cor: Quadrado.azul },
   { id: 'obras', titulo: 'Obras e ações', sub: 'Cuscuz Solidário, Happy Day e mais', icone: 'heart.fill', cor: Quadrado.ouro },
   { id: 'comissoes', titulo: 'Comissões', sub: 'Obras, Música e outras', icone: 'person.3', cor: Quadrado.verde },
+  { id: 'voluntario', titulo: 'Seja um voluntário', sub: 'Ajudar nas obras e ações (em breve)', icone: 'hand.raised', cor: Quadrado.azul },
   { id: 'benfeitor', titulo: 'Seja Benfeitor', sub: 'Quem sustenta a obra todo mês', icone: 'heart', cor: Quadrado.vinho },
   { id: 'redes', titulo: 'Redes e contato', sub: 'Instagram, YouTube, Facebook e site', icone: 'globe', cor: Quadrado.cinza },
 ];

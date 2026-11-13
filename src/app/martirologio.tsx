@@ -14,5 +14,5 @@ export default function Martirologio() {
     () => htmlMartirologio(d, 'Martirológio Romano') || '<p class="c" style="margin-top:24px"><span class="lacuna">Lista deste dia ainda não incluída.</span></p>',
     [d],
   );
-  return <Leitor corpo={corpo} titulo="Santos do dia" subtitulo={dataPorExtenso(d)} />;
+  return <Leitor corpo={corpo} titulo="Outros santos do dia" subtitulo={dataPorExtenso(d)} />;
 }

@@ -24,8 +24,8 @@ export function CardContribuir() {
             A Casa Porta Fidei e todas as ações da Comunidade se mantêm com doações. Contribua uma vez ou torne-se Benfeitor, doando todos os meses.
           </Text>
           <View style={{ gap: 10, marginTop: 10 }}>
-            <Botao titulo="Doe agora" icone="heart" onPress={() => abrirDoacao(false)} />
-            <Botao titulo="Seja Benfeitor" icone="arrow.triangle.2.circlepath" tipo="secundario" onPress={() => abrirDoacao(true)} />
+            <Botao titulo="Doe agora" icone="heart" onPress={() => abrirDoacao(false)} externo />
+            <Botao titulo="Seja Benfeitor" icone="arrow.triangle.2.circlepath" tipo="secundario" onPress={() => abrirDoacao(true)} externo />
           </View>
         </View>
       </Vidro>

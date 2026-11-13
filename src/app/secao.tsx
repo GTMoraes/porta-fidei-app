@@ -7,7 +7,7 @@ import { ScrollView, View } from 'react-native';
 
 import { useDataRezar } from '@/estado/dataRezar';
 import { dataPorExtenso } from '@/liturgia/calendario';
-import { ConteudoAjustes, SECOES_AJUSTES } from '@/secoes/ajustes';
+import { ConteudoAjustes, SECOES_AJUSTES, SUBSECOES_AJUSTES } from '@/secoes/ajustes';
 import { ConteudoRezar, SECOES_COM_DATA, SECOES_REZAR } from '@/secoes/rezar';
 import { Aviso, Fundo, Secao, TituloPagina } from '@/ui/base';
 
@@ -15,7 +15,7 @@ export default function TelaSecao() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const r = useDataRezar();
   const rezar = SECOES_REZAR.find((s) => s.id === id);
-  const ajustes = SECOES_AJUSTES.find((s) => s.id === id);
+  const ajustes = SECOES_AJUSTES.find((s) => s.id === id) ?? SUBSECOES_AJUSTES.find((s) => s.id === id);
   const info = rezar ?? ajustes;
   const dia = rezar && r.escolhida && SECOES_COM_DATA.includes(rezar.id) ? dataPorExtenso(r.data) : undefined;
 

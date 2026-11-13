@@ -8,7 +8,7 @@ import * as Notifications from 'expo-notifications';
 import * as Updates from 'expo-updates';
 import { Platform } from 'react-native';
 
-import { registrarDispositivo } from '@/servidor/api';
+import { lerServidor, registrarDispositivo, temConta, vincularAparelho } from '@/servidor/api';
 
 const CHAVE = 'pf.push.v1';
 let atual: string | null = null;
@@ -31,6 +31,18 @@ async function criarCanalAvisos() {
   }).catch(() => {});
 }
 
+// Conta (0.7.0): o aparelho fica ligado à conta de quem entrou, para a Comunidade poder, no futuro, avisar só uma pessoa
+// ou uma comissão. Ao entrar, o app já manda o token; aqui cobre quem deu a permissão de notificação depois.
+const CHAVE_CONTA = 'pf.push.conta.v1';
+async function ligarAConta(t: string) {
+  const conta = lerServidor().conta;
+  if (!temConta() || !conta?.id) return;
+  const marca = `${conta.id}|${t}`;
+  if ((await AsyncStorage.getItem(CHAVE_CONTA)) === marca) return;
+  await vincularAparelho(t);
+  await AsyncStorage.setItem(CHAVE_CONTA, marca);
+}
+
 export async function registrarPush(pedirPermissao = true): Promise<string | null> {
   if (Platform.OS !== 'ios' && !ANDROID_COM_FCM) return null;
   try {
@@ -44,9 +56,13 @@ export async function registrarPush(pedirPermissao = true): Promise<string | nul
     atual = String(t.data);
     const versao = Constants.expoConfig?.version ?? '';
     const salvo = JSON.parse((await AsyncStorage.getItem(CHAVE)) ?? 'null') as { token: string; versao: string; em: number } | null;
-    if (salvo && salvo.token === atual && salvo.versao === versao && Date.now() - salvo.em < 7 * 86400_000) return atual;
+    if (salvo && salvo.token === atual && salvo.versao === versao && Date.now() - salvo.em < 7 * 86400_000) {
+      ligarAConta(atual).catch(() => {});
+      return atual;
+    }
     await registrarDispositivo(atual, versao);
     await AsyncStorage.setItem(CHAVE, JSON.stringify({ token: atual, versao, em: Date.now() }));
+    ligarAConta(atual).catch(() => {});
     return atual;
   } catch {
     return atual; // sem internet ou sem permissão de push: tenta de novo na próxima abertura

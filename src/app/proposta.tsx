@@ -2,7 +2,6 @@
 
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
-import { Pressable, Text } from 'react-native';
 
 import { propostaHtml, semana } from '@/comunidade/html';
 import { lerPrevia } from '@/comunidade/previa';
@@ -10,7 +9,7 @@ import { useAjustes } from '@/estado/ajustes';
 import { alternarFavorito, ehFavorito, itemComunidade, registrarRecente, useSalvos } from '@/estado/favoritos';
 import { urlPdfProposta, useServidor } from '@/servidor/api';
 import { usePaleta } from '@/tema';
-import { Icone, toque } from '@/ui/base';
+import { BotaoCabecalho } from '@/ui/base';
 import { Leitor } from '@/ui/Leitor';
 
 export default function TelaProposta() {
@@ -42,18 +41,7 @@ export default function TelaProposta() {
   useEffect(() => {
     nav.setOptions({
       headerRight: p?.temPdf
-        ? () => (
-            <Pressable
-              onPress={() => {
-                toque();
-                router.push({ pathname: '/pdf', params: { url: urlPdfProposta(p.id), titulo: p.titulo } });
-              }}
-              hitSlop={10}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4 }}>
-              <Icone nome="doc.richtext" tamanho={18} />
-              <Text style={{ color: c.destaque, fontSize: 15 }}>PDF original</Text>
-            </Pressable>
-          )
+        ? () => <BotaoCabecalho icone="doc.richtext" texto="PDF original" onPress={() => router.push({ pathname: '/pdf', params: { url: urlPdfProposta(p.id), titulo: p.titulo } })} />
         : undefined,
     });
   }, [nav, p?.id, p?.temPdf, p?.titulo, router, c.destaque]);

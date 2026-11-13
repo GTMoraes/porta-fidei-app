@@ -1,6 +1,6 @@
 // Editar rotina (horário fixo que se repete): o quê, quando (toda semana em certos dias, ou todo mês na N-ésima
-// semana), horário e onde (local, locais já usados e ponto no mapa, como nos eventos). Comissão: o nome da comissão
-// é o que aparece em Ajustes › Sua comissão.
+// semana), horário e onde (local, locais já usados e ponto no mapa, como nos eventos). Comissão: o nome é o da lista de
+// Administração › Comissões (um nome novo entra na lista sozinho, pelo servidor).
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -29,7 +29,10 @@ export default function EditarRotina() {
   const srv = useServidor();
   // aberta pela Agenda, os dados da Administração podem não ter carregado: vale a cópia que todos têm
   const orig = id ? (dados?.rotinas?.find((r) => r.id === id) ?? srv.comunidade?.rotinas?.find((r) => r.id === id)) : undefined;
-  const existentes = nomesComissoes(dados?.rotinas);
+  // as comissões cadastradas (servidor da 0.7.0) e as que já têm reunião, sem repetir
+  const existentes = [...new Map([...(srv.comunidade?.comissoes ?? []).map((c) => c.nome), ...nomesComissoes(dados?.rotinas)].map((n) => [n.trim().toLowerCase(), n.trim()])).values()].sort((a, b) =>
+    a.localeCompare(b, 'pt-BR'),
+  );
 
   const [titulo, setTitulo] = useState(orig?.titulo ?? '');
   const [tipo, setTipo] = useState<TipoRotina>(orig?.tipo ?? 'missa');
@@ -87,8 +90,8 @@ export default function EditarRotina() {
           <CampoEscolha rotulo="Tipo" valor={tipo} valores={TIPOS_ROTINA.map((t) => [t, TIPO_ROTINA_UM[t]] as [TipoRotina, string])} mudar={setTipo} />
           {tipo === 'comissao' ? (
             <>
-              <Campo rotulo="Nome da comissão (aparece em Ajustes › Sua comissão)" value={comissao} onChangeText={setComissao} placeholder="Ex.: Música" />
-              {existentes.length ? <CampoEscolha rotulo="Ou escolha uma já cadastrada" valor={comissao} valores={existentes.map((n) => [n, n] as [string, string])} mudar={setComissao} /> : null}
+              <Campo rotulo="Nome da comissão" value={comissao} onChangeText={setComissao} placeholder="Ex.: Música" />
+              {existentes.length ? <CampoEscolha rotulo="Ou escolha uma da lista" valor={comissao} valores={existentes.map((n) => [n, n] as [string, string])} mudar={setComissao} /> : null}
             </>
           ) : null}
         </Secao>

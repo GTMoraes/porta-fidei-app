@@ -15,6 +15,9 @@ export const HORAS: { id: Hora; nome: string; curto: string; quando: string }[] 
   { id: 'vesperas', nome: 'Vésperas', curto: 'Vésperas', quando: 'Oração da tarde' },
   { id: 'completas', nome: 'Completas', curto: 'Completas', quando: 'Antes do repouso' },
 ];
+/** As Horas de verdade, sem o Invitatório (ele é o começo da primeira oração do dia, Laudes ou Ofício das Leituras, e
+ *  abre por um botão dentro delas; não tem lembrete nem entra na lista das Horas). Pedido do seminarista, 0.7.0. */
+export const HORAS_CANONICAS = HORAS.filter((h) => h.id !== 'invitatorio');
 
 export interface Parte {
   arquivo: string;

@@ -172,6 +172,18 @@ export const PAGINAS: Record<string, Pagina> = {
       },
     ],
   },
+  // ainda sem conteúdo: lugar guardado para combinar com a Comissão de Obras como os voluntários vão se oferecer
+  // (sugestão do seminarista, 0.7.0)
+  voluntario: {
+    id: 'voluntario',
+    titulo: 'Seja um voluntário',
+    sobre: 'Em breve',
+    blocos: [
+      { tipo: 'texto', texto: 'Quer ajudar nas obras e ações da Comunidade? Em breve, por aqui, você vai poder se oferecer como voluntário.' },
+      { tipo: 'aviso', texto: 'A combinar com a Comissão de Obras: como os voluntários se oferecem, em quais obras e quem entra em contato.' },
+      { tipo: 'paginas', itens: [{ titulo: 'Obras e ações', sub: 'Cuscuz Solidário, Happy Day e mais', id: 'obras', icone: 'heart.fill' }] },
+    ],
+  },
   benfeitor: {
     id: 'benfeitor',
     titulo: 'Seja um Benfeitor',

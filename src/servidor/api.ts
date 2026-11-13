@@ -1,4 +1,4 @@
-// Comunicação com o servidor da Comunidade (agenda, avisos, imagens).
+// Comunicação com o servidor da Comunidade (agenda, avisos, imagens, conta).
 // Tudo que vem daqui fica guardado no aparelho para funcionar sem internet.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -151,6 +151,61 @@ export interface Comunidade {
   oracoes: Oracao[];
   rotinas?: Rotina[]; // servidor 0.6.10 em diante
   excecoes?: ExcecaoRotina[]; // servidor 0.6.11 em diante
+  comissoes?: ComissaoPublica[]; // servidor 0.7.0 em diante (só o nome; quem está em cada uma não é público)
+}
+export interface ComissaoPublica {
+  id: string;
+  nome: string;
+}
+
+// ---------------- contas (0.7.0)
+/** O que um administrador dá a uma pessoa (o administrador pode tudo). Ver `estado/conta.ts`. */
+export type Capacidade = 'agenda' | 'avisos' | 'oracao' | 'biblioteca';
+export interface ComissaoDaConta {
+  id: string;
+  nome: string;
+  coordenador: boolean;
+}
+/** A conta de quem entrou no app */
+export interface Conta {
+  id: string;
+  usuario: string;
+  nome: string;
+  email?: string | null;
+  foto?: string | null;
+  admin: boolean;
+  capacidades: Capacidade[];
+  comissoes: ComissaoDaConta[];
+  senhaProvisoria?: boolean;
+  criado?: string;
+}
+/** Uma pessoa em Administração › Pessoas (o coordenador só recebe id, usuário, nome e foto) */
+export interface Pessoa {
+  id: string;
+  usuario: string;
+  nome: string;
+  foto?: string | null;
+  email?: string | null;
+  admin?: boolean;
+  capacidades?: Capacidade[];
+  ativo?: boolean;
+  senhaProvisoria?: boolean;
+  criado?: string;
+  visto?: string | null;
+  comissoes?: ComissaoDaConta[];
+}
+export interface ComissaoResumo {
+  id: string;
+  nome: string;
+  membros: number;
+  coordenadores: string[];
+}
+export interface MembroComissao {
+  id: string;
+  usuario: string;
+  nome: string;
+  foto?: string | null;
+  coordenador: boolean;
 }
 /** Rotina cancelada ou remarcada só num dia (`data`); as outras semanas seguem a regra */
 export interface ExcecaoRotina {
@@ -172,11 +227,15 @@ interface Dados {
   atualizado?: string;
   erro?: string;
   carregando: boolean;
-  admin?: boolean;
+  /** quem entrou na conta neste aparelho (null: ninguém) */
+  conta?: Conta | null;
 }
 
 const CHAVE = 'pf.servidor.cache.v1';
+// o token da conta fica na mesma chave do token da Administração de antes da 0.7.0: quem era administrador continua
+// dentro (o servidor aceita o token antigo de administrador e devolve um novo na primeira busca da conta)
 const CHAVE_TOKEN = 'pf.admin.token';
+const CHAVE_CONTA = 'pf.conta.v1';
 let dados: Dados = { eventos: [], avisos: [], carregando: false };
 const ouvintes = new Set<() => void>();
 const emitir = () => ouvintes.forEach((f) => f());
@@ -201,7 +260,7 @@ export function useServidor(): Dados {
 export async function carregarCache() {
   try {
     const b = await AsyncStorage.getItem(CHAVE);
-    if (b) dados = { ...JSON.parse(b), carregando: false, admin: !!token };
+    if (b) dados = { ...JSON.parse(b), carregando: false, conta: dados.conta };
   } catch {}
   emitir();
 }
@@ -229,9 +288,11 @@ export async function atualizar() {
     const eventos = (await re.json()) as Evento[];
     const avisos = (await ra.json()) as Aviso[];
     const comunidade = rc?.ok ? ((await rc.json()) as Comunidade) : dados.comunidade;
-    dados = { eventos, avisos, comunidade, atualizado: new Date().toISOString(), carregando: false, admin: !!token };
-    AsyncStorage.setItem(CHAVE, JSON.stringify(dados)).catch(() => {});
+    dados = { eventos, avisos, comunidade, atualizado: new Date().toISOString(), carregando: false, conta: dados.conta };
+    const { conta: _conta, ...guardar } = dados;
+    AsyncStorage.setItem(CHAVE, JSON.stringify(guardar)).catch(() => {});
     limparNotificacoesEncerradas(avisos);
+    if (token) buscarConta().catch(() => {});
   } catch (e: any) {
     dados = { ...dados, carregando: false, erro: e?.name === 'AbortError' ? 'Sem resposta do servidor' : String(e?.message ?? e) };
   }
@@ -262,59 +323,154 @@ function limparNotificacoesEncerradas(avisos: Aviso[]) {
     .catch(() => {});
 }
 
-// ---------------- administração
+// ---------------- conta e administração
 let token: string | null = null;
 
+/** Guarda a conta (e o token, se veio um novo) e avisa as telas */
+async function guardarConta(conta: Conta | null, novoToken?: string | null) {
+  if (novoToken !== undefined) {
+    token = novoToken;
+    if (novoToken) await AsyncStorage.setItem(CHAVE_TOKEN, novoToken);
+    else await AsyncStorage.removeItem(CHAVE_TOKEN);
+  }
+  dados = { ...dados, conta };
+  if (conta) AsyncStorage.setItem(CHAVE_CONTA, JSON.stringify(conta)).catch(() => {});
+  else AsyncStorage.removeItem(CHAVE_CONTA).catch(() => {});
+  emitir();
+}
+
+/** Ao abrir o app: o token e a última conta conhecida (para funcionar sem internet) */
 export async function carregarToken() {
   token = await AsyncStorage.getItem(CHAVE_TOKEN);
-  dados = { ...dados, admin: !!token };
+  let conta: Conta | null = null;
+  if (token) {
+    try {
+      conta = JSON.parse((await AsyncStorage.getItem(CHAVE_CONTA)) ?? 'null');
+    } catch {}
+    // token da Administração de antes da 0.7.0 (sem conta guardada): até a primeira busca, é um administrador
+    if (!conta) conta = { id: '', usuario: '', nome: 'Administrador', admin: true, capacidades: [], comissoes: [] };
+  }
+  dados = { ...dados, conta };
   emitir();
   return token;
 }
-export const ehAdmin = () => !!token;
+export const temConta = () => !!token;
 
-export async function entrar(usuario: string, senha: string) {
-  const r = await comTempo(`${SERVIDOR}/api/admin/entrar`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ usuario, senha }),
-  });
-  if (!r.ok) throw new Error(r.status === 401 ? 'Usuário ou senha incorretos' : `Erro ${r.status}`);
-  const j = await r.json();
-  token = j.token as string;
-  await AsyncStorage.setItem(CHAVE_TOKEN, token);
-  dados = { ...dados, admin: true };
-  emitir();
+const msgErro = async (r: Response) => {
+  const t = await r.text();
+  try {
+    return (JSON.parse(t).erro as string) ?? t;
+  } catch {
+    return t || `Erro ${r.status}`;
+  }
+};
+const SESSAO_TERMINOU = 'Sua sessão terminou. Entre de novo na sua conta (Ajustes).';
+
+/** Rotas da própria conta (/api/conta): com a chave do app e, quando há, o token */
+async function contaReq(caminho: string, metodo: string, corpo?: unknown, ms = 15000) {
+  const r = await comTempo(
+    `${SERVIDOR}/api/conta${caminho}`,
+    {
+      method: metodo,
+      headers: { 'Content-Type': 'application/json', ...cabecalhoApp(), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: corpo ? JSON.stringify(corpo) : undefined,
+    },
+    ms,
+  );
+  if (r.status === 401 && token) {
+    await guardarConta(null, null);
+    throw new Error(SESSAO_TERMINOU);
+  }
+  if (!r.ok) throw new Error(await msgErro(r));
+  return r.status === 204 ? null : r.json();
 }
 
-export async function sair() {
-  token = null;
-  await AsyncStorage.removeItem(CHAVE_TOKEN);
-  dados = { ...dados, admin: false };
-  emitir();
+/** Relê a conta no servidor (capacidades e comissões mudam pela Administração). Sem internet, fica a guardada. */
+export async function buscarConta() {
+  if (!token) return null;
+  const j = (await contaReq('', 'GET')) as { conta: Conta; token?: string };
+  await guardarConta(j.conta, j.token);
+  return j.conta;
+}
+
+/** Entrar com o usuário (ou o e-mail) e a senha; `aparelho`: o token de notificação deste aparelho */
+export async function entrarConta(login: string, senha: string, aparelho?: string | null) {
+  const j = (await contaReq('/entrar', 'POST', { login, senha, aparelho: aparelho ?? undefined })) as { conta: Conta; token: string };
+  await guardarConta(j.conta, j.token);
+  atualizar();
+  return j.conta;
+}
+export async function cadastrarConta(c: { nome: string; usuario: string; email: string; senha: string; aceite: boolean; aparelho?: string | null }) {
+  const j = (await contaReq('/cadastrar', 'POST', { ...c, aparelho: c.aparelho ?? undefined })) as { conta: Conta; token: string };
+  await guardarConta(j.conta, j.token);
+  return j.conta;
+}
+export async function salvarPerfil(p: { nome?: string; email?: string }) {
+  const j = (await contaReq('', 'PUT', p)) as { conta: Conta };
+  await guardarConta(j.conta);
+  return j.conta;
+}
+/** Foto do perfil (base64, já recortada quadrada); o servidor reduz */
+export async function enviarFotoPerfil(base64: string, tipo: string) {
+  const j = (await contaReq('/foto', 'PUT', { base64, tipo }, 60000)) as { conta: Conta };
+  await guardarConta(j.conta);
+  return j.conta;
+}
+export async function tirarFotoPerfil() {
+  const j = (await contaReq('/foto', 'DELETE')) as { conta: Conta };
+  await guardarConta(j.conta);
+}
+/** Troca a senha (também a provisória); os outros aparelhos saem da conta */
+export async function trocarSenha(atual: string, nova: string) {
+  const j = (await contaReq('/senha', 'PUT', { atual, nova })) as { conta: Conta; token?: string };
+  await guardarConta(j.conta, j.token);
+}
+/** Liga o aparelho (token de notificação) à conta */
+export const vincularAparelho = (aparelho: string) => contaReq('/aparelho', 'PUT', { token: aparelho });
+/** Sai da conta neste aparelho (mesmo sem internet, sai daqui) */
+export async function sairDaConta() {
+  try {
+    if (token) await contaReq('/sair', 'POST', undefined, 6000);
+  } catch {}
+  await guardarConta(null, null);
+}
+export async function apagarMinhaConta() {
+  await contaReq('', 'DELETE');
+  await guardarConta(null, null);
 }
 
 async function admin(caminho: string, metodo: string, corpo?: unknown, ms = 12000) {
-  if (!token) throw new Error('Entre como administrador primeiro');
+  if (!token) throw new Error('Entre na sua conta primeiro (Ajustes)');
   const r = await comTempo(`${SERVIDOR}/api/admin${caminho}`, {
     method: metodo,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: corpo ? JSON.stringify(corpo) : undefined,
   }, ms);
   if (r.status === 401) {
-    await sair();
-    throw new Error('Sessão expirada. Entre de novo.');
+    await guardarConta(null, null);
+    throw new Error(SESSAO_TERMINOU);
   }
   if (!r.ok) {
-    const t = await r.text();
-    let msg = t;
-    try {
-      msg = JSON.parse(t).erro ?? t;
-    } catch {}
-    throw new Error(msg || `Erro ${r.status}`);
+    // sem permissão: a conta pode ter mudado (alguém tirou uma capacidade); relê para as telas acompanharem
+    if (r.status === 403) buscarConta().catch(() => {});
+    throw new Error(await msgErro(r));
   }
   return r.status === 204 ? null : r.json();
 }
+
+// ---------------- Pessoas e comissões (Administração)
+export const listarPessoas = (q = '') => admin(`/pessoas${q ? `?q=${encodeURIComponent(q)}` : ''}`, 'GET') as Promise<Pessoa[]>;
+export const abrirPessoa = (id: string) => admin(`/pessoas/${id}`, 'GET') as Promise<Pessoa>;
+export const salvarPessoa = (id: string, p: { admin?: boolean; capacidades?: Capacidade[]; ativo?: boolean }) => admin(`/pessoas/${id}`, 'PUT', p) as Promise<Pessoa>;
+export const gerarSenhaProvisoria = (id: string) => admin(`/pessoas/${id}/senha`, 'POST') as Promise<{ senha: string }>;
+export const apagarPessoa = (id: string) => admin(`/pessoas/${id}`, 'DELETE');
+export const listarComissoes = () => admin('/comissoes', 'GET') as Promise<ComissaoResumo[]>;
+export const criarComissao = (nome: string) => admin('/comissoes', 'POST', { nome }) as Promise<ComissaoResumo>;
+export const renomearComissao = (id: string, nome: string) => admin(`/comissoes/${id}`, 'PUT', { nome });
+export const apagarComissao = (id: string) => admin(`/comissoes/${id}`, 'DELETE');
+export const abrirComissao = (id: string) => admin(`/comissoes/${id}`, 'GET') as Promise<{ id: string; nome: string; membros: MembroComissao[] }>;
+export const porNaComissao = (id: string, pessoa: string, coordenador = false) => admin(`/comissoes/${id}/membros/${pessoa}`, 'PUT', { coordenador });
+export const tirarDaComissao = (id: string, pessoa: string) => admin(`/comissoes/${id}/membros/${pessoa}`, 'DELETE');
 
 /** "Também publicar em Avisos": a notificação do evento vira um aviso (com o botão "Ver evento") */
 export interface AvisoDoEvento {
@@ -404,7 +560,7 @@ const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Envia um vídeo em partes (cada uma abaixo do limite do Cloudflare) e espera o servidor comprimir.
  *  `progresso` recebe a fase e, no envio, a fração já enviada (0 a 1). */
 export async function enviarVideo(uri: string, progresso: (fase: 'enviando' | 'preparando', fracao: number) => void): Promise<VideoMidia> {
-  if (!token) throw new Error('Entre como administrador primeiro');
+  if (!token) throw new Error('Entre na sua conta primeiro (Ajustes)');
   const ini = (await admin('/videos', 'POST')) as { id: string; parteMax: number };
   const arq = new File(uri);
   const total = arq.size;

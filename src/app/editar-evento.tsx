@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 
+import { pode, useConta } from '@/estado/conta';
 import { apagarEvento, atualizar, cancelarEvento, descancelarEvento, reagendarEvento, salvarEvento, useServidor, type BotaoLink, type TipoEvento, type VideoMidia } from '@/servidor/api';
 import { Espaco, Marca, usePaleta } from '@/tema';
 import { Botao, Chave, Fundo, Linha, Secao, toque } from '@/ui/base';
@@ -25,6 +26,8 @@ export default function EditarEvento() {
   const router = useRouter();
   const c = usePaleta();
   const orig = srv.eventos.find((e) => e.id === id);
+  // notificar e publicar em Avisos: só quem tem "Avisos e notificações" (0.7.0; o servidor também confere)
+  const podeAvisar = pode(useConta(), 'avisos');
 
   const amanha19 = new Date();
   amanha19.setDate(amanha19.getDate() + 1);
@@ -85,7 +88,7 @@ export default function EditarEvento() {
     urgente,
   });
   const perguntarNotificar = (prefixo: string, fazer: (n?: { titulo: string; texto: string; urgente: boolean }) => void) =>
-    Alert.alert('Avisar os membros?', `Sai uma notificação para todos: "${notifCom(prefixo).titulo}".`, [
+    !podeAvisar ? fazer(undefined) : Alert.alert('Avisar os membros?', `Sai uma notificação para todos: "${notifCom(prefixo).titulo}".`, [
       { text: 'Voltar', style: 'cancel' },
       { text: 'Sem notificação', onPress: () => fazer(undefined) },
       { text: publicarAviso ? 'Notificar e publicar em Avisos' : 'Notificar', onPress: () => fazer(notifCom(prefixo)) },
@@ -250,6 +253,7 @@ export default function EditarEvento() {
           ) : null}
         </Secao>
 
+        {podeAvisar ? (
         <Secao titulo="Notificação">
           <Linha
             titulo={orig ? 'Avisar que mudou' : 'Notificar todos'}
@@ -294,6 +298,7 @@ export default function EditarEvento() {
             </>
           ) : null}
         </Secao>
+        ) : null}
 
         <View style={{ marginHorizontal: Espaco.l, gap: 12, marginBottom: 60 }}>
           <Botao titulo={salvando ? 'Salvando…' : notificar ? 'Publicar e notificar' : 'Publicar'} icone="checkmark" desativado={salvando || enviandoVideo || !titulo.trim()} onPress={salvar} />

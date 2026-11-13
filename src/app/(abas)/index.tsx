@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import type { SFSymbol } from 'expo-symbols';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { semana } from '@/comunidade/html';
@@ -11,7 +11,6 @@ import { instalarApk, useApkNovo } from '@/estado/apkNovo';
 import { aplicarAtualizacao, buscarNova, useAtualizacaoPronta } from '@/estado/atualizacaoApp';
 import { existe, imagemUri, usePacote } from '@/conteudo/pacote';
 import { infoRemota, type InfoRemota } from '@/conteudo/remoto';
-import { lerAjustes } from '@/estado/ajustes';
 import { abrirRezarHoje } from '@/estado/dataRezar';
 import { dataPorExtenso, diaLiturgico, hojeIso } from '@/liturgia/calendario';
 import { HORAS } from '@/liturgia/horas';
@@ -62,7 +61,6 @@ export default function Hoje() {
       setPuxando(false);
     }
   };
-  const jaAbriuMenu = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -70,15 +68,6 @@ export default function Hoje() {
       setAgora(new Date());
     }, []),
   );
-
-  // Ajuste "Iniciar com menu aberto": abre o menu das horas (Rezar › Liturgia das Horas) ao iniciar
-  useEffect(() => {
-    if (!jaAbriuMenu.current && lerAjustes().iniciarMenuAberto) {
-      jaAbriuMenu.current = true;
-      router.navigate('/orar');
-      router.push({ pathname: '/secao', params: { id: 'horas' } });
-    }
-  }, [router]);
 
   // conteúdo novo no servidor (confere uma vez ao abrir)
   const [remoto, setRemoto] = useState<InfoRemota | null>(null);
@@ -319,7 +308,8 @@ export default function Hoje() {
         <Pressable
           onPress={() => {
             toque();
-            router.push({ pathname: '/hora', params: { h: sugerida.id, data: dataParaHora(sugerida.id, agora) } });
+            // `agora`: na Hora, o toque na data também troca a Hora (pedido do seminarista, 0.7.0)
+            router.push({ pathname: '/hora', params: { h: sugerida.id, data: dataParaHora(sugerida.id, agora), agora: '1' } });
           }}
           style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.xxl }}>
           <Vidro tinta={c.vinhoCheio} style={{ borderRadius: 24 }} interativo>

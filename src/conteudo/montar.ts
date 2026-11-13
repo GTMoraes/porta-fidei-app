@@ -243,9 +243,10 @@ export async function montarArquivo(arquivo: string, desde?: string, ate?: strin
       trecho = trecho.slice(0, fimAnt > 0 ? fimAnt : i);
     }
   }
-  // Instrução Geral: índice, setas e notas voltam a ser links (ver iglh.ts)
+  // Instrução Geral: índice, setas e notas voltam a ser links (ver iglh.ts); o texto fica todo à esquerda (pedido do
+  // seminarista, 0.7.0: centralizado, um documento longo cansava a leitura)
   if (arquivo === 'IGLH' && !desde) trecho = ligarIglh(trecho);
-  return { corpo: `<section class="parte">${trecho}</section>`, faltando: [] };
+  return { corpo: `<section class="parte${arquivo === 'IGLH' ? ' pf-iglh' : ''}">${trecho}</section>`, faltando: [] };
 }
 
 /** Converte o HTML em texto corrido para a leitura em voz */
@@ -300,6 +301,9 @@ header h1{font-family:${familiaTitulo};font-size:1.25em;font-weight:700;margin:0
 header p{margin:4px 0 0;font-size:.8em;color:var(--fr);line-height:1.3}
 .parte{text-align:left}
 .c{text-align:center}
+.pf-iglh,.pf-iglh .c,.pf-iglh [align=center],.pf-iglh center{text-align:left!important}
+/* botão dentro do texto que abre outra tela (ex.: "Outros santos deste dia", na vida do santo) */
+.pf-botao{display:block;margin:2em auto .5em;max-width:340px;padding:.7em 1em;border:1px solid var(--dt);border-radius:14px;text-align:center;color:var(--dt)!important;font-family:-apple-system,system-ui,sans-serif;font-size:.8em;font-weight:600;letter-spacing:.01em}
 ${horasEsquerda ? '.c,[align=center],center{text-align:left!important}' : ''}
 p{margin:0 0 .9em}
 .r,.r *{color:var(--rb)}

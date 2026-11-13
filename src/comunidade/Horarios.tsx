@@ -1,6 +1,6 @@
 // Bloco "rotinas" das páginas da aba Comunidade: os horários fixos cadastrados na Administração › Rotinas, por tipo
 // (Missas, Adoração, Grupos de oração, Comissões). Rotinas iguais em horários diferentes viram uma linha
-// ("Domingos, 11h e 17h30"). Mostra sempre todas as comissões, seja qual for o ajuste "Sua comissão".
+// ("Domingos, 11h e 17h30"). Mostra sempre todas as comissões, seja qual for o ajuste "Suas comissões".
 
 import { Text } from 'react-native';
 
@@ -45,6 +45,7 @@ export function BlocoRotinas({ so }: { so?: 'comissao' }) {
                 onPress={
                   l.lat != null || l.endereco ? () => abrirNoMapa({ nome: l.titulo, local: l.lat != null ? l.local || l.titulo : l.endereco, lat: l.lat, lng: l.lng }) : undefined
                 }
+                externo
                 ultimo={i === g.linhas.length - 1}
               />
             );

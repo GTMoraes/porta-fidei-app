@@ -14,7 +14,7 @@ import { useAjustes } from '@/estado/ajustes';
 import { dataDaHora, useDataRezar } from '@/estado/dataRezar';
 import { diaLiturgico } from '@/liturgia/calendario';
 import { lerDiaCNBB, resumoLeituras } from '@/liturgia/cnbb';
-import { HORAS } from '@/liturgia/horas';
+import { HORAS_CANONICAS as HORAS } from '@/liturgia/horas';
 import { santosDoDia } from '@/liturgia/martirologio';
 import { missalDoDia } from '@/liturgia/missal';
 import { useServidor, type Comunidade } from '@/servidor/api';

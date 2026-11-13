@@ -10,6 +10,7 @@ import { PAGINAS } from '@/comunidade/sobre';
 import { Espaco, Fontes, usePaleta } from '@/tema';
 import { Aviso, Botao, Fundo, Linha, Secao, TituloPagina } from '@/ui/base';
 import { abrirLink } from '@/ui/Midia';
+import { ehLinkDoApp } from '@/util/destinos';
 import { abrirDoacao } from '@/comunidade/Contribuir';
 
 export default function TelaPagina() {
@@ -73,7 +74,7 @@ export default function TelaPagina() {
               return (
                 <Secao key={i}>
                   {b.itens.map((it, k) => (
-                    <Linha key={k} titulo={it.titulo} sub={it.sub} icone={it.icone as any} onPress={() => abrirLink(it.url)} ultimo={k === b.itens.length - 1} />
+                    <Linha key={k} titulo={it.titulo} sub={it.sub} icone={it.icone as any} onPress={() => abrirLink(it.url)} externo={!ehLinkDoApp(it.url)} ultimo={k === b.itens.length - 1} />
                   ))}
                 </Secao>
               );
@@ -98,8 +99,8 @@ export default function TelaPagina() {
         })}
         {p.id === 'benfeitor' ? (
           <View style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.xl, gap: 10 }}>
-            <Botao titulo="Seja Benfeitor" icone="arrow.triangle.2.circlepath" onPress={() => abrirDoacao(true)} />
-            <Botao titulo="Fazer uma doação única" icone="heart" tipo="secundario" onPress={() => abrirDoacao(false)} />
+            <Botao titulo="Seja Benfeitor" icone="arrow.triangle.2.circlepath" onPress={() => abrirDoacao(true)} externo />
+            <Botao titulo="Fazer uma doação única" icone="heart" tipo="secundario" onPress={() => abrirDoacao(false)} externo />
           </View>
         ) : (
           <RodapeContribuir />

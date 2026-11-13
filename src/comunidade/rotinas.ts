@@ -1,7 +1,7 @@
 // Rotinas da Comunidade: horários fixos que se repetem (missas da semana, adoração, grupos de oração, reuniões das
 // comissões), cadastrados na Administração › Rotinas. Diferentes dos eventos pontuais da Agenda.
 // Aqui: os dias em que cada uma cai, o texto da repetição ("Segunda a sexta", "Toda 1ª sexta-feira do mês"),
-// o agrupamento da página "Horários e encontros" e o filtro da Agenda ("Sua comissão").
+// o agrupamento da página "Horários e encontros" e o filtro da Agenda ("Suas comissões").
 // Os horários são os de Recife (UTC-3, sem horário de verão), como os eventos do servidor.
 
 import type { Aviso, ExcecaoRotina, RegraRepeticao, Rotina, TipoRotina } from '@/servidor/api';
@@ -158,13 +158,13 @@ export function diaHoraCurtos(iso: string, hora: string) {
   return `${sem} ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}, ${horaCurta(hora)}`;
 }
 
-/** Na Agenda, as comissões entram só as marcadas em "Sua comissão" (['*'] = todas); as outras rotinas, sempre */
+/** Na Agenda, as comissões entram só as da lista (as da pessoa e as que ela quis ver; ['*'] = todas); as outras rotinas, sempre */
 export function rotinasDaAgenda(rs: Rotina[] | undefined, suasComissoes: string[]): Rotina[] {
   const todas = suasComissoes.includes('*');
   return (rs ?? []).filter((r) => r.ativa !== false && (r.tipo !== 'comissao' || todas || (!!r.comissao && suasComissoes.includes(r.comissao))));
 }
 
-/** Nomes das comissões que têm horário cadastrado (para "Sua comissão"), em ordem alfabética */
+/** Nomes das comissões que têm horário cadastrado (para "Ver também as reuniões de"), em ordem alfabética */
 export function nomesComissoes(rs: Rotina[] | undefined): string[] {
   const nomes = new Set((rs ?? []).filter((r) => r.tipo === 'comissao' && r.comissao).map((r) => r.comissao!.trim()));
   return [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR'));

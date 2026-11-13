@@ -4,11 +4,11 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AppState, Platform } from 'react-native';
+import { Appearance, AppState, Platform } from 'react-native';
 
 import { carregarPacote } from '@/conteudo/pacote';
 import { carregarChaveConteudo } from '@/conteudo/remoto';
-import { carregarAjustes } from '@/estado/ajustes';
+import { carregarAjustes, useAjustes } from '@/estado/ajustes';
 import { buscarNova } from '@/estado/atualizacaoApp';
 import { registrarTarefaPush } from '@/estado/segundoPlano';
 import { FolhaOpcoes } from '@/ui/Opcoes';
@@ -25,6 +25,14 @@ const ANDROID = Platform.OS === 'android';
 export default function Raiz() {
   const [pronto, setPronto] = useState(false);
   const c = usePaleta();
+  const temaApp = useAjustes().tema;
+
+  // iPhone: o tema escolhido no app vale também para o sistema (barra de status, alertas, teclado). Antes do iOS 26,
+  // sem isso, no tema Escuro com o iPhone no modo claro, a hora e a bateria ficavam pretas (o iOS 26 ajusta sozinho).
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    Appearance.setColorScheme(temaApp === 'sistema' ? 'unspecified' : temaApp === 'escuro' ? 'dark' : 'light');
+  }, [temaApp]);
 
   useEffect(() => {
     Promise.allSettled([carregarAjustes(), carregarPacote(), carregarCache(), carregarToken(), carregarChaveConteudo()]).finally(() => {
@@ -146,7 +154,16 @@ export default function Raiz() {
         <Stack.Screen name="editar-oracao" options={{ title: 'Oração', presentation: 'modal' }} />
         <Stack.Screen name="admin-rotinas" options={{ title: 'Rotinas' }} />
         <Stack.Screen name="editar-rotina" options={{ title: 'Rotina', presentation: 'modal' }} />
-        <Stack.Screen name="sua-comissao" options={{ title: 'Sua comissão' }} />
+        <Stack.Screen name="sua-comissao" options={{ title: 'Suas comissões' }} />
+        <Stack.Screen name="entrar" options={{ title: 'Entrar', presentation: 'modal' }} />
+        <Stack.Screen name="criar-conta" options={{ title: 'Criar conta', presentation: 'modal' }} />
+        <Stack.Screen name="nova-senha" options={{ title: '', presentation: 'modal' }} />
+        <Stack.Screen name="conta" options={{ title: 'Sua conta' }} />
+        <Stack.Screen name="pessoas" options={{ title: 'Pessoas' }} />
+        <Stack.Screen name="pessoa" options={{ title: '' }} />
+        <Stack.Screen name="comissoes" options={{ title: 'Comissões' }} />
+        <Stack.Screen name="comissao" options={{ title: '' }} />
+        <Stack.Screen name="editar-comissao" options={{ title: '', presentation: 'modal' }} />
         <Stack.Screen name="rotina-dia" options={{ title: '' }} />
         <Stack.Screen name="editar-excecao" options={{ title: '', presentation: 'modal' }} />
       </Stack>

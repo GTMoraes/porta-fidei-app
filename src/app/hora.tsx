@@ -1,4 +1,9 @@
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+// Uma Hora da Liturgia das Horas. A data fica no cabeçalho, ao lado da seta de voltar (tocar abre o calendário;
+// pedido do seminarista, 0.7.0). Aberta pelo "Rezar agora" da Hoje (`agora`), o toque na data também troca a Hora.
+// Laudes e Ofício das Leituras têm o botão "Invitatório", que abre o Invitatório (ele não é uma Hora: é o começo da
+// primeira oração do dia), com a escolha do salmo e da antífona entre as estrofes.
+
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import { Pressable, Switch, Text, View } from 'react-native';
@@ -7,28 +12,32 @@ import { montarHora } from '@/conteudo/montar';
 import { existe, lerDado, usePacote } from '@/conteudo/pacote';
 import { mudarAjustes, useAjustes } from '@/estado/ajustes';
 import { DIAS_SEMANA, diaLiturgico, hojeIso, somaDias } from '@/liturgia/calendario';
-import { planoDaHora, type Hora } from '@/liturgia/horas';
+import { HORAS_CANONICAS, planoDaHora, type Hora } from '@/liturgia/horas';
 import { antifonaInvitatorio, type DadosInvitatorio } from '@/liturgia/invitatorio';
 import { usePaleta } from '@/tema';
 import { Icone, toque, Vidro } from '@/ui/base';
-import { SeletorDataLiturgica } from '@/ui/CalendarioLiturgico';
+import { PilulaData, SeletorDataLiturgica } from '@/ui/CalendarioLiturgico';
 import { Leitor } from '@/ui/Leitor';
 import { mostrarOpcoes } from '@/ui/Opcoes';
-import { dataCurta, dataParaHora } from '@/util/datas';
+import { dataParaHora } from '@/util/datas';
 
 export default function TelaHora() {
-  const p = useLocalSearchParams<{ h: Hora; data?: string }>();
+  const p = useLocalSearchParams<{ h: Hora; data?: string; agora?: string }>();
+  const router = useRouter();
+  // a Hora pode mudar aqui mesmo (pela data no cabeçalho, quando veio do "Rezar agora")
+  const [h, setH] = useState<Hora>(p.h);
   // memória facultativa só muda Invitatório, Ofício das Leituras, Laudes e Vésperas (na Hora Média e nas Completas vale o dia)
-  const aceitaMemoria = ['invitatorio', 'leituras', 'laudes', 'vesperas'].includes(p.h);
+  const aceitaMemoria = ['invitatorio', 'leituras', 'laudes', 'vesperas'].includes(h);
   const aj = useAjustes();
   const pacote = usePacote();
   const c = usePaleta();
   const [data, setData] = useState(p.data || dataParaHora(p.h));
+  const [mexeuNaData, setMexeuNaData] = useState(false);
   const [memoria, setMemoria] = useState<string | undefined>();
   const [escolhendoDia, setEscolhendoDia] = useState(false); // calendário aberto (tocar na data)
   const [corpo, setCorpo] = useState<string | null>(null);
   const [dadosInv, setDadosInv] = useState<DadosInvitatorio | null | undefined>(undefined);
-  const ehInvitatorio = p.h === 'invitatorio';
+  const ehInvitatorio = h === 'invitatorio';
   // o seletor de memória facultativa pulsa uma vez a cada vez que se entra na tela
   // (não de novo quando os controles somem e voltam)
   const [pulso, setPulso] = useState(0);
@@ -47,11 +56,11 @@ export default function TelaHora() {
 
   const dia = useMemo(() => diaLiturgico(data), [data]);
   // Completas de madrugada abertas com o dia anterior (dataParaHora): avisa no texto
-  const madrugada = p.h === 'completas' && data !== hojeIso() && data === somaDias(hojeIso(), -1) && new Date().getHours() < 4;
+  const madrugada = h === 'completas' && data !== hojeIso() && data === somaDias(hojeIso(), -1) && new Date().getHours() < 4;
   const nomeDia = DIAS_SEMANA[dia.diaSemana].toLowerCase();
   const plano = useMemo(
     () =>
-      planoDaHora(data, p.h, {
+      planoDaHora(data, h, {
         existe,
         bienal: aj.bienal,
         memoriaEscolhida: memoria,
@@ -59,7 +68,7 @@ export default function TelaHora() {
         antifonaNasEstrofes: aj.antifonaNasEstrofes,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, p.h, aj.bienal, aj.invitatorio, aj.antifonaNasEstrofes, memoria, pacote.manifest],
+    [data, h, aj.bienal, aj.invitatorio, aj.antifonaNasEstrofes, memoria, pacote.manifest],
   );
 
   useEffect(() => {
@@ -77,7 +86,7 @@ export default function TelaHora() {
       if (!html) html = `<p class="c"><span class="lacuna">${plano.avisos[0] ?? 'Texto indisponível.'}</span></p>`;
       if (madrugada)
         html = `<p class="c"><span class="lacuna">Apesar de já ter passado da meia-noite, estas são as Completas do dia que você está encerrando (${nomeDia}).</span></p>` + html;
-      if (dia.comemoracao && (p.h === 'laudes' || p.h === 'vesperas'))
+      if (dia.comemoracao && (h === 'laudes' || h === 'vesperas'))
         html = `<p class="c"><span class="lacuna">Comemoração: ${dia.comemoracao.nome}</span></p>` + html;
       setCorpo(html);
     });
@@ -87,60 +96,64 @@ export default function TelaHora() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plano, aj.repetirRespostas, aj.laudesAmpliada, dadosInv, madrugada]);
 
-  const mudarDia = (n: number) => {
-    toque();
-    setMemoria(undefined);
-    setData((d) => somaDias(d, n));
-  };
   const irParaDia = (d: string) => {
     setEscolhendoDia(false);
     setMemoria(undefined);
+    setMexeuNaData(true);
     setData(d);
   };
-
-  const topo = (
-    <View style={{ gap: 6 }}>
-      <Vidro style={{ borderRadius: 22 }} interativo>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Pressable onPress={() => mudarDia(-1)} hitSlop={8} style={{ padding: 12 }}>
-            <Icone nome="chevron.left" tamanho={16} />
-          </Pressable>
-          {/* tocar na data abre o calendário litúrgico para escolher o dia */}
-          <Pressable
-            style={{ flex: 1 }}
-            accessibilityRole="button"
-            accessibilityHint="Abre o calendário para escolher o dia"
-            onPress={() => {
-              toque();
-              setEscolhendoDia(true);
-            }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 }}>
-              <Text style={{ color: c.texto, fontSize: 14, fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
-                {dataCurta(new Date(data + 'T12:00:00'))}
-                {data === hojeIso() ? ' · hoje' : ''}
-              </Text>
-              <Icone nome="chevron.down" cor={c.textoFraco} tamanho={10} />
-            </View>
-            {/* a celebração fica só embaixo do título da hora (pedido do seminarista: não repetir na barra) */}
-          </Pressable>
-          <Pressable onPress={() => mudarDia(1)} hitSlop={8} style={{ padding: 12 }}>
-            <Icone nome="chevron.right" tamanho={16} />
-          </Pressable>
-        </View>
-      </Vidro>
-      {dia.facultativas.length && !plano.primeirasVesperas && aceitaMemoria ? (
-        <SeletorMemoria
-          opcoes={dia.facultativas.filter((f) => !!f.slug).map((f) => ({ slug: f.slug!, nome: f.nome }))}
-          escolhida={memoria}
-          aoEscolher={setMemoria}
-          pulso={pulso}
-          tentarPulsar={tentarPulsar}
-        />
-      ) : null}
-    </View>
-  );
+  // trocar a Hora (só aberta pelo "Rezar agora"): se a pessoa não escolheu outro dia, vale o dia certo da Hora nova
+  // (as Completas de madrugada são as do dia que terminou)
+  const mudarHora = (nova: Hora) => {
+    setMemoria(undefined);
+    if (!mexeuNaData) setData(dataParaHora(nova));
+    setH(nova);
+  };
+  const nomeHora = HORAS_CANONICAS.find((x) => x.id === h)?.curto;
+  const tocarData = () => {
+    toque();
+    if (!p.agora) return setEscolhendoDia(true);
+    mostrarOpcoes('Liturgia das Horas', [
+      ...HORAS_CANONICAS.map((x) => ({ rotulo: `${x.id === h ? '✓ ' : ''}${x.nome}`, onPress: () => mudarHora(x.id) })),
+      { rotulo: 'Outro dia…', onPress: () => setEscolhendoDia(true) },
+    ]);
+  };
 
   const comChips = dia.facultativas.length > 0 && !plano.primeirasVesperas && aceitaMemoria;
+  // o Invitatório começa a primeira oração do dia: Laudes ou Ofício das Leituras
+  const comInvitatorio = h === 'laudes' || h === 'leituras';
+  const topo =
+    comChips || comInvitatorio ? (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+        {comInvitatorio ? (
+          <Pressable
+            onPress={() => {
+              toque();
+              router.push({ pathname: '/hora', params: { h: 'invitatorio', data } });
+            }}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir o Invitatório">
+            <Vidro style={{ borderRadius: 15 }} interativo>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12 }}>
+                <Icone nome="bell" tamanho={12} />
+                <Text style={{ color: c.destaque, fontSize: 12.5, fontWeight: '600' }}>Invitatório</Text>
+                <Icone nome="chevron.right" cor={c.textoFraco} tamanho={9} />
+              </View>
+            </Vidro>
+          </Pressable>
+        ) : null}
+        {comChips ? (
+          <SeletorMemoria
+            opcoes={dia.facultativas.filter((f) => !!f.slug).map((f) => ({ slug: f.slug!, nome: f.nome }))}
+            escolhida={memoria}
+            aoEscolher={setMemoria}
+            pulso={pulso}
+            tentarPulsar={tentarPulsar}
+          />
+        ) : null}
+      </View>
+    ) : undefined;
 
   // Invitatório: escolha do salmo e da antífona entre as estrofes (como no iLiturgia)
   const rodape = ehInvitatorio ? (
@@ -175,14 +188,27 @@ export default function TelaHora() {
 
   return (
     <>
+      <Stack.Screen
+        options={{
+          headerTitleAlign: 'center',
+          headerTitle: () => (
+            <PilulaData
+              data={data}
+              antes={p.agora ? nomeHora : undefined}
+              dica={p.agora ? 'Troca a Hora ou o dia' : 'Abre o calendário para escolher o dia'}
+              onPress={tocarData}
+            />
+          ),
+        }}
+      />
       <Leitor
         tipo="horas"
         rodape={rodape}
-        alturaTopo={comChips ? 98 : 64}
+        alturaTopo={comChips && comInvitatorio ? 72 : 34}
         corpo={corpo}
         titulo={plano.titulo}
         subtitulo={plano.diaCelebrado.celebracao.nome}
-        permitirSilencio={p.h === 'laudes' || p.h === 'vesperas'}
+        permitirSilencio={h === 'laudes' || h === 'vesperas'}
         topo={topo}
       />
       <SeletorDataLiturgica visivel={escolhendoDia} data={data} aoEscolher={irParaDia} aoFechar={() => setEscolhendoDia(false)} />

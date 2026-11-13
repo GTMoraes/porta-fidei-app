@@ -5,6 +5,7 @@ import Animated, { LinearTransition, useAnimatedStyle, useSharedValue, withSprin
 
 import { ocorrencias, rotinasDaAgenda, type Ocorrencia } from '@/comunidade/rotinas';
 import { mudarAjustes, useAjustes } from '@/estado/ajustes';
+import { comissoesNaAgenda, pode, useConta } from '@/estado/conta';
 import { COR_HEX, diaLiturgico, hojeIso } from '@/liturgia/calendario';
 import { arquivado, arquivar, remover, removido, useArquivados, visivel } from '@/estado/arquivados';
 import { eventosDaAgenda, marcarVisto, useNovidadesAgenda } from '@/estado/vistos';
@@ -67,10 +68,12 @@ export default function Agenda() {
   const naJanela = futuros.filter((e) => new Date(e.inicio).getTime() < ate);
   const temMais = futuros.some((e) => new Date(e.inicio).getTime() >= ate);
 
-  // rotinas (missas da semana, adoração, grupos, a sua comissão): com a chave desligada, só as de hoje e as
-  // canceladas ou remarcadas (mudança é notícia); as que já terminaram somem, como os eventos
+  // rotinas (missas da semana, adoração, grupos, as suas comissões e as que a pessoa quis ver): com a chave desligada,
+  // só as de hoje e as canceladas ou remarcadas (mudança é notícia); as que já terminaram somem, como os eventos
   const aj = useAjustes();
-  const rotinas = rotinasDaAgenda(srv.comunidade?.rotinas, aj.suasComissoes);
+  const conta = useConta();
+  const naAgenda = comissoesNaAgenda(conta, aj);
+  const rotinas = rotinasDaAgenda(srv.comunidade?.rotinas, naAgenda);
   const hojeIso = diaIso(meiaNoite);
   const ultimoDia = diaIso(new Date(ate - 12 * 3600_000));
   const ocs = rotinas.length
@@ -132,10 +135,10 @@ export default function Agenda() {
             />
           </View>
 
-          {srv.admin ? (
+          {pode(conta, 'agenda') || pode(conta, 'avisos') ? (
             <View style={{ flexDirection: 'row', gap: 10, marginHorizontal: Espaco.l, marginBottom: Espaco.l }}>
-              <BotaoMais texto="Missa ou evento" onPress={() => router.push('/editar-evento')} />
-              <BotaoMais texto="Aviso" onPress={() => router.push('/editar-aviso')} />
+              {pode(conta, 'agenda') ? <BotaoMais texto="Missa ou evento" onPress={() => router.push('/editar-evento')} /> : null}
+              {pode(conta, 'avisos') ? <BotaoMais texto="Aviso" onPress={() => router.push('/editar-aviso')} /> : null}
             </View>
           ) : null}
 
@@ -154,7 +157,7 @@ export default function Agenda() {
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: c.texto, fontSize: 15 }}>Mostrar rotinas</Text>
                       <Text style={{ color: c.textoFraco, fontSize: 12.5, marginTop: 1 }}>
-                        Horários fixos: missas da semana, adoração, grupos{aj.suasComissoes.length ? ', sua comissão' : ''}. Os de hoje aparecem sempre.
+                        Horários fixos: missas da semana, adoração, grupos{naAgenda.length ? ', comissões' : ''}. Os de hoje aparecem sempre.
                       </Text>
                     </View>
                     <Chave valor={aj.mostrarRotinas} mudar={(v) => mudarAjustes({ mostrarRotinas: v })} />
@@ -212,7 +215,9 @@ export default function Agenda() {
                     <Linha
                       titulo={`Arquivados (${guardados.length})`}
                       sub={soEncerrados ? 'Avisos que já passaram' : 'Os que você arquivou e os que já passaram'}
-                      icone={verArquivados ? 'chevron.up' : 'archivebox'}
+                      icone="archivebox"
+                      direita={<Icone nome={verArquivados ? 'chevron.up' : 'chevron.down'} cor={c.textoFraco} tamanho={13} />}
+                      seta={false}
                       onPress={() => setVerArquivados((v) => !v)}
                       ultimo={!verArquivados}
                     />

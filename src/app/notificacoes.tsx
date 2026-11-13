@@ -2,7 +2,7 @@ import { Alert, ScrollView, View } from 'react-native';
 
 import { mudarAjustes, useAjustes } from '@/estado/ajustes';
 import { pedirPermissao, reagendarLembretes } from '@/estado/lembretes';
-import { HORAS, type Hora } from '@/liturgia/horas';
+import { HORAS_CANONICAS as HORAS, type Hora } from '@/liturgia/horas';
 import { Aviso, Chave, Fundo, Linha, Secao } from '@/ui/base';
 import { SeletorData } from '@/ui/Data';
 import { AJUSTES_DO_APARELHO } from '@/util/plataforma';

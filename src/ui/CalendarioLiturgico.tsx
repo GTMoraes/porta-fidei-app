@@ -9,7 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { COR_HEX, MESES, diaLiturgico, hojeIso } from '@/liturgia/calendario';
 import { Espaco, Marca, fonteTitulo, usePaleta } from '@/tema';
-import { Icone, toque } from './base';
+import { dataCurta } from '@/util/datas';
+import { Icone, toque, Vidro } from './base';
 import { DeslizarMes } from './Deslizar';
 
 const SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
@@ -236,5 +237,27 @@ export function SeletorDataLiturgica({
       </Pressable>
       </GestureHandlerRootView>
     </Modal>
+  );
+}
+
+/**
+ * A data das telas que andam de dia em dia (Liturgia das Horas, Liturgia Diária), no cabeçalho, ao lado da seta de
+ * voltar (0.7.0, pedido do seminarista; antes era uma barra com setas logo abaixo). O toque abre o calendário (ou, na
+ * Hora aberta pelo "Rezar agora", as Horas e "Outro dia…"). `antes`: o nome da Hora antes da data.
+ */
+export function PilulaData({ data, antes, dica, onPress }: { data: string; antes?: string; dica?: string; onPress: () => void }) {
+  const c = usePaleta();
+  const texto = `${antes ? `${antes} · ` : ''}${dataCurta(new Date(data + 'T12:00:00'))}${!antes && data === hojeIso() ? ' · hoje' : ''}`;
+  return (
+    <Pressable onPress={onPress} hitSlop={6} accessibilityRole="button" accessibilityLabel={texto} accessibilityHint={dica}>
+      <Vidro style={{ borderRadius: 17 }} interativo>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, height: 34, paddingHorizontal: 14 }}>
+          <Text style={{ color: c.texto, fontSize: 14, fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
+            {texto}
+          </Text>
+          <Icone nome="chevron.down" cor={c.textoFraco} tamanho={10} />
+        </View>
+      </Vidro>
+    </Pressable>
   );
 }

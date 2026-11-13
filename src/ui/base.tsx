@@ -13,6 +13,8 @@ import { MATERIAL } from './icones-android';
 import { PESO_CHEIO } from './simbolosCheios';
 
 const VIDRO = Platform.OS === 'ios' && isLiquidGlassAvailable();
+/** iPhone com Liquid Glass (iOS 26 em diante): o sistema já desenha o vidro dos botões do cabeçalho */
+export const TEM_VIDRO = VIDRO;
 const ANDROID = Platform.OS === 'android';
 // no Android, estes desenham com a fonte cheia do Material Symbols (a de sempre só tem o desenho vazado)
 const CHEIOS_ANDROID = new Set(['star.fill', 'heart.fill']);
@@ -219,6 +221,7 @@ export function Linha({
   onPress,
   ultimo,
   seta = !!onPress,
+  externo,
 }: {
   titulo: string;
   sub?: string;
@@ -230,6 +233,8 @@ export function Linha({
   onPress?: () => void;
   ultimo?: boolean;
   seta?: boolean;
+  /** leva para fora do app (site, rede social, mapa): a seta diagonal no lugar da seta para a direita */
+  externo?: boolean;
 }) {
   const c = usePaleta();
   const conteudo = (
@@ -244,7 +249,7 @@ export function Linha({
         {sub ? <Text style={{ color: c.textoFraco, fontSize: 13.5, marginTop: 2 }}>{sub}</Text> : null}
       </View>
       {direita}
-      {seta ? <Icone nome="chevron.right" cor={c.textoFraco} tamanho={14} /> : null}
+      {seta ? <Icone nome={externo ? 'arrow.up.right' : 'chevron.right'} cor={c.textoFraco} tamanho={externo ? 13 : 14} /> : null}
     </View>
   );
   return (
@@ -286,12 +291,15 @@ export function Botao({
   icone,
   tipo = 'principal',
   desativado,
+  externo,
 }: {
   titulo: string;
   onPress: () => void;
   icone?: SFSymbol;
   tipo?: 'principal' | 'secundario' | 'perigo';
   desativado?: boolean;
+  /** leva para fora do app: a seta diagonal depois do texto */
+  externo?: boolean;
 }) {
   const c = usePaleta();
   const cor = tipo === 'perigo' ? '#C0392B' : tipo === 'principal' ? Marca.ouro : c.destaque;
@@ -307,6 +315,7 @@ export function Botao({
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, paddingHorizontal: 20 }}>
           {icone ? <Icone nome={icone} cor={tipo === 'principal' ? '#fff' : cor} tamanho={17} /> : null}
           <Text style={{ color: tipo === 'principal' ? '#fff' : cor, fontSize: 16, fontWeight: '600' }}>{titulo}</Text>
+          {externo ? <Icone nome="arrow.up.right" cor={tipo === 'principal' ? '#fff' : cor} tamanho={13} /> : null}
         </View>
       </Vidro>
     </Pressable>
@@ -320,5 +329,34 @@ export function Aviso({ texto, icone = 'info.circle' }: { texto: string; icone?:
       <Icone nome={icone} tamanho={18} />
       <Text style={{ color: c.textoSuave, flex: 1, fontSize: 14.5, lineHeight: 20 }}>{texto}</Text>
     </View>
+  );
+}
+
+/**
+ * Botão do cabeçalho das telas de leitura (voltar, "PDF original", página de origem). No iPhone sem Liquid Glass
+ * (antes do iOS 26) o cabeçalho é transparente e o ícone solto, por cima do texto, parecia um caractere: lá ele ganha
+ * um círculo de vidro, como a barra de baixo. No iOS 26 o próprio sistema desenha o vidro; no Android o cabeçalho é
+ * sólido. `texto`: botão com ícone e texto (cápsula).
+ */
+export function BotaoCabecalho({ icone, texto, rotulo, onPress }: { icone: SFSymbol; texto?: string; rotulo?: string; onPress: () => void }) {
+  const c = usePaleta();
+  const conteudo = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 34, minWidth: 34, paddingHorizontal: texto ? 12 : 0 }}>
+      <Icone nome={icone} tamanho={texto ? 17 : 19} />
+      {texto ? <Text style={{ color: c.destaque, fontSize: 15 }}>{texto}</Text> : null}
+    </View>
+  );
+  return (
+    <Pressable
+      onPress={() => {
+        toque();
+        onPress();
+      }}
+      hitSlop={10}
+      accessibilityRole="button"
+      accessibilityLabel={rotulo ?? texto}
+      style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
+      {Platform.OS === 'ios' && !VIDRO ? <Vidro style={{ borderRadius: 17 }}>{conteudo}</Vidro> : conteudo}
+    </Pressable>
   );
 }

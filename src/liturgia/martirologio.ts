@@ -12,6 +12,14 @@ export function santosDoDia(dataIso: string): string[] {
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
+/** Na vida do santo: um botão que abre a página "Outros santos do dia" (antes a lista vinha no fim do texto e se misturava
+ *  com a vida do santo; pedido do seminarista, 0.7.0). O leitor abre `pf://martirologio/<data>`. */
+export function htmlBotaoMartirologio(dataIso: string): string {
+  const n = santosDoDia(dataIso).length;
+  if (!n) return '';
+  return `<p><a class="pf-botao" href="pf://martirologio/${dataIso}" data-titulo="Outros santos do dia">Outros santos deste dia (${n}) ›</a></p>`;
+}
+
 /** Seção em HTML para o leitor */
 export function htmlMartirologio(dataIso: string, titulo = 'Outros santos deste dia'): string {
   const l = santosDoDia(dataIso);
