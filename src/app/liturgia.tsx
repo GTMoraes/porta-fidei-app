@@ -48,27 +48,27 @@ export default function LiturgiaDiaria() {
     setBaixando(true);
   };
 
+  // a data e o botão da CNBB somem junto com os controles (toque no texto); a seta de voltar fica
+  const [controles, setControles] = useState(true);
   useEffect(() => {
     nav.setOptions({
       title: '',
       headerTitleAlign: 'center',
-      headerRight: () => <BotaoCabecalho icone="safari" rotulo="Abrir a Liturgia Diária no site da CNBB" onPress={() => WebBrowser.openBrowserAsync(URL_CNBB)} />,
+      headerRight: () =>
+        controles ? <BotaoCabecalho icone="safari" rotulo="Abrir a Liturgia Diária no site da CNBB" onPress={() => WebBrowser.openBrowserAsync(URL_CNBB)} /> : null,
+      headerTitle: () =>
+        controles ? (
+          <PilulaData
+            data={data}
+            dica="Abre o calendário para escolher o dia"
+            onPress={() => {
+              toque();
+              setEscolhendoDia(true);
+            }}
+          />
+        ) : null,
     });
-  }, [nav]);
-  useEffect(() => {
-    nav.setOptions({
-      headerTitle: () => (
-        <PilulaData
-          data={data}
-          dica="Abre o calendário para escolher o dia"
-          onPress={() => {
-            toque();
-            setEscolhendoDia(true);
-          }}
-        />
-      ),
-    });
-  }, [nav, data]);
+  }, [nav, data, controles]);
 
   // ao abrir: completa o que falta de hoje até +30 dias (e o dia escolhido, se estiver fora disso)
   useEffect(() => {
@@ -149,7 +149,7 @@ export default function LiturgiaDiaria() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Leitor corpo={corpo} titulo="Liturgia Diária" subtitulo={cnbb?.celebracao ? undefined : dia.celebracao.nome} acoes={acoes} iconeAcoes="text.book.closed" tituloAcoes="Missal" />
+      <Leitor corpo={corpo} titulo="Liturgia Diária" subtitulo={cnbb?.celebracao ? undefined : dia.celebracao.nome} aoMudarControles={setControles} acoes={acoes} iconeAcoes="text.book.closed" tituloAcoes="Missal" />
       <SeletorDataLiturgica
         visivel={escolhendoDia}
         data={data}

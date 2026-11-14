@@ -164,6 +164,7 @@ export default function Raiz() {
         <Stack.Screen name="comissoes" options={{ title: 'Comissões' }} />
         <Stack.Screen name="comissao" options={{ title: '' }} />
         <Stack.Screen name="editar-comissao" options={{ title: '', presentation: 'modal' }} />
+        <Stack.Screen name="interessados" options={{ title: 'Quem tem interesse' }} />
         <Stack.Screen name="rotina-dia" options={{ title: '' }} />
         <Stack.Screen name="editar-excecao" options={{ title: '', presentation: 'modal' }} />
       </Stack>

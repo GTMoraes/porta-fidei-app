@@ -1,12 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 
-import { pode, useConta } from '@/estado/conta';
-import { useServidor } from '@/servidor/api';
+import { podeEditarEvento, useConta, veInteressados } from '@/estado/conta';
+import { marcarInteresse, useServidor } from '@/servidor/api';
 import { Espaco, fonteTitulo, usePaleta } from '@/tema';
 import { COR_CANCELADO, COR_REAGENDADO, Etiqueta, textoReagendado } from '@/ui/Agenda';
-import { Aviso, Botao, Fundo, Icone, Linha, Secao, Vidro } from '@/ui/base';
+import { Aviso, Botao, Chave, Fundo, Icone, Linha, Secao, Vidro } from '@/ui/base';
 import { BotoesLink, ImagemInteira, PlayerVideo, TextoComLinks } from '@/ui/Midia';
 import { quandoEvento } from '@/util/datas';
 import { ehLinkDoApp } from '@/util/destinos';
@@ -16,7 +17,9 @@ import { salvarNaAgenda } from '@/util/salvarNaAgenda';
 export default function TelaEvento() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const srv = useServidor();
-  const podeEditar = pode(useConta(), 'agenda');
+  const conta = useConta();
+  const podeEditar = podeEditarEvento(conta);
+  const [marcando, setMarcando] = useState(false);
   const router = useRouter();
   const c = usePaleta();
   const e = srv.eventos.find((x) => x.id === id);
@@ -34,6 +37,22 @@ export default function TelaEvento() {
     );
 
   const lugar = { nome: e.titulo, local: e.local, lat: e.lat, lng: e.lng };
+  // "Tenho interesse" (0.7.1): até o evento acabar; todos veem quantos, os nomes só a coordenação e a comissão responsável
+  const aberto = !e.situacao && new Date(e.fim ?? new Date(e.inicio).getTime() + 2 * 3600_000).getTime() > Date.now();
+  const n = e.interessados ?? 0;
+  const contagem = n === 0 ? 'Ninguém marcou ainda' : n === 1 ? '1 pessoa tem interesse' : `${n} pessoas têm interesse`;
+  const marcado = !!conta?.interesses?.includes(e.id);
+  const alternarInteresse = async (sim: boolean) => {
+    if (!conta) return router.push('/entrar');
+    setMarcando(true);
+    try {
+      await marcarInteresse(e.id, sim);
+    } catch (err: any) {
+      Alert.alert('Não foi possível marcar', String(err?.message ?? err));
+    } finally {
+      setMarcando(false);
+    }
+  };
   const compartilhar = () =>
     Share.share({
       message: `${e.situacao === 'cancelado' ? 'CANCELADO: ' : e.situacao === 'reagendado' ? `${textoReagendado(e, srv.eventos).toUpperCase()}: ` : ''}${e.titulo}\n${quandoEvento(e.inicio, e.fim).join('\n')}${e.local ? `\n${e.local}` : ''}${temPonto(lugar) ? `\n${linkMapa(lugar)}` : ''}${e.descricao ? `\n\n${e.descricao}` : ''}${(e.botoes ?? []).filter((b) => !ehLinkDoApp(b.url)).map((b) => `\n\n${b.texto}: ${b.url}`).join('')}\n\nComunidade Católica Porta Fidei`,
@@ -72,6 +91,28 @@ export default function TelaEvento() {
             <Linha titulo={e.local || 'Ver no mapa'} sub="Abrir no mapa" icone="mappin.and.ellipse" onPress={() => abrirNoMapa(lugar)} externo ultimo />
           ) : null}
         </Secao>
+        {aberto || n > 0 ? (
+          <Secao>
+            {aberto ? (
+              conta ? (
+                <Linha
+                  titulo="Tenho interesse"
+                  sub={marcado ? `Você marcou · ${contagem.toLowerCase()}` : contagem}
+                  icone={marcado ? 'checkmark.circle.fill' : 'checkmark.circle'}
+                  direita={<Chave valor={marcado} mudar={(v) => !marcando && alternarInteresse(v)} />}
+                  ultimo={!(n > 0 && veInteressados(conta, e.comissao))}
+                />
+              ) : (
+                <Linha titulo="Tenho interesse" sub={`${contagem} · entre na sua conta para marcar`} icone="checkmark.circle" onPress={() => router.push('/entrar')} ultimo />
+              )
+            ) : (
+              <Linha titulo={contagem} icone="checkmark.circle" ultimo={!veInteressados(conta, e.comissao)} />
+            )}
+            {n > 0 && veInteressados(conta, e.comissao) ? (
+              <Linha titulo="Ver quem marcou" icone="person.2" onPress={() => router.push({ pathname: '/interessados', params: { id: e.id } })} ultimo />
+            ) : null}
+          </Secao>
+        ) : null}
         {temPonto(lugar) ? (
           <Pressable onPress={() => abrirNoMapa(lugar)} style={{ marginHorizontal: Espaco.l, marginBottom: Espaco.l, borderRadius: 22, overflow: 'hidden', height: 170 }}>
             <View pointerEvents="none" style={{ flex: 1 }}>

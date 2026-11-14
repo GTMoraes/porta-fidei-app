@@ -32,6 +32,9 @@ interface Props {
   tituloAcoes?: string;
   favorito?: { ativo: boolean; alternar: () => void }; // estrela na barra: guarda o texto nos Favoritos do Rezar
   extra?: { icone: any; onPress: () => void }; // botão a mais na barra, depois do índice (ex.: Propostas anteriores)
+  /** os controles apareceram ou sumiram (toque no texto): a tela esconde junto o que pôs no cabeçalho (data, botões
+   *  da direita); só a seta de voltar fica sempre */
+  aoMudarControles?: (visiveis: boolean) => void;
 }
 
 const ALTURA_RODAPE = 58;
@@ -39,7 +42,7 @@ const ALTURA_RODAPE = 58;
 // no Android ele é sólido e o texto já começa abaixo
 const CABECALHO_IOS = 44;
 
-export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseUrl, alturaTopo = 64, rodape, tipo = 'texto', busca, acoes, iconeAcoes = 'ellipsis.circle', tituloAcoes, favorito, extra }: Props) {
+export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseUrl, alturaTopo = 64, rodape, tipo = 'texto', busca, acoes, iconeAcoes = 'ellipsis.circle', tituloAcoes, favorito, extra, aoMudarControles }: Props) {
   const aj = useAjustes();
   const c = usePaleta();
   const web = useRef<WebView>(null);
@@ -48,6 +51,9 @@ export function Leitor({ corpo, titulo, subtitulo, permitirSilencio, topo, baseU
   const [rolando, setRolando] = useState(false);
   const [falando, setFalando] = useState(false);
   const [barraVisivel, setBarraVisivel] = useState(true);
+  const avisarControles = useRef(aoMudarControles);
+  avisarControles.current = aoMudarControles;
+  useEffect(() => avisarControles.current?.(barraVisivel), [barraVisivel]);
   const [silencio, setSilencio] = useState<number | null>(null); // segundos restantes
   // índice das partes (vem da página) e busca no texto
   const [indice, setIndice] = useState<{ id: string; titulo: string; nivel: number }[]>([]);

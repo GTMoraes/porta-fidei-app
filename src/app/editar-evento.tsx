@@ -8,7 +8,7 @@ import { Espaco, Marca, usePaleta } from '@/tema';
 import { Botao, Chave, Fundo, Linha, Secao, toque } from '@/ui/base';
 import { CampoLocal, useLocalComMapa } from '@/ui/CampoLocal';
 import { SeletorData } from '@/ui/Data';
-import { AVISO_TEXTO_NOTIF, AVISO_TITULO_NOTIF, botoesProntos, Campo, CampoBotoes, CampoImagem, CampoVideo } from '@/ui/Formulario';
+import { AVISO_TEXTO_NOTIF, AVISO_TITULO_NOTIF, botoesProntos, Campo, CampoBotoes, CampoEscolha, CampoImagem, CampoVideo } from '@/ui/Formulario';
 import { dataCurta, diaEHora, fimDoDia, hora } from '@/util/datas';
 
 const TIPOS: [TipoEvento, string][] = [
@@ -26,8 +26,16 @@ export default function EditarEvento() {
   const router = useRouter();
   const c = usePaleta();
   const orig = srv.eventos.find((e) => e.id === id);
-  // notificar e publicar em Avisos: só quem tem "Avisos e notificações" (0.7.0; o servidor também confere)
-  const podeAvisar = pode(useConta(), 'avisos');
+  // notificar e publicar em Avisos: só quem tem "Avisos e notificações" (0.7.0; o servidor também confere).
+  // A coordenação edita, cancela e reagenda; criar e apagar é de quem cuida da Agenda (0.7.1).
+  const conta = useConta();
+  const podeAvisar = pode(conta, 'avisos');
+  const podeApagar = pode(conta, 'agenda');
+  const comissoes = srv.comunidade?.comissoes ?? [];
+  const [comissao, setComissao] = useState(orig?.comissao ?? '');
+  // quem marcou interesse recebe um aviso só para essas pessoas quando o evento muda ou é cancelado
+  const nInteressados = orig?.interessados ?? 0;
+  const [avisarInteressados, setAvisarInteressados] = useState(true);
 
   const amanha19 = new Date();
   amanha19.setDate(amanha19.getDate() + 1);
@@ -87,6 +95,11 @@ export default function EditarEvento() {
     texto: textoNotif.trim(),
     urgente,
   });
+  /** aviso só para quem marcou interesse (o servidor não manda se sair a notificação para todos) */
+  const aviso = (prefixo: string) => ({
+    ...av,
+    avisarInteressados: orig && nInteressados && avisarInteressados ? { titulo: `${prefixo}: ${titulo.trim()}`, texto: linhaPadrao() } : undefined,
+  });
   const perguntarNotificar = (prefixo: string, fazer: (n?: { titulo: string; texto: string; urgente: boolean }) => void) =>
     !podeAvisar ? fazer(undefined) : Alert.alert('Avisar os membros?', `Sai uma notificação para todos: "${notifCom(prefixo).titulo}".`, [
       { text: 'Voltar', style: 'cancel' },
@@ -109,15 +122,15 @@ export default function EditarEvento() {
     if (!orig) return;
     Alert.alert('Cancelar esta missa ou evento?', 'Pode ficar na agenda marcado como CANCELADO ou sumir dela como se nada tivesse acontecido.', [
       { text: 'Voltar', style: 'cancel' },
-      { text: 'Só retirar da agenda', style: 'destructive', onPress: () => perguntarNotificar('Cancelado', (n) => executar(() => cancelarEvento(orig.id, false, n, av))) },
-      { text: 'Mostrar como CANCELADO', onPress: () => perguntarNotificar('Cancelado', (n) => executar(() => cancelarEvento(orig.id, true, n, av))) },
+      { text: 'Só retirar da agenda', style: 'destructive', onPress: () => perguntarNotificar('Cancelado', (n) => executar(() => cancelarEvento(orig.id, false, n, aviso('Cancelado')))) },
+      { text: 'Mostrar como CANCELADO', onPress: () => perguntarNotificar('Cancelado', (n) => executar(() => cancelarEvento(orig.id, true, n, aviso('Cancelado')))) },
     ]);
   };
   const desfazerCancelamento = () => {
     if (!orig) return;
     Alert.alert('Tem certeza?', 'O evento volta a aparecer normalmente na agenda.', [
       { text: 'Voltar', style: 'cancel' },
-      { text: 'Desfazer cancelamento', onPress: () => perguntarNotificar('Confirmado', (n) => executar(() => descancelarEvento(orig.id, n, av))) },
+      { text: 'Desfazer cancelamento', onPress: () => perguntarNotificar('Confirmado', (n) => executar(() => descancelarEvento(orig.id, n, aviso('Confirmado')))) },
     ]);
   };
 
@@ -131,6 +144,7 @@ export default function EditarEvento() {
     imagem,
     video,
     botoes: bts,
+    comissao: comissao || null,
   });
 
   const salvar = async () => {
@@ -154,7 +168,7 @@ export default function EditarEvento() {
                 inicio: inicio.toISOString(),
                 fim: temFim ? fim.toISOString() : null,
                 notificacao: notificar && textoNotif.trim() ? notifCom('Reagendado') : undefined,
-                ...av,
+                ...aviso('Reagendado'),
               }),
             ),
         },
@@ -164,6 +178,11 @@ export default function EditarEvento() {
     gravar(bts);
   };
 
+  const mudouQuandoOnde =
+    !!orig &&
+    (new Date(orig.inicio).getTime() !== inicio.getTime() ||
+      (orig.fim ? new Date(orig.fim).getTime() : null) !== (temFim ? fim.getTime() : null) ||
+      (orig.local ?? '').trim() !== local.trim());
   const gravar = async (bts: BotaoLink[]) => {
     setSalvando(true);
     try {
@@ -176,7 +195,8 @@ export default function EditarEvento() {
           ...dados(bts),
           // só a primeira data leva a notificação (missa repetida por semanas = uma notificação)
           notificacao: notificar && k === 0 && tituloNotif.trim() && textoNotif.trim() ? { titulo: tituloNotif.trim(), texto: textoNotif.trim(), urgente } : undefined,
-          ...(k === 0 ? av : {}),
+          // os interessados só são avisados quando muda o dia, o horário ou o local
+          ...(k === 0 ? (mudouQuandoOnde ? aviso('Mudança') : av) : {}),
           inicio: ini.toISOString(),
           fim: fi ? fi.toISOString() : null,
         });
@@ -212,6 +232,14 @@ export default function EditarEvento() {
 
         <Secao titulo="Informações">
           <Campo rotulo="Título" value={titulo} onChangeText={setTitulo} />
+          {comissoes.length ? (
+            <CampoEscolha
+              rotulo="Comissão responsável (opcional; os membros dela veem quem marcou interesse)"
+              valor={comissao}
+              valores={[['', 'Nenhuma'] as [string, string], ...comissoes.map((cm) => [cm.id, cm.nome] as [string, string])]}
+              mudar={setComissao}
+            />
+          ) : null}
           <CampoLocal s={lugar} />
           <Campo rotulo="Descrição" value={descricao} onChangeText={setDescricao} multiline placeholder="Detalhes, o que levar, contato…" />
           <CampoImagem url={imagem} mudar={setImagem} />
@@ -300,6 +328,17 @@ export default function EditarEvento() {
         </Secao>
         ) : null}
 
+        {orig && nInteressados ? (
+          <Secao titulo="Quem marcou interesse">
+            <Linha
+              titulo={`Avisar ${nInteressados === 1 ? 'a pessoa que marcou' : `as ${nInteressados} pessoas que marcaram`} interesse`}
+              sub="Se o evento mudar, for reagendado ou cancelado, só elas recebem a notificação (a não ser que saia uma para todos)"
+              direita={<Chave valor={avisarInteressados} mudar={setAvisarInteressados} />}
+              ultimo
+            />
+          </Secao>
+        ) : null}
+
         <View style={{ marginHorizontal: Espaco.l, gap: 12, marginBottom: 60 }}>
           <Botao titulo={salvando ? 'Salvando…' : notificar ? 'Publicar e notificar' : 'Publicar'} icone="checkmark" desativado={salvando || enviandoVideo || !titulo.trim()} onPress={salvar} />
           {orig && orig.situacao === 'cancelado' ? (
@@ -307,7 +346,7 @@ export default function EditarEvento() {
           ) : orig ? (
             <Botao titulo="Cancelar evento" icone="xmark.circle" tipo="secundario" desativado={salvando} onPress={cancelar} />
           ) : null}
-          {orig ? (
+          {orig && podeApagar ? (
             <Botao
               titulo="Apagar"
               tipo="perigo"

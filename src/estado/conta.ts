@@ -40,6 +40,15 @@ export function coordena(conta: Conta | null | undefined, comissao?: string | nu
 }
 export const coordenacoes = (conta: Conta | null | undefined) => (conta?.comissoes ?? []).filter((c) => c.coordenador);
 
+/** Edita, cancela e reagenda eventos: quem cuida da Agenda e toda a coordenação (criar e apagar: só a Agenda) */
+export const podeEditarEvento = (conta: Conta | null | undefined) => pode(conta, 'agenda') || coordenacoes(conta).length > 0;
+
+/** Vê os nomes de quem marcou interesse: administradores, toda a coordenação e a comissão responsável pelo evento */
+export function veInteressados(conta: Conta | null | undefined, comissaoDoEvento?: string | null): boolean {
+  if (!conta) return false;
+  return conta.admin || coordenacoes(conta).length > 0 || (!!comissaoDoEvento && conta.comissoes.some((c) => c.id === comissaoDoEvento));
+}
+
 /** Tem alguma tarefa na Administração (a linha "Administração" aparece em Ajustes) */
 export function ehEquipe(conta: Conta | null | undefined): boolean {
   if (!conta) return false;

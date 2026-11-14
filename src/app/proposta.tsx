@@ -1,7 +1,7 @@
 // Proposta de oração da semana (Material de Oração Pessoal enviado às segundas)
 
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { propostaHtml, semana } from '@/comunidade/html';
 import { lerPrevia } from '@/comunidade/previa';
@@ -37,14 +37,15 @@ export default function TelaProposta() {
   }, [item?.arquivo]);
   const nav = useNavigation();
 
-  // "PDF original": a proposta com a arte da Comissão, como foi enviada
+  // "PDF original": a proposta com a arte da Comissão, como foi enviada (some junto com os controles da leitura)
+  const [controles, setControles] = useState(true);
   useEffect(() => {
     nav.setOptions({
-      headerRight: p?.temPdf
+      headerRight: p?.temPdf && controles
         ? () => <BotaoCabecalho icone="doc.richtext" texto="PDF original" onPress={() => router.push({ pathname: '/pdf', params: { url: urlPdfProposta(p.id), titulo: p.titulo } })} />
         : undefined,
     });
-  }, [nav, p?.id, p?.temPdf, p?.titulo, router, c.destaque]);
+  }, [nav, p?.id, p?.temPdf, p?.titulo, router, c.destaque, controles]);
 
   // Propostas anteriores: um botão discreto na barra do leitor (relógio com seta), entre o índice e a lupa
   const extra = anteriores.length ? { icone: 'clock.arrow.circlepath', onPress: () => router.push('/propostas') } : undefined;
@@ -55,6 +56,7 @@ export default function TelaProposta() {
       titulo={p?.titulo ?? 'Proposta de oração'}
       subtitulo={p ? `Proposta de oração${p.inicio ? ` · ${semana(p)}` : ''}${p.publicada ? '' : ' · rascunho'}` : undefined}
       extra={extra}
+      aoMudarControles={setControles}
       favorito={item ? { ativo: ehFavorito(salvos, item), alternar: () => alternarFavorito(item) } : undefined}
     />
   );

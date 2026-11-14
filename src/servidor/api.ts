@@ -31,6 +31,9 @@ export interface Evento {
   /** cancelado: fica na agenda marcado; reagendado: o original, na data antiga, apontando para o novo */
   situacao?: 'cancelado' | 'reagendado' | null;
   reagendadoPara?: string | null;
+  /** 0.7.1: comissão responsável (id, opcional) e quantos marcaram "Tenho interesse" */
+  comissao?: string | null;
+  interessados?: number;
 }
 
 /** Vídeo já comprimido pelo servidor; "capa" é a escolhida pela pessoa, "capaAuto" a gerada */
@@ -178,6 +181,16 @@ export interface Conta {
   comissoes: ComissaoDaConta[];
   senhaProvisoria?: boolean;
   criado?: string;
+  /** eventos em que a pessoa marcou interesse (0.7.1) */
+  interesses?: string[];
+}
+/** Quem marcou interesse num evento (visto pela coordenação e pela comissão responsável) */
+export interface Interessado {
+  id: string;
+  usuario: string;
+  nome: string;
+  foto?: string | null;
+  criado: string;
 }
 /** Uma pessoa em Administração › Pessoas (o coordenador só recebe id, usuário, nome e foto) */
 export interface Pessoa {
@@ -434,6 +447,16 @@ export async function sairDaConta() {
   } catch {}
   await guardarConta(null, null);
 }
+/** "Tenho interesse" num evento: marca ou desmarca e já atualiza a contagem na tela */
+export async function marcarInteresse(evento: string, sim: boolean) {
+  const j = (await contaReq(`/interesses/${evento}`, 'PUT', { sim })) as { interessados: number; interesses: string[] };
+  dados = { ...dados, eventos: dados.eventos.map((e) => (e.id === evento ? { ...e, interessados: j.interessados } : e)) };
+  if (dados.conta) await guardarConta({ ...dados.conta, interesses: j.interesses });
+  else emitir();
+  return j;
+}
+export const listarInteressados = (evento: string) => contaReq(`/eventos/${evento}/interessados`, 'GET') as Promise<Interessado[]>;
+
 export async function apagarMinhaConta() {
   await contaReq('', 'DELETE');
   await guardarConta(null, null);
@@ -477,6 +500,8 @@ export interface AvisoDoEvento {
   publicarAviso?: boolean;
   fixarAviso?: boolean;
   avisoVenceEm?: string | null;
+  /** notificação só para quem marcou interesse (quando não sai a notificação para todos), 0.7.1 */
+  avisarInteressados?: { titulo: string; texto: string };
 }
 export const salvarEvento = (e: Partial<Evento> & { notificacao?: NotificacaoEvento } & AvisoDoEvento) => (e.id ? admin(`/eventos/${e.id}`, 'PUT', e) : admin('/eventos', 'POST', e));
 export const apagarEvento = (id: string) => admin(`/eventos/${id}`, 'DELETE');

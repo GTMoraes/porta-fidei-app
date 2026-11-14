@@ -33,6 +33,8 @@ export default function TelaHora() {
   const c = usePaleta();
   const [data, setData] = useState(p.data || dataParaHora(p.h));
   const [mexeuNaData, setMexeuNaData] = useState(false);
+  // a data do cabeçalho some junto com os controles (toque no texto); a seta de voltar fica
+  const [controles, setControles] = useState(true);
   const [memoria, setMemoria] = useState<string | undefined>();
   const [escolhendoDia, setEscolhendoDia] = useState(false); // calendário aberto (tocar na data)
   const [corpo, setCorpo] = useState<string | null>(null);
@@ -191,14 +193,15 @@ export default function TelaHora() {
       <Stack.Screen
         options={{
           headerTitleAlign: 'center',
-          headerTitle: () => (
-            <PilulaData
-              data={data}
-              antes={p.agora ? nomeHora : undefined}
-              dica={p.agora ? 'Troca a Hora ou o dia' : 'Abre o calendário para escolher o dia'}
-              onPress={tocarData}
-            />
-          ),
+          headerTitle: () =>
+            controles ? (
+              <PilulaData
+                data={data}
+                antes={p.agora ? nomeHora : undefined}
+                dica={p.agora ? 'Troca a Hora ou o dia' : 'Abre o calendário para escolher o dia'}
+                onPress={tocarData}
+              />
+            ) : null,
         }}
       />
       <Leitor
@@ -209,6 +212,7 @@ export default function TelaHora() {
         titulo={plano.titulo}
         subtitulo={plano.diaCelebrado.celebracao.nome}
         permitirSilencio={h === 'laudes' || h === 'vesperas'}
+        aoMudarControles={setControles}
         topo={topo}
       />
       <SeletorDataLiturgica visivel={escolhendoDia} data={data} aoEscolher={irParaDia} aoFechar={() => setEscolhendoDia(false)} />
